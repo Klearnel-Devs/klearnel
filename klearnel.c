@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 int main(int argc, char** argv){
-	printf("This module is not yet implemented");
+	printf("Function %s\n",__func__);
+	printf("This module is not yet implemented\n");
 	return EXIT_SUCCESS;
 }
