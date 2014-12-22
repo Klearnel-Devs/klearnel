@@ -1,3 +1,9 @@
+/*
+ * This file is the main one for the klearnel module
+ *
+ * Copyright (C) 2014, 2015 Klearnel-Devs
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 
