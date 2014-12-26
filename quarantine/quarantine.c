@@ -6,45 +6,76 @@
  */
 
 #include "quarantine.h"
-// TODO: Changer cette merde avec un fichier contenant les données des fichiers stockés en quarantaine
-struct qr_file extract_file_info(struct dirent* _file, struct qr_list* _stock){
-	struct qr_file tmp;
+
+/* Extract all informations of a new file into the qr_list */
+void extract_file_info(const struct dirent _file, struct qr_list* _stock){
+	int fd;
+	struct qr_file* tmp;
 	struct stat tmpStat;
 
 	char* path = malloc(strlen(STOCK_QR));
-	strcpy(path, STOCK_QR);
-	strcat(path, _file->d_name);
+	strcpy(path, QR_STOCK);
+	strcat(path, _file.d_name);
 
 	stat(path, &tmpStat);
 
-	tmp.old_inode = tmpStat;
-	tmp.f_name = path;
-	tmp.d_begin = time(NULL);
-	tmp.d_expire = 0;
+	tmp = malloc(sizeof(struct qr_file));
 
-	if(_stock->prev != NULL) 
-		tmp.id = _stock->prev->id + 1;
-	else tmp.id = 0;
+	tmp->old_inode = tmpStat;
+	tmp->f_name = path;
+	tmp->d_begin = time(NULL);
+	tmp->d_expire = 0;
 
-	return tmp;
-}
+	if(_stock->f_info != NULL) 
+		tmp->id = _stock->f_info.id + 1;
+	else tmp->id = 0;
 
-int add_file_to_qr(struct qr_file* _add, struct qr_list* _stock){
-	// need to know the absolute path to file _add
-	
-}
-
-void load_qr(struct qr_list* _stock){
-	DIR* base;
-	struct dirent* file;
-	if((base = opendir(STOCK_QR)) == NULL){
-		perror("Unable to open the quarantine stock directory\n");
+	if((fd = open(QR_DB, 0_APPEND | O_CREAT, USER_RW)) < 0){
+		perror("%s : Unable to open STOCK_DB file", __func__);
 		return;
 	}
-	while((file = readdir(base)) != NULL){
-		if(!strcmp(file->d_name, ".") || 
-		   !strcmp(file->d_name, ".."))
-			continue;
 
+	if(write(fd, tmp, sizeof(struct qr_file)) <= 0){
+		perror("%s : Unable to write new file in QR_DB file", __func__);
+		return;
 	}
+
+	close(fd);
+
+	struct qr_list* new_f = malloc(sizeof(struct qr_list));
+	new_f->f_info = tmp;
+	if(_stock->f_info != NULL) new_f->prev = _stock;
+	else new_f->prev = NULL;
+	new_f->next = NULL;
+	_stock->next = new_f;
+}
+
+/* Move file to STOCK_QR */
+void add_file_to_qr(const char* _add, const struct qr_file _info){
+	if(rename(_add, _info.f_name)){
+		perror("%s : Unable to move %s to the quarantine", __func__, _add);
+		return;
+	}
+}
+
+/* Load _stock with content of QR_DB */
+void load_qr(struct qr_list* _stock){
+	int fd;
+	struct qr_file* tmp;
+	
+	if(fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0){
+		perror("%s : Unable to open QR_DB file", __func__);
+		return;
+	}
+
+	while(read(fd, tmp, sizeof(struct qr_file)) != 0){
+		struct qr_list* new_f = malloc(sizeof(struct qr_list));
+		new_f.f_info = tmp;
+		if(_stock->f_info != NULL) new_f.prev = _stock;
+		else new_f.prev = NULL;
+		new_f.next = NULL;
+		_stock->next = new_f;
+	}
+
+	close(fd);
 }
