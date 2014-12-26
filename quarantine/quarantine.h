@@ -13,7 +13,6 @@
 
 /* Structure of file into quarantine */
 struct qr_file {
-	int 		id;
 	char 		f_name[PATH_MAX + 1];
 	struct 		stat old_inode; /* inode info before move into quarantine */
 	time_t 		d_begin; /* date at which file has been moved to quarantine */
