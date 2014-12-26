@@ -2,10 +2,15 @@
 
 CC = gcc
 
-all:
+default:
+	INC_DIR = include
+	CFLAGS = -Wall -Werror -I$(INC_DIR)
 
-	$(CC) klearnel.c -o klearnel.o
+	$(CC) $(CFLAGS) klearnel.c -o klearnel.o
 
+module:
+
+	obj-m += klearnel.o
 clean:
 
 	@rm -r *.o

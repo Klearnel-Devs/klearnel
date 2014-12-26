@@ -4,8 +4,7 @@
  * Copyright (C) 2014, 2015 Klearnel-Devs
  *
  */
-#include <stdio.h>
-#include <stdlib.h>
+#include <global.h>
 
 int main(int argc, char** argv){
 	printf("Function %s\n",__func__);
