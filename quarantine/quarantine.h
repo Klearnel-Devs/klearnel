@@ -14,16 +14,17 @@
 /* Structure of file into quarantine */
 struct qr_file {
 	char 		f_name[PATH_MAX + 1];
-	struct 		stat old_inode; /* inode info before move into quarantine */
+	char		o_path[PATH_MAX + 1];
+	struct stat	o_ino; /* inode info before move into quarantine */
 	time_t 		d_begin; /* date at which file has been moved to quarantine */
 	time_t 		d_expire; /* date at which file will be dropped out (optional) */
 };
 
 /* List of file into the quarantine */
-struct qr_list {
-	struct qr_list* 	next;
-	struct qr_file*		f_info;
-	struct qr_list* 	prev;
+struct qr_node {
+	struct qr_file*		data;
+	struct qr_node* 	left;
+	struct qr_node* 	right;
 };
 
 #endif /* _KLEARNEL_QUARANTINE_H */

@@ -2,6 +2,7 @@
 
 *.o
 *~
+*.old
 
 # Dirs to ignore
 
