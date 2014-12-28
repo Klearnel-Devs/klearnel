@@ -10,6 +10,10 @@
 /* Init a node of the quarantine with all attributes at NULL */
 struct qr_node* new_qr_node(){
 	struct qr_node* tmp = malloc(sizeof(struct qr_node));
+	if(tmp == NULL){
+		perror("%s: Couldn't allocate memory", __func__);
+		return NULL;
+	}
 	tmp->data = NULL;
 	tmp->left = NULL;
 	tmp->right = NULL;
@@ -22,8 +26,12 @@ void add_to_qr_list(struct qr_node** list, struct qr_file* new){
 	struct qr_node *tmpList = *list;
 	struct qr_node *elem;
 
-	elem = new_qr_node();
-	elem->data  = new;
+	if(elem = new_qr_node()) == NULL){
+		perror("%s: Unable to create new qr node", __func__);
+		return;
+	}
+
+	elem->data = new;
 
 	if(tmpList){
 		do{
@@ -100,18 +108,94 @@ struct qr_node* search_in_qr(struct qr_node *list, const ino_t inum){
 	return tmpNode;
 }
 
-void cancel_add(const char* cur_p, const char* old_path){
-
+void cancel_add(const char *cur_p, const char *old_p){
+	if(rename(cur_p, old_p)){
+		perror("%s: Unable to move file %s to %s", __func__, cur_p, old_p);
+		return;
+	}
 }
 
-/* Extract all informations of a new file into the qr_list */
-void extract_file_info(const char* file, const char* new_path){
+/* Get filename in a path */
+char* get_filename(const char *path){
+	char sep = '/';
+	char *name;
+	int i, l_occ, lg_tot, lg_sub;
 
+  	lg_tot = strlen(path);
+	for(i = 0; i < lg_tot; i++) 
+		if(path[i] == sep) 
+			l_occ = i;
+
+	if((name = malloc(lg_tot - i) + 1)) == NULL){
+		perror("%s: Couldn't allocate memory", __func__);
+		return NULL;
+	}
+
+	for(i = 0; i < l_occ; i++){
+		path++;
+		lg_sub = i;
+	}
+
+	for(i = 0; i < (lg_tot - lg_sub); i++){
+		*(name + i) = *path;
+		path++;
+	} 
+
+	return name;
+}
+
+/* Write the list into the quarantine DB */
+void save_qr_list(struct node** list){
+	int fd;
+
+	if((fd = open(QR_DB, O_WRONLY, S_IRUSR)) < 0){
+		perror("%s: Unable to open the QR_DB", __func__);
+		return;
+	}
+
+	// TODO
 }
 
 /* Move file to STOCK_QR */
 void add_file_to_qr(const char* file){
+	struct node *list = *load_qr();
+	struct qr_file *new_f = malloc(sizeof(struct qr_file));
+	struct stat new_s;
+	char *new_path = malloc(sizeof(QR_STOCK));
+	char *fn = get_filename(file);
 
+	if((new_f == NULL) || (new_path == NULL )){
+		perror("%s: Couldn't allocate memory", __func__);
+		return;
+	}
+
+	strcpy(path, QR_STOCK);
+	strcat(path, fn);
+
+	stat(new_path, &new_s);
+
+	strcpy(new_f->old_inode, new_s);
+	strcpy(new_f->old_path, file);
+	strcpy(new_f->f_name, fn);
+
+	if((new_f->f_name == NULL)
+		return;
+
+	new_f->d_begin   = time(NULL);
+	/* This will be changed when config implemented 
+	 * Choice will be between expire configured and not configured
+	 */
+	new_f->d_expire  = 0;
+
+	add_to_qr_list(&list, new_f);
+	save_qr_list(list);
+
+        if(rename(file, new_path)){
+        	perror("%s: Unable to move %s to %s", __func__, file, new_path);
+        	return;
+        }
+
+        clear_qr_list(&list);
 }
 
 /* Delete definitively a file from the quarantine */
