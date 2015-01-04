@@ -28,7 +28,7 @@ build:
 clean: clean-sub
 	@echo "Removing all objects and build dirs..."
 	@rm -rf $(BUILD_DIR)
-	@echo "The klearnel dir is now clean!"
+	@echo "The project directory is now clean!"
 
 clean-sub:
 	@echo "Removing all symlinks generated..."

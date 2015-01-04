@@ -7,3 +7,5 @@
 # Dirs to ignore
 
 /test
+/build
+/bin
