@@ -5,7 +5,7 @@
  */
 #include <global.h>
 
-/* To use when you are going to work in shared memo */
+
 void sem_down(int sem_id, int sem_channel){
 	struct sembuf op;
 	op.sem_num 	= sem_channel;
@@ -14,7 +14,6 @@ void sem_down(int sem_id, int sem_channel){
 	semop(sem_id, &op, 1);
 } 
 
-/* To use when you finish your work in shared memo */
 void sem_up(int sem_id, int sem_channel){
 	struct sembuf op;
 	op.sem_num 	= sem_channel;
@@ -23,23 +22,27 @@ void sem_up(int sem_id, int sem_channel){
 	semop(sem_id, &op, 1);
 }
 
-/* Reset the sema to 1 */
 void sem_reset(int sem_id, int sem_channel){
 	semctl(sem_id, sem_channel, SETVAL, 1);
 }
 
-/* Check if shared mem is readable */
-bool isShMemReadable(int sem_id, int sem_channel){
-	if(semctl(sem_id, sem_channel, GETVAL) == 1) return true;
-	return false;
+int is_crit_area_free(int sem_id, int sem_channel){
+	if(semctl(sem_id, sem_channel, GETVAL) == 1) return 1;
+	return 0;
 }
 
-/* Return sem_channel of sem_id value */
+void wait_crit_area(int sem_id, int sem_channel){
+	while(!is_crit_area_free(sem_id, sem_channel)) usleep(2000);
+}
+
 int sem_val(int sem_id, int sem_channel){
 	return semctl(sem_id, sem_channel, GETVAL);
 }
 
-/* Set sem_channel of sem_id at val */
-void sem_put(int sem_id, int sem_channel, int _val){
-	semctl(sem_id, sem_channel, SETVAL, _val);
+void sem_put(int sem_id, int sem_channel, int val){
+	semctl(sem_id, sem_channel, SETVAL, val);
+}
+
+void not_yet_implemented(const char* func){
+	printf("%s: Not yet implemented\n", func);
 }

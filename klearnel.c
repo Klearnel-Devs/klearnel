@@ -9,7 +9,6 @@
 #include <global.h>
 
 int main(int argc, char** argv){
-	printf("Function %s\n",__func__);
-	printf("This module is not yet implemented\n");
+	not_yet_implemented(__func__);
 	return EXIT_SUCCESS;
 }
