@@ -26,13 +26,8 @@
 #define ALL_R 		S_IRUSR | S_IRGRP | S_IROTH
 #define USER_RW		S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
 
-#define QR_SHM_SIZE 0x4C4B40 /* Fixed at 5 MB */ 
-
 #define IPC_RAND "/dev/null"
 #define IPC_PERMS 0666
-
-#define QR_SHM 101
-#define QR_SEM 102
 
 /* ------ PROTOTYPES ----- */
 

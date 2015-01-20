@@ -7,49 +7,48 @@
 
 #include <quarantine/quarantine.h>
 
-/* Init a node of the quarantine with all attributes at NULL */
-static struct qr_node* new_qr_node(){
-	struct qr_node *tmp = malloc(sizeof(struct qr_node));
-	if(tmp == NULL){
-		perror("Couldn't allocate memory");
-		goto out;
+/* Initialize all requirements for Quarantine */
+void init_qr(){
+	if(access(QR_STOCK, F_OK) == -1){
+		if(mkdir(QR_STOCK, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)){
+			perror("QR: Unable to create the stock");
+			return;
+		}
 	}
-	tmp->data = NULL;
-	tmp->left = NULL;
-	tmp->right = NULL;
-out:
-	return tmp;
+	if(access(QR_DB, F_OK) == -1){
+		if(creat(QR_DB, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)){
+			perror("QR: Unable to create the database file");
+			return;
+		}
+	}
 }
 
-/* Attach the shared memory of quarantine tree to list 
- * Return a table with the sem_id and the shm_id created
+/* Init a node of the quarantine with all attributes at NULL 
+ * Return 0 on success, -1 on error
  */
-static int* at_qr_shm(struct qr_node **list, int shmflags){
-	int *qr_ipc = malloc(2*sizeof(int));
-	if(qr_ipc == NULL){
-		perror("Unable to allocate memory");
-		goto out;
+int new_qr_node(struct qr_node **new_node){
+	*new_node = malloc(sizeof(struct qr_node));
+	if(*new_node == NULL){
+		perror("Couldn't allocate memory");
+		return -1;
 	}
-	key_t qr_sem_key = ftok(IPC_RAND, QR_SEM);
-	qr_ipc[0] = semget(qr_sem_key, 1, IPC_CREAT | IPC_PERMS);
-
-	key_t qr_shm_key = ftok(IPC_RAND, QR_SHM);
-	qr_ipc[1] = shmget(qr_shm_key, QR_SHM_SIZE, shmflags);
-
-	*list = (struct qr_node *) shmat(qr_ipc[1], NULL, 0);
-out:
-	return qr_ipc;
+	(*new_node)->data = NULL;
+	(*new_node)->left = NULL;
+	(*new_node)->right = NULL;
+	return 0;
 }
 
-/* Add a file to the quarantine list */
-void add_to_qr_list(struct qr_node** list, struct qr_file* new){
+/* Add a file to the quarantine list 
+ * Return 0 on success, -1 on error
+ */
+int add_to_qr_list(struct qr_node **list, struct qr_file *new){
 	struct qr_node *tmpNode;
 	struct qr_node *tmpList = *list;
 	struct qr_node *elem;
 
-	if((elem = new_qr_node()) == NULL){
+	if(new_qr_node(&elem)){
 		perror("Unable to create new qr node");
-		return;
+		return -1;
 	}
 
 	elem->data = new;
@@ -70,12 +69,13 @@ void add_to_qr_list(struct qr_node** list, struct qr_file* new){
 	    	} while(tmpList);
 	}
 	else  *list = elem;
+	return 0;
 }
 
 /* Recursively clear the quarantine list 
  * Keep the memory clean
  */
-void clear_qr_list(struct qr_node** list){
+void clear_qr_list(struct qr_node **list){
 	struct qr_node *tmp = *list;
 	
 	if(!list) return;
@@ -86,13 +86,12 @@ void clear_qr_list(struct qr_node** list){
 	*list = NULL;
 }
 
-/* Load quarantine with content of QR_DB 
- * This function initialize the QR_SHM 
+/* Load quarantine with content of QR_DB  
  */
-void load_qr(){
+void load_qr(struct qr_node **list){
 	int fd;
 	struct qr_file *tmp;
-	struct qr_node *list = NULL;
+	clear_qr_list(list);
 
 	if((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0){
 		perror("Unable to open QR_DB");
@@ -105,27 +104,23 @@ void load_qr(){
 		return;
 	}
 	while(read(fd, tmp, sizeof(struct qr_file)) != 0)
-		add_to_qr_list(&list, tmp);
+		if(add_to_qr_list(list, tmp)){
+			clear_qr_list(list);
+			perror("QR: Unable to load qr_list");
+			return;
+		}
 
 	close(fd);
-	
-	struct qr_node *sh_list;
-	int *qr_ipc = at_qr_shm(&sh_list, S_IWUSR);
-
-	wait_crit_area(qr_ipc[0], 0);
-	sem_down(qr_ipc[0], 0);
-	sh_list = list;
-	sem_up(qr_ipc[0], 0);
-
-	shmdt(&qr_ipc[1]);
 }
 
 /* Search for a file in the list on inode number base */
-static struct qr_node* search_in_qr(struct qr_node *list, const ino_t inum){
+void search_in_qr(struct qr_node *list, const ino_t inum, struct qr_node **result){
 	struct qr_node *tmpList = list;
-	struct qr_node *tmpNode;
         
-	tmpNode = new_qr_node();
+	if(new_qr_node(result)){
+		perror("QR: Unable to create new node");
+		return;
+	}
 
 	while(tmpList){
 
@@ -136,15 +131,14 @@ static struct qr_node* search_in_qr(struct qr_node *list, const ino_t inum){
 		else tmpList = tmpList->left; 
 	}
 
-	tmpNode = tmpList;
+	*result = tmpList;
 
-	return tmpNode;
+	
 }
 
 /* Get filename in a path */
-static char* get_filename(const char *path){
+void get_filename(const char *path, char *filename){
 	char sep = '/';
-	char *name;
 	int i, l_occ, lg_tot, lg_sub;
 
   	lg_tot = strlen(path);
@@ -152,9 +146,9 @@ static char* get_filename(const char *path){
 		if(path[i] == sep) 
 			l_occ = i;
 
-	if((name = malloc(lg_tot - i) + 1) == NULL){
+	if((filename = malloc(lg_tot - i) + 1) == NULL){
 		perror("Couldn't allocate memory");
-		return NULL;
+		return;
 	}
 
 	for(i = 0; i < l_occ; i++){
@@ -163,11 +157,9 @@ static char* get_filename(const char *path){
 	}
 
 	for(i = 0; i < (lg_tot - lg_sub); i++){
-		*(name + i) = *path;
+		*(filename + i) = *path;
 		path++;
 	} 
-
-	return name;
 }
 
 /* Recursively write the data in the quarantine tree to QR_DB */
@@ -186,6 +178,7 @@ void write_node(struct qr_node **list, const int fd){
 	}	
 }
 
+/* TO MODIFY !!!!! */
 /* Write the list into the quarantine DB 
  * Return 0 on success and -1 on error
  */
@@ -204,21 +197,14 @@ int save_qr_list(){
 		return -1;
 	}
 
-	qr_ipc = at_qr_shm(&list, S_IRUSR | S_IRUSR);
-
-	wait_crit_area(qr_ipc[0], 0);
-	sem_down(qr_ipc[0], 0);
-
 	write_node(&list, fd);
 	clear_qr_list(&list);
 
-	sem_up(qr_ipc[0], 0);
-
 	close(fd);
-	shmdt(&qr_ipc[1]);
 	return 0;	
 }
 
+/* TO MODIFY */
 /* Move file to STOCK_QR */
 void add_file_to_qr(const char* file){
 	struct qr_node *list;
@@ -257,12 +243,7 @@ void add_file_to_qr(const char* file){
         	return;
         }
 
-        wait_crit_area(qr_ipc[0], 0);
-	sem_down(qr_ipc[0], 0);
-	add_to_qr_list(&list, new_f);
-	sem_up(qr_ipc[0], 0);
-
-        shmdt(&qr_ipc[1]);
+        add_to_qr_list(&list, new_f);
 }
 
 /* Delete definitively a file from the quarantine */

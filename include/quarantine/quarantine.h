@@ -8,7 +8,7 @@
  */
 #include <global.h>
 
-#define QR_STOCK "stock/"
+#define QR_STOCK "/usr/local/stock/"
 #define QR_DB "quarantine.db"
 
 /* Structure of file into quarantine */
