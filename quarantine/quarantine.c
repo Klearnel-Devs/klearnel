@@ -206,7 +206,7 @@ int save_qr_list(struct qr_node **list){
 
 /* TO MODIFY */
 /* Move file to STOCK_QR */
-void add_file_to_qr(struct qr_node **list, const char* file){
+void add_file_to_qr(struct qr_node **list, const char *file){
 	struct qr_file *new_f = malloc(sizeof(struct qr_file));
 	struct stat new_s;
 	char *new_path = malloc(strlen(QR_STOCK) + 1);
@@ -244,12 +244,12 @@ void add_file_to_qr(struct qr_node **list, const char* file){
 }
 
 /* Delete definitively a file from the quarantine */
-void rm_file_from_qr(const char* file, struct qr_node **list){
+void rm_file_from_qr(const char *file, struct qr_node **list){
 	NOT_YET_IMP;
 }
 
 /* Restore file to its anterior state and place */
-void restore_file(const char* file, struct qr_node **list){
+void restore_file(const char *file, struct qr_node **list){
 	NOT_YET_IMP;
 }
 
