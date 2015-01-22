@@ -321,14 +321,28 @@ int rm_file_from_qr(struct qr_node **list, const char *file)
 }
 
 /* Restore file to its anterior state and place */
-void restore_file(const char *file, struct qr_node **list){
-	NOT_YET_IMP;
+int restore_file(struct qr_node **list, const char *file)
+{
+	struct qr_node *res_file = search_in_qr(*list, file);
+	if (res_file == NULL) {
+		perror("QR ERROR: Unable to find file to restore");
+		return -1;
+	}
+	if (rm_from_qr_list(list, res_file->data->o_ino.st_ino)) {
+		perror("QR: Unable to remove file from QR list");
+		return -1;
+	}
+	if (rename(file, res_file->data->o_path)) {
+		perror("Restore aborted: Unable to move the file");
+		return -1;
+	}
+	return 0;
 }
 
 /* Remove file from the qr_list 
  * Return 0 on success, -1 on error 
  */
-int rm_from_qr_list(ino_t i_num, struct qr_node **list){
+int rm_from_qr_list(struct qr_node **list, ino_t i_num){
 	NOT_YET_IMP;
 	return -1;
 }
