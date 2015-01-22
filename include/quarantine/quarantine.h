@@ -26,4 +26,22 @@ struct qr_node {
 	struct qr_node* 	right;
 };
 
+/*----- PROTOYPE ------ */
+
+void init_qr();
+
+void load_qr(struct qr_node **list);
+
+int add_to_qr_list(struct qr_node **list, struct qr_file *new_f);
+
+struct qr_node *search_in_qr(struct qr_node *list, const char *filename);
+
+int save_qr_list(struct qr_node **list);
+
+void add_file_to_qr(struct qr_node **list, const char *file);
+
+int rm_file_from_qr(struct qr_node **list, const char *file);
+
+int restore_file(struct qr_node **list, const char *file);
+
 #endif /* _KLEARNEL_QUARANTINE_H */
