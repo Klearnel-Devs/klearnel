@@ -116,26 +116,38 @@ void load_qr(struct qr_node **list){
 /* Search for a file in the list on filename base 
  * Return a struct node if found, NULL in other cases
  */
-struct qr_node *search_in_qr(struct qr_node *list, const char *filename){
+struct qr_node *search_in_qr(struct qr_node *list, const char *filename)
+{
 	struct qr_node *tmpList = list;
 	char *base = QR_STOCK;
 	struct stat tmp;
-	if(stat(strncat(base, filename, strlen(filename)), &tmp) < 0){
+	int exists = 1;
+	if (stat(strncat(base, filename, strlen(filename)), &tmp) < 0) {
 		perror("QR: Unable to find the specified file");
-		return NULL;
-	}  
+		exists = 0;
+	}
 
 	ino_t inum = tmp.st_ino;
 
-	while(tmpList){
+	while (tmpList) {
 
 		ino_t cur_ino = tmpList->data->o_ino.st_ino;
 
-		if(inum == cur_ino) break;
-		else if(inum > cur_ino) tmpList = tmpList->right;
-		else tmpList = tmpList->left; 
+		if (inum == cur_ino) {
+			if (exists) {
+				break;
+			} else {
+				if (rm_from_qr_list(&list, filename)) {
+					perror("QR: Unable to remove file from qr_list");
+					return NULL;
+				}
+			}	
+		} else if (inum > cur_ino) {
+			tmpList = tmpList->right;
+		} else {
+			tmpList = tmpList->left;
+		} 
 	}
-
 	return tmpList;
 	
 }
@@ -286,8 +298,26 @@ void add_file_to_qr(struct qr_node **list, const char *file){
 }
 
 /* Delete definitively a file from the quarantine */
-void rm_file_from_qr(const char *file, struct qr_node **list){
-	NOT_YET_IMP;
+int rm_file_from_qr(struct qr_node **list, const char *file)
+{
+	struct qr_node *f_rm = search_in_qr(*list, file);
+	char *p_rm = QR_STOCK;
+	if (strncat(p_rm, file, strlen(file)) == NULL) {
+		perror("QR: Unable to create path for file to remove");
+		return -1;
+	}
+
+	if (rm_from_qr_list(list, f_rm->data->o_ino.st_ino)) {
+		perror("QR: Unable to remove file from qr_list");
+		return -1;
+	}
+
+	if (unlink(p_rm)) {
+		perror("QR: Unable to remove file from stock");
+		fprintf(stderr, "WARNING: [QR] File has been removed from qr_list!\n");
+		return -1;
+	}
+	return 0;
 }
 
 /* Restore file to its anterior state and place */
