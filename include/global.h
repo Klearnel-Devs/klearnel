@@ -29,6 +29,7 @@
 #define IPC_RAND "/dev/null"
 #define IPC_PERMS 0666
 
+
 /* ------ PROTOTYPES ----- */
 
 /* Signal critical area linked to sema is now used */
@@ -57,5 +58,6 @@ void sem_put(int sem_id, int sem_channel, int val);
  * any error message
  */ 
 void not_yet_implemented(const char* func);
+#define NOT_YET_IMP not_yet_implemented(__func__);
 
 #endif /* _KLEARNEL_GLOBAL_H */

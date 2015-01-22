@@ -21,6 +21,6 @@
 #include <global.h>
 
 int main(int argc, char** argv){
-	not_yet_implemented(__func__);
+	NOT_YET_IMP;
 	return EXIT_SUCCESS;
 }

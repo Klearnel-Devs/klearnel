@@ -6,7 +6,6 @@
  *
  * Copyright (C) 2014, 2015 Klearnel-Devs
  */
-#include <global.h>
 
 #define QR_STOCK "/usr/local/stock/"
 #define QR_DB "quarantine.db"
