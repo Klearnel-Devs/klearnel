@@ -10,6 +10,7 @@
 #define QR_STOCK BASE_DIR "/qr_stock"
 #define QR_DB BASE_DIR "/qr.db"
 
+
 /* Structure of file into quarantine */
 struct qr_file {
 	char 		f_name[PATH_MAX + 1];
@@ -19,29 +20,35 @@ struct qr_file {
 	time_t 		d_expire; /* date at which file will be dropped out (optional) */
 };
 
+typedef struct qr_file QrData;
+
+struct qr_node;
+typedef struct qr_node* QrPosition;
+typedef struct qr_node* QrSearchTree;
+
 /* List of file into the quarantine */
 struct qr_node {
-	struct qr_file*		data;
-	struct qr_node* 	left;
-	struct qr_node* 	right;
+	QrData		data;
+	QrSearchTree 	left;
+	QrSearchTree	right;
 };
 
 /*----- PROTOYPE ------ */
 
 void init_qr();
 
-void load_qr(struct qr_node **list);
+void load_qr(QrSearchTree list);
 
-int add_to_qr_list(struct qr_node **list, struct qr_file *new_f);
+int add_to_qr_list(QrSearchTree list, QrData new_f);
 
-struct qr_node *search_in_qr(struct qr_node *list, const char *filename);
+QrPosition search_in_qr(QrSearchTree list, const char *filename);
 
-int save_qr_list(struct qr_node **list);
+int save_qr_list(QrSearchTree list);
 
-void add_file_to_qr(struct qr_node **list, const char *file);
+void add_file_to_qr(QrSearchTree list, const char *filepath);
 
-int rm_file_from_qr(struct qr_node **list, const char *file);
+int rm_file_from_qr(QrSearchTree list, const char *filename);
 
-int restore_file(struct qr_node **list, const char *file);
+int restore_file(QrSearchTree list, const char *filename);
 
 #endif /* _KLEARNEL_QUARANTINE_H */
