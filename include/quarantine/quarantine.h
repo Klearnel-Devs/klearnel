@@ -7,8 +7,8 @@
  * Copyright (C) 2014, 2015 Klearnel-Devs
  */
 
-#define QR_STOCK "/usr/local/stock/"
-#define QR_DB "quarantine.db"
+#define QR_STOCK BASE_DIR "/qr_stock"
+#define QR_DB BASE_DIR "/qr.db"
 
 /* Structure of file into quarantine */
 struct qr_file {

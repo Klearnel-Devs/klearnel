@@ -26,6 +26,8 @@
 #define ALL_R 		S_IRUSR | S_IRGRP | S_IROTH
 #define USER_RW		S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
 
+#define BASE_DIR "/usr/local/klearnel"
+
 #define IPC_RAND "/dev/null"
 #define IPC_PERMS 0666
 

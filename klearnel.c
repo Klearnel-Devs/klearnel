@@ -24,3 +24,5 @@ int main(int argc, char** argv){
 	NOT_YET_IMP;
 	return EXIT_SUCCESS;
 }
+
+/* TODO: add function to init BASE_DIR */

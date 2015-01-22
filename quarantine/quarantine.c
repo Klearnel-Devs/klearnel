@@ -16,7 +16,7 @@ void init_qr(){
 		}
 	}
 	if(access(QR_DB, F_OK) == -1){
-		if(creat(QR_DB, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)){
+		if(creat(QR_DB, S_IRWXU | S_IRGRP | S_IROTH)){
 			perror("QR: Unable to create the database file");
 			return;
 		}
@@ -47,7 +47,7 @@ int add_to_qr_list(struct qr_node **list, struct qr_file *new){
 	struct qr_node *elem;
 
 	if(new_qr_node(&elem)){
-		perror("Unable to create new qr node");
+		perror("QR: Unable to create new qr node");
 		return -1;
 	}
 
@@ -113,14 +113,19 @@ void load_qr(struct qr_node **list){
 	close(fd);
 }
 
-/* Search for a file in the list on inode number base */
-void search_in_qr(struct qr_node *list, const ino_t inum, struct qr_node **result){
+/* Search for a file in the list on filename base 
+ * Return a struct node if found, NULL in other cases
+ */
+struct qr_node *search_in_qr(struct qr_node *list, const char *filename){
 	struct qr_node *tmpList = list;
-        
-	if(new_qr_node(result)){
-		perror("QR: Unable to create new node");
-		return;
-	}
+	char *base = QR_STOCK;
+	struct stat tmp;
+	if(stat(strncat(base, filename, strlen(filename)), &tmp) < 0){
+		perror("QR: Unable to find the specified file");
+		return NULL;
+	}  
+
+	ino_t inum = tmp.st_ino;
 
 	while(tmpList){
 
@@ -131,18 +136,24 @@ void search_in_qr(struct qr_node *list, const ino_t inum, struct qr_node **resul
 		else tmpList = tmpList->left; 
 	}
 
-	*result = tmpList;
-
+	return tmpList;
 	
 }
 
-/* Get filename in a path */
+/* Get filename in a path
+ * Return the string containing filename on success,
+ * NULL on error
+ */
 char *get_filename(const char *path){
 	char sep = '/';
 	char *filename;
 	int i, l_occ, lg_tot, lg_sub;
 
   	lg_tot = strlen(path);
+  	if(lg_tot <= 0){
+  		perror("QR: Path passed in args is null size");
+  		return NULL;
+  	}
 	for(i = 0; i < lg_tot; i++) 
 		if(path[i] == sep) 
 			l_occ = i;
@@ -204,7 +215,6 @@ int save_qr_list(struct qr_node **list){
 	return 0;	
 }
 
-/* TO MODIFY */
 /* Move file to STOCK_QR */
 void add_file_to_qr(struct qr_node **list, const char *file){
 	struct qr_file *new_f = malloc(sizeof(struct qr_file));
@@ -213,18 +223,50 @@ void add_file_to_qr(struct qr_node **list, const char *file){
 	char *fn = get_filename(file);
 
 	if((new_f == NULL) || (new_path == NULL )){
-		perror("Couldn't allocate memory");
+		perror("QR: Couldn't allocate memory");
 		return;
 	}
 
-	strcpy(new_path, QR_STOCK);
-	strcat(new_path, fn);
+	if(access(fn, F_OK) != -1){
+		char *tmp = malloc(strlen(fn)+(sizeof(char)*4));
+		int i = 1;
+		do{
+			if(snprintf(tmp, strlen(fn) + sizeof(i) +1, "%s%d", fn, i) < 0){
+				perror("QR: Unable to increment filename");
+				return;
+			}
+			i++;
+		} while(access(tmp, F_OK) != -1);
+		if(!strncpy(fn, tmp, strlen(tmp) + 1)){
+			perror("QR: Unable to modify filename");
+			return;
+		}
+	}
 
-	stat(new_path, &new_s);
+	if(!strncpy(new_path, QR_STOCK, strlen(QR_STOCK)+1)){
+		perror("QR: Unable to create new_path");
+		return;
+	}
+
+	if(!strncat(new_path, fn, strlen(fn))){
+		perror("QR: Unable to concatenate fn in new_path");
+		return;
+	}
+
+	if(stat(new_path, &new_s) < 0){
+		perror("QR: Unable to get stat of file");
+		return;
+	}
 
 	new_f->o_ino = new_s;
-	strcpy(new_f->o_path, file);
-	strcpy(new_f->f_name, fn);
+	if(!strncpy(new_f->o_path, file, strlen(file)+1)){
+		perror("QR: Unable to put current path to old path");
+		return;
+	}
+	if(!strncpy(new_f->f_name, fn, strlen(fn)+1)){
+		perror("QR: Unable to put new filename to qr_file struct");
+		return;
+	}
 
 	if(new_f->f_name == NULL)
 		return;
@@ -253,6 +295,9 @@ void restore_file(const char *file, struct qr_node **list){
 	NOT_YET_IMP;
 }
 
+/* Remove file from the qr_list 
+ * Return 0 on success, -1 on error 
+ */
 int rm_from_qr_list(ino_t i_num, struct qr_node **list){
 	NOT_YET_IMP;
 	return -1;
