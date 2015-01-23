@@ -70,19 +70,31 @@ int _get_data(const int sock, char **buf)
  */
 int _call_related_action(const int action, const char *buf) 
 {
-	static QrSearchTree list;
-	if(_check_qr_db() == 1) list = load_qr();
+	static QrSearchTree list = NULL;
+	QrSearchTree tmpList = NULL;
+	if (_check_qr_db() == 1) list = load_qr();
 
 	switch (action) {
 		QR_ADD: 
-			if ((list = add_file_to_qr(list, buf) == NULL)
+			if ((tmpList = add_file_to_qr(list, buf)) == NULL)
 				return -1;
-		QR_RM:
+			break;
+		QR_RM: 
+			if ((tmpList = rm_file_from_qr(list, buf)) == NULL)
+				return -1;
+			break;
 		QR_REST:
+			if ((tmpList = restore_file(list, buf)) == NULL)
+				return -1;
+			break;
 		QR_EXIT:
+			if (save_qr_list(list))
+				return -1;
+			break;
 		default:
 			return -1;
 	} 
+	if (tmpList != NULL) list = tmpList;
 	return 0;
 }
 
@@ -195,6 +207,7 @@ void _expired_files()
 	}
 }
 
+/* Main function of qr-worker process */
 void qr_worker()
 {
 	int pid = fork();
