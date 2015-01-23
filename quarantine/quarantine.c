@@ -123,30 +123,24 @@ QrPosition _find_min(QrSearchTree list)
 	return list;
 }
 
-/* Remove file from the qr_list 
- * Return 0 on success, -1 on error 
- */
+/* Remove file data from the qr_list */
 QrSearchTree _rm_from_qr_list(QrSearchTree list, QrData node_rm)
 {
 	QrPosition tmp;
 	if (list == NULL) {
 		perror("QR: Quarantine BST is empty!");
 		return list;
-	}
-	else if (node_rm.o_ino.st_ino < list->data.o_ino.st_ino) {
+	} else if (node_rm.o_ino.st_ino < list->data.o_ino.st_ino) {
 		list->left = _rm_from_qr_list(list->left, node_rm);
-	}
-	else if (node_rm.o_ino.st_ino > list->data.o_ino.st_ino) {
+	} else if (node_rm.o_ino.st_ino > list->data.o_ino.st_ino) {
 		list->right = _rm_from_qr_list(list->right, node_rm);
-	}
-	else if ((list->left != NULL) && (list->right != NULL)){
+	} else if ((list->left != NULL) && (list->right != NULL)) {
 		tmp = _find_min(list->right);
 		list->data = tmp->data;
 		list->right = _rm_from_qr_list(list->right, list->data);
-	}
-	else{
+	} else {
 		tmp = list;
-		if(list->left == NULL)
+		if (list->left == NULL)
 			list = list->right;
 		else if (list->right == NULL)
 			list = list->left;
