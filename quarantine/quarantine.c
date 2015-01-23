@@ -8,7 +8,7 @@
 #include <quarantine/quarantine.h>
 
 /* Initialize all requirements for Quarantine */
-void init_qr()
+void _init_qr()
 {
 	if (access(QR_STOCK, F_OK) == -1) {
 		if (mkdir(QR_STOCK, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
@@ -98,14 +98,14 @@ QrSearchTree load_qr()
 
 	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
 		perror("Unable to open QR_DB");
-		return;
+		return NULL;
 	}
 
 	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) {
 		if ((tmpList = add_to_qr_list(list, tmp)) == NULL) {
 			_clear_qr_list(list);
 			perror("QR: Unable to load qr_list");
-			return;
+			return NULL;
 		}
 		list = tmpList;
 	}
@@ -269,7 +269,7 @@ int save_qr_list(QrSearchTree list)
 }
 
 /* Move file to STOCK_QR */
-void add_file_to_qr(QrSearchTree list, const char *filepath)
+QrSearchTree add_file_to_qr(QrSearchTree list, const char *filepath)
 {
 	QrData new_f;
 	QrSearchTree tmpList;
@@ -279,7 +279,7 @@ void add_file_to_qr(QrSearchTree list, const char *filepath)
 
 	if ((new_path == NULL )) {
 		perror("QR: Couldn't allocate memory");
-		return;
+        	return NULL;
 	}
 
 	if (access(fn, F_OK) != -1) {
@@ -288,43 +288,43 @@ void add_file_to_qr(QrSearchTree list, const char *filepath)
 		do {
 			if (snprintf(tmp, strlen(fn) + sizeof(i) +1, "%s%d", fn, i) < 0) {
 				perror("QR: Unable to increment filename");
-				return;
+        			return NULL;
 			}
 			i++;
 		} while(access(tmp, F_OK) != -1);
 		if (!strncpy(fn, tmp, strlen(tmp) + 1)) {
 			perror("QR: Unable to modify filename");
-			return;
+        		return NULL;
 		}
 	}
 
 	if (!strncpy(new_path, QR_STOCK, strlen(QR_STOCK)+1)) {
 		perror("QR: Unable to create new_path");
-		return;
+		return NULL;
 	}
 
 	if (!strncat(new_path, fn, strlen(fn))) {
 		perror("QR: Unable to concatenate fn in new_path");
-		return;
+		return NULL;
 	}
 
 	if (stat(new_path, &new_s) < 0) {
 		perror("QR: Unable to get stat of file");
-		return;
+		return NULL;
 	}
 
 	new_f.o_ino = new_s;
 	if (!strncpy(new_f.o_path, filepath, strlen(filepath)+1)) {
 		perror("QR: Unable to put current path to old path");
-		return;
+        	return NULL;
 	}
 	if (!strncpy(new_f.f_name, fn, strlen(fn)+1)) {
 		perror("QR: Unable to put new filename to qr_file struct");
-		return;
+        	return NULL;
 	}
 
 	if (new_f.f_name == NULL)
-		return;
+        	return NULL;
 
 	new_f.d_begin   = time(NULL);
 	/* This will be changed when config implemented 
@@ -334,17 +334,18 @@ void add_file_to_qr(QrSearchTree list, const char *filepath)
 
         if (rename(filepath, new_path)) {
         	perror("Adding aborted: Unable to move the file");
-        	return;
+        	return NULL;
         }
 
         if ((tmpList = add_to_qr_list(list, new_f)) == NULL) {
         	perror("QR: Could not add file to QR list");
         	if (rename(new_path, filepath))
         		perror("QR: Unable to move the file back to old path");
-        	return;
+        	return NULL;
         }
         list = tmpList;
         save_qr_list(list);
+        return list;
 }
 
 /* Delete definitively a file from the quarantine */
