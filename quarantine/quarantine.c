@@ -114,25 +114,45 @@ void load_qr(QrSearchTree list)
 /*
  * Search for min node in right branch
  */
-QrPosition _find_min(QrSearchTree node)
+QrPosition _find_min(QrSearchTree list)
 {
-	if (node == NULL)
-		return node;
-
-	if (node->left) 
-		return _find_min(node->left);
-	else
-		return node;
+	if (list != NULL){
+		while (list->left != NULL)
+			list = list->left;
+	}
+	return list;
 }
 
 /* Remove file from the qr_list 
  * Return 0 on success, -1 on error 
  */
-int _rm_from_qr_list(QrSearchTree list, QrPosition node_rm)
+QrSearchTree _rm_from_qr_list(QrSearchTree list, QrData node_rm)
 {
-	/* TODO */
-	NOT_YET_IMP;
-	return -1;
+	QrPosition tmp;
+	if (list == NULL) {
+		perror("QR: Quarantine BST is empty!");
+		return list;
+	}
+	else if (node_rm.o_ino.st_ino < list->data.o_ino.st_ino) {
+		list->left = _rm_from_qr_list(list->left, node_rm);
+	}
+	else if (node_rm.o_ino.st_ino > list->data.o_ino.st_ino) {
+		list->right = _rm_from_qr_list(list->right, node_rm);
+	}
+	else if ((list->left != NULL) && (list->right != NULL)){
+		tmp = _find_min(list->right);
+		list->data = tmp->data;
+		list->right = _rm_from_qr_list(list->right, list->data);
+	}
+	else{
+		tmp = list;
+		if(list->left == NULL)
+			list = list->right;
+		else if (list->right == NULL)
+			list = list->left;
+		free(tmp);
+	}
+	return list;
 }
 
 /* Search for a file in the list on filename base 
@@ -159,7 +179,7 @@ QrPosition search_in_qr(QrSearchTree list, const char *filename)
 			if (exists) {
 				break;
 			} else {
-				if (_rm_from_qr_list(root, list)) {
+				if (_rm_from_qr_list(root, list->data)) {
 					perror("QR: Unable to remove file from qr_list");
 					return NULL;
 				}
@@ -329,13 +349,19 @@ void add_file_to_qr(QrSearchTree list, const char *filepath)
 /* Delete definitively a file from the quarantine */
 int rm_file_from_qr(QrSearchTree list, const char *filename)
 {
+	QrPosition rm_file;
 	char *p_rm = QR_STOCK;
 	if (strncat(p_rm, filename, strlen(filename)) == NULL) {
 		perror("QR: Unable to create path for file to remove");
 		return -1;
 	}
 
-	if (_rm_from_qr_list(list, search_in_qr(list, filename))) {
+	if ((rm_file = search_in_qr(list, filename)) == NULL){
+		perror("QR: Unable to locate file to remove");
+		return -1;
+	}
+
+	if (_rm_from_qr_list(list, rm_file->data)) {
 		perror("QR: Unable to remove file from qr_list");
 		return -1;
 	}
@@ -357,7 +383,7 @@ int restore_file(QrSearchTree list, const char *filename)
 		perror("QR ERROR: Unable to find file to restore");
 		return -1;
 	}
-	if (_rm_from_qr_list(list, res_file)) {
+	if (_rm_from_qr_list(list, res_file->data)) {
 		perror("QR: Unable to remove file from QR list");
 		return -1;
 	}
