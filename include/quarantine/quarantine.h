@@ -9,6 +9,12 @@
 
 #define QR_STOCK BASE_DIR "/qr_stock"
 #define QR_DB BASE_DIR "/qr.db"
+#define QR_SOCK BASE_DIR "/qr_sock"
+
+#define QR_ADD 	1
+#define QR_RM 	2
+#define QR_REST	3
+#define QR_EXIT 0
 
 #define IPC_QR 42
 
