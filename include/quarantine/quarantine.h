@@ -10,6 +10,7 @@
 #define QR_STOCK BASE_DIR "/qr_stock"
 #define QR_DB BASE_DIR "/qr.db"
 
+#define IPC_QR 42
 
 /* Structure of file into quarantine */
 struct qr_file {

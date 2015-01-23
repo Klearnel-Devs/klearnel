@@ -28,9 +28,23 @@ int _check_qr_db()
 	return 0;
 }
 
+/* Get instructions via Unix domain sockets
+ * and execute actions accordingly
+ * 
+ */
 void _get_instructions()
 {
+	int action, fd;
+	key_t sync_worker_key = ftok(IPC_RAND, IPC_QR);
+	int sync_worker = semget(sync_worker_key, 1, IPC_CREAT | IPC_PERMS); 
+	if (sync_worker < 0) {
+		perror("QR: Unable to create the sema to sync");
+		return;
+	}
 
+	do {
+
+	} while(action != 0);
 }
 
 void _expired_files()
