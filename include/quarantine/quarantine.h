@@ -10,6 +10,7 @@
 #define QR_STOCK BASE_DIR "/qr_stock"
 #define QR_DB BASE_DIR "/qr.db"
 
+#define IPC_QR 42
 
 /* Structure of file into quarantine */
 struct qr_file {
@@ -37,7 +38,7 @@ struct qr_node {
 
 void init_qr();
 
-void load_qr(QrSearchTree list);
+QrSearchTree load_qr();
 
 int add_to_qr_list(QrSearchTree list, QrData new_f);
 
