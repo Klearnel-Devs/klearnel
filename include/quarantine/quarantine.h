@@ -38,7 +38,7 @@ struct qr_node {
 
 void init_qr();
 
-void load_qr(QrSearchTree list);
+QrSearchTree load_qr();
 
 int add_to_qr_list(QrSearchTree list, QrData new_f);
 

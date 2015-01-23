@@ -47,9 +47,26 @@ void _get_instructions()
 	} while(action != 0);
 }
 
-void _expired_files()
+/*
+ * Searches QR list and returns a file ready for deletion
+ */
+void _search_expired()
 {
 
+}
+
+/*
+ * Function to verify deletion date of files contained in QR_DB
+ * Calls to rm_file_from_qr to delete file physically, logically
+ */
+void _expired_files()
+{
+	key_t sync_worker_key = ftok(IPC_RAND, IPC_QR);
+	int sync_worker = semget(sync_worker_key, 1, IPC_CREAT | IPC_PERMS);
+	if (sync_worker < 0) {
+		perror("QR: Unable to create the sema to sync");
+		return;
+	}
 }
 
 void qr_worker()
