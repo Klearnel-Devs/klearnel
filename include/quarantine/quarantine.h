@@ -51,4 +51,6 @@ int rm_file_from_qr(QrSearchTree list, const char *filename);
 
 int restore_file(QrSearchTree list, const char *filename);
 
+void qr_worker();
+
 #endif /* _KLEARNEL_QUARANTINE_H */
