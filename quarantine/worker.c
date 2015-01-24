@@ -100,6 +100,14 @@ int _call_related_action(const int action, const char *buf)
 
 /* Get instructions via Unix domain sockets
  * and execute actions accordingly
+ * 
+ * For client side, follow these steps:
+ * - Connect to the socket
+ * - Send the action to execute (see quarantine.h)
+ * with the length of second arg (format is action_num:length_sec_arg)
+ * - Wait for SOCK_ARG
+ * - Send the second arg (if applicable)
+ * - Wait for action result
  */
 void _get_instructions()
 {
