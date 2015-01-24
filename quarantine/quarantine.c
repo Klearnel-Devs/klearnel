@@ -94,7 +94,6 @@ QrSearchTree load_qr()
 	QrSearchTree list, tmpList;
 	int fd;
 	QrData tmp;
-	_clear_qr_list(list);
 
 	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
 		perror("Unable to open QR_DB");
