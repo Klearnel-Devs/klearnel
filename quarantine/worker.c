@@ -37,18 +37,19 @@ void _get_instructions()
  * Searches QR list and deletes a file who's date is older than todays date time
  * Calls to rm_file_from_qr to delete file physically, logically
  */
-int _search_expired(QrSearchTree list, int removed, time_t now)
+QrSearchTree _search_expired(QrSearchTree list, int *removed, time_t now)
 {
 	if (list == NULL)
-      		return 0;
+      		return NULL;
       	if(list->left != NULL)
       		_search_expired(list->left, removed, now);
 	if(list->right != NULL)
 		_search_expired(list->right, removed, now);
       	if (list->data.d_expire < now) {
-		removed += rm_file_from_qr(list, list->data.f_name);
+		list = rm_file_from_qr(list, list->data.f_name);
+		removed += 1;
       	}
-	return removed;
+	return list;
 }
 
 /*
@@ -68,6 +69,7 @@ void _expired_files()
 		return;
 	}
 	do {
+		removed = 0;
 		now = time(NULL);
 		wait_crit_area(sync_worker, 1);
 		sem_down(sync_worker, 1);
@@ -86,14 +88,14 @@ void _expired_files()
 				exit(EXIT_FAILURE);
 			}
 		}
-		if ((removed = _search_expired(list, removed, now)) != 0) {
+		if ((list = _search_expired(list, &removed, now)) != NULL) {
 			wait_crit_area(sync_worker, 1);
 			sem_down(sync_worker, 1);
 			if (save_qr_list(list) != 0)
 				perror("QR-WORKER: QR file could not be saved");
 			sem_up(sync_worker, 1);
 		}
-	} while ( removed != 0);
+	} while ( removed != 0 );
 	free(list);
 	return;
 }

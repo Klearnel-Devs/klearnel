@@ -46,7 +46,7 @@ int save_qr_list(QrSearchTree list);
 
 QrSearchTree add_file_to_qr(QrSearchTree list, const char *filepath);
 
-int rm_file_from_qr(QrSearchTree list, const char *filename);
+QrSearchTree rm_file_from_qr(QrSearchTree list, const char *filename);
 
 QrSearchTree restore_file(QrSearchTree list, const char *filename);
 
