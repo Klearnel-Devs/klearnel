@@ -8,7 +8,7 @@
 #include <quarantine/quarantine.h>
 
 /* Initialize all requirements for Quarantine */
-void _init_qr()
+void init_qr()
 {
 	if (access(QR_STOCK, F_OK) == -1) {
 		if (mkdir(QR_STOCK, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
@@ -255,7 +255,7 @@ int save_qr_list(QrSearchTree list)
 		return -1;
 	}
 
-	if ((fd = open(QR_DB, O_WRONLY, S_IRUSR)) < 0) {
+	if ((fd = open(QR_DB, O_WRONLY, S_IWUSR)) < 0) {
 		perror("Unable to open QR_DB");
 		return -1;
 	}

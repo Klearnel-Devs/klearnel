@@ -7,7 +7,7 @@
  * Copyright (C) 2014, 2015 Klearnel-Devs
  */
 
-#define QR_STOCK 	BASE_DIR "/qr_stock"
+#define QR_STOCK 	WORK_DIR "/qr_stock"
 #define QR_DB 		BASE_DIR "/qr.db"
 #define QR_SOCK 	BASE_DIR "/qr_sock"
 
@@ -41,6 +41,8 @@ struct qr_node {
 };
 
 /*----- PROTOYPE ------ */
+
+void init_qr();
 
 QrSearchTree load_qr();
 
