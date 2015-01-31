@@ -17,7 +17,7 @@ void init_qr()
 		}
 	}
 	if (access(QR_DB, F_OK) == -1) {
-		if (creat(QR_DB, S_IRWXU | S_IRGRP | S_IROTH)) {
+		if (creat(QR_DB, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) {
 			perror("QR: Unable to create the database file");
 			return;
 		}

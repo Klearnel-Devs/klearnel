@@ -115,12 +115,6 @@ void _get_instructions()
 	int action = -1;
 	struct sockaddr_un server;
 
-	key_t sync_worker_key = ftok(IPC_RAND, IPC_QR);
-	int sync_worker = semget(sync_worker_key, 1, IPC_CREAT | IPC_PERMS); 
-	if (sync_worker < 0) {
-		perror("QR-WORKER: Unable to create the sema to sync");
-		return;
-	}
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("QR-WORKER: Unable to open the socket");
 		return;
@@ -164,9 +158,9 @@ QrSearchTree _search_expired(QrSearchTree list, int *removed, time_t now)
 {
 	if (list == NULL)
       		return NULL;
-      	if(list->left != NULL)
+      	if (list->left != NULL)
       		_search_expired(list->left, removed, now);
-	if(list->right != NULL)
+	if (list->right != NULL)
 		_search_expired(list->right, removed, now);
       	if (list->data.d_expire < now) {
 		list = rm_file_from_qr(list, list->data.f_name);

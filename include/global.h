@@ -35,14 +35,14 @@
 #define IPC_RAND 	"/dev/null"
 #define IPC_PERMS 	0666
 
-#define SOCK_ACK 	'1'
-#define SOCK_NACK 	'2'
-#define SOCK_DENIED 	'3'
-#define SOCK_ABORTED 	'8'
-#define SOCK_RETRY 	'9'
+#define SOCK_ACK 	"1"
+#define SOCK_NACK 	"2"
+#define SOCK_DENIED 	"3"
+#define SOCK_ABORTED 	"8"
+#define SOCK_RETRY 	"9"
 
 #define SOCK_ANS(socket, signal) \
- 	send(socket, signal, strlen(signal), 0);
+ 	send(socket, signal, strlen(signal), 0)
 
 /* ------ PROTOTYPES ----- */
 
