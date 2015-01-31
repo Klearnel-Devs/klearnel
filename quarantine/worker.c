@@ -160,58 +160,67 @@ void _get_instructions()
  * Searches QR list and deletes a file who's date is older than todays date time
  * Calls to rm_file_from_qr to delete file physically, logically
  */
-int _search_expired(QrSearchTree list)
+QrSearchTree _search_expired(QrSearchTree list, int *removed, time_t now)
 {
-	if (famTree == null)
-      		return null;
-    	if (famTree.value.equals(p))
-        return famTree;
-    	if (famTree.left != null)
-       		result = locate(p,famTree.left);
-    	if (result == null)
-        	result = locate(p,famTree.right);
-    	return result;
+	if (list == NULL)
+      		return NULL;
+      	if(list->left != NULL)
+      		_search_expired(list->left, removed, now);
+	if(list->right != NULL)
+		_search_expired(list->right, removed, now);
+      	if (list->data.d_expire < now) {
+		list = rm_file_from_qr(list, list->data.f_name);
+		*removed += 1;
+      	}
+	return list;
 }
 
 /*
  * Function of process who is tasked with deleting files
  * earmarked by a deletion date older than todays date time
+ * Loops until no more expired files are detected
  */
 void _expired_files()
 {
+	int removed;
 	QrSearchTree list;
-	int tmp;
+	time_t now;
 	key_t sync_worker_key = ftok(IPC_RAND, IPC_QR);
 	int sync_worker = semget(sync_worker_key, 1, IPC_CREAT | IPC_PERMS);
 	if (sync_worker < 0) {
 		perror("QR-WORKER: Unable to create the sema to sync");
 		return;
 	}
-	wait_crit_area(sync_worker, 1);
-	semdown(sync_worker, 1);
-	list = load_qr();
-	semup(sync_worker, 1);
-	/*
-	 * TO IMPLEMENT: PROCESS IN CASE OF BELOW ERROR
-	 */
-	if (list == NULL) {
-		if (access(QR_DB, F_OK) == -1) {
-			perror("QR-WORKER: QR FILE DOES NOT EXIST");
-			usleep(300000);
-			_expired_files();
-		} else {
-			perror("QR-WORKER: QR file exists, but cannot be loaded -- process ending");
-			exit(EXIT_FAILURE);
+	do {
+		removed = 0;
+		now = time(NULL);
+		wait_crit_area(sync_worker, 1);
+		sem_down(sync_worker, 1);
+		list = load_qr();
+		sem_up(sync_worker, 1);
+		/*
+		 * TO IMPLEMENT: PROCESS IN CASE OF BELOW ERROR
+		 */
+		if (list == NULL) {
+			if (access(QR_DB, F_OK) == -1) {
+				perror("QR-WORKER: QR FILE DOES NOT EXIST");
+				usleep(300000);
+				_expired_files();
+			} else {
+				perror("QR-WORKER: QR file exists, but cannot be loaded -- process ending");
+				exit(EXIT_FAILURE);
+			}
 		}
-	}
-	/* TODO */
-	if ((tmp = _search_expired(list)) == -1){
-
-	} else if (tmp == 1) {
-		_search_expired(list);
-	} else {
-
-	}
+		if ((list = _search_expired(list, &removed, now)) != NULL) {
+			wait_crit_area(sync_worker, 1);
+			sem_down(sync_worker, 1);
+			if (save_qr_list(list) != 0)
+				perror("QR-WORKER: QR file could not be saved");
+			sem_up(sync_worker, 1);
+		}
+	} while ( removed != 0 );
+	free(list);
+	return;
 }
 
 /* Main function of qr-worker process */
@@ -221,6 +230,10 @@ void qr_worker()
 	if (pid) {
 		_get_instructions();
 	} else {
-		_expired_files();
+		while(1) {
+			_expired_files();
+			usleep(300000);
+		}
+		
 	}
 }
