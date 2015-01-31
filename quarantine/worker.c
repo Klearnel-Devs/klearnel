@@ -29,7 +29,7 @@ int _check_qr_db()
 }
 
 /* Get data from socket "sock" and put it in buffer "buf"
- * Return number of char read if >= 0, -1 if not
+ * Return number of char read if >= 0, else -1
  */
 int _get_data(const int sock, int *action, char **buf)
 {
