@@ -47,7 +47,7 @@ QrSearchTree _search_expired(QrSearchTree list, int *removed, time_t now)
 		_search_expired(list->right, removed, now);
       	if (list->data.d_expire < now) {
 		list = rm_file_from_qr(list, list->data.f_name);
-		removed += 1;
+		*removed += 1;
       	}
 	return list;
 }
