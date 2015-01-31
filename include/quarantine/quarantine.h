@@ -38,7 +38,7 @@ struct qr_node {
 
 QrSearchTree load_qr();
 
-int add_to_qr_list(QrSearchTree list, QrData new_f);
+QrSearchTree add_to_qr_list(QrSearchTree list, QrData new_f);
 
 QrPosition search_in_qr(QrSearchTree list, const char *filename);
 
@@ -48,7 +48,7 @@ QrSearchTree add_file_to_qr(QrSearchTree list, const char *filepath);
 
 int rm_file_from_qr(QrSearchTree list, const char *filename);
 
-int restore_file(QrSearchTree list, const char *filename);
+QrSearchTree restore_file(QrSearchTree list, const char *filename);
 
 void qr_worker();
 

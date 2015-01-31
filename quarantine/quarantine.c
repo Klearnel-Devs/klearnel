@@ -94,7 +94,6 @@ QrSearchTree load_qr()
 	QrSearchTree list, tmpList;
 	int fd;
 	QrData tmp;
-	_clear_qr_list(list);
 
 	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
 		perror("Unable to open QR_DB");
@@ -355,47 +354,44 @@ int rm_file_from_qr(QrSearchTree list, const char *filename)
 	char *p_rm = QR_STOCK;
 	if (strncat(p_rm, filename, strlen(filename)) == NULL) {
 		perror("QR: Unable to create path for file to remove");
-		return -1;
+		return 0;
 	}
 
 	if ((rm_file = search_in_qr(list, filename)) == NULL){
 		perror("QR: Unable to locate file to remove");
-		return -1;
+		return 0;
 	}
 
-	if (_rm_from_qr_list(list, rm_file->data)) {
+	if ((list = _rm_from_qr_list(list, rm_file->data))) {
 		perror("QR: Unable to remove file from qr_list");
-		return -1;
+		return 0;
 	}
 
 	if (unlink(p_rm)) {
 		perror("QR: Unable to remove file from stock");
 		fprintf(stderr, "WARNING: [QR] File has been removed from qr_list!\n");
-		return -1;
 	}
-	return 0;
+	return 1;
 }
 
 /* Restore file to its anterior state and place */
-int restore_file(QrSearchTree list, const char *filename)
+QrSearchTree restore_file(QrSearchTree list, const char *filename)
 {
 	QrPosition res_file = search_in_qr(list, filename);
 	char *p_rm = QR_STOCK;
 	if (res_file == NULL) {
 		perror("QR ERROR: Unable to find file to restore");
-		return -1;
+		return NULL;
 	}
-	if (_rm_from_qr_list(list, res_file->data)) {
+	if ((list = _rm_from_qr_list(list, res_file->data)) == NULL) {
 		perror("QR: Unable to remove file from QR list");
-		return -1;
+		return NULL;
 	}
 	if (strncat(p_rm, filename, strlen(filename)) == NULL) {
 		perror("QR: Unable to create path for file to remove");
-		return -1;
+		return list;
 	}
-	if (rename(p_rm, res_file->data.o_path)) {
+	if (rename(p_rm, res_file->data.o_path))
 		perror("Restore aborted: Unable to move the file");
-		return -1;
-	}
-	return 0;
+	return list;
 }
