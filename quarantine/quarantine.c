@@ -17,7 +17,7 @@ void init_qr()
 		}
 	}
 	if (access(QR_DB, F_OK) == -1) {
-		if (creat(QR_DB, S_IRWXU | S_IRGRP | S_IROTH)) {
+		if (creat(QR_DB, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) {
 			perror("QR: Unable to create the database file");
 			return;
 		}
@@ -43,7 +43,7 @@ out:
 /* Add a file to the quarantine list 
  * Return 0 on success, -1 on error
  */
-int add_to_qr_list(QrSearchTree list, QrData new_f)
+QrSearchTree add_to_qr_list(QrSearchTree list, QrData new_f)
 {
 	QrSearchTree tmpNode;
 	QrSearchTree tmpList = list;
@@ -51,7 +51,7 @@ int add_to_qr_list(QrSearchTree list, QrData new_f)
 
 	if ((elem = _new_qr_node()) == NULL) {
 		perror("QR: Unable to create new qr node");
-		return -1;
+		return NULL;
 	}
 
 	elem->data = new_f;
@@ -70,7 +70,7 @@ int add_to_qr_list(QrSearchTree list, QrData new_f)
 	} else {
 		list = elem;
 	}  
-	return 0;
+	return list;
 }
 
 /* Recursively clear the quarantine list 
@@ -89,26 +89,27 @@ void _clear_qr_list(QrSearchTree list)
 
 /* Load quarantine with content of QR_DB  
  */
-void load_qr(QrSearchTree list)
+QrSearchTree load_qr()
 {
+	QrSearchTree list, tmpList;
 	int fd;
 	QrData tmp;
-	_clear_qr_list(list);
 
 	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
 		perror("Unable to open QR_DB");
-		return;
+		return NULL;
 	}
 
 	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) {
-		if (add_to_qr_list(list, tmp)) {
+		if ((tmpList = add_to_qr_list(list, tmp)) == NULL) {
 			_clear_qr_list(list);
 			perror("QR: Unable to load qr_list");
-			return;
+			return NULL;
 		}
+		list = tmpList;
 	}
-
 	close(fd);
+	return list;
 }
 
 /*
@@ -254,7 +255,7 @@ int save_qr_list(QrSearchTree list)
 		return -1;
 	}
 
-	if ((fd = open(QR_DB, O_WRONLY, S_IRUSR)) < 0) {
+	if ((fd = open(QR_DB, O_WRONLY, S_IWUSR)) < 0) {
 		perror("Unable to open QR_DB");
 		return -1;
 	}
@@ -267,16 +268,17 @@ int save_qr_list(QrSearchTree list)
 }
 
 /* Move file to STOCK_QR */
-void add_file_to_qr(QrSearchTree list, const char *filepath)
+QrSearchTree add_file_to_qr(QrSearchTree list, const char *filepath)
 {
 	QrData new_f;
+	QrSearchTree tmpList;
 	struct stat new_s;
 	char *new_path = malloc(strlen(QR_STOCK) + 1);
 	char *fn = _get_filename(filepath);
 
 	if ((new_path == NULL )) {
 		perror("QR: Couldn't allocate memory");
-		return;
+        	return NULL;
 	}
 
 	if (access(fn, F_OK) != -1) {
@@ -285,43 +287,43 @@ void add_file_to_qr(QrSearchTree list, const char *filepath)
 		do {
 			if (snprintf(tmp, strlen(fn) + sizeof(i) +1, "%s%d", fn, i) < 0) {
 				perror("QR: Unable to increment filename");
-				return;
+        			return NULL;
 			}
 			i++;
 		} while(access(tmp, F_OK) != -1);
 		if (!strncpy(fn, tmp, strlen(tmp) + 1)) {
 			perror("QR: Unable to modify filename");
-			return;
+        		return NULL;
 		}
 	}
 
 	if (!strncpy(new_path, QR_STOCK, strlen(QR_STOCK)+1)) {
 		perror("QR: Unable to create new_path");
-		return;
+		return NULL;
 	}
 
 	if (!strncat(new_path, fn, strlen(fn))) {
 		perror("QR: Unable to concatenate fn in new_path");
-		return;
+		return NULL;
 	}
 
 	if (stat(new_path, &new_s) < 0) {
 		perror("QR: Unable to get stat of file");
-		return;
+		return NULL;
 	}
 
 	new_f.o_ino = new_s;
 	if (!strncpy(new_f.o_path, filepath, strlen(filepath)+1)) {
 		perror("QR: Unable to put current path to old path");
-		return;
+        	return NULL;
 	}
 	if (!strncpy(new_f.f_name, fn, strlen(fn)+1)) {
 		perror("QR: Unable to put new filename to qr_file struct");
-		return;
+        	return NULL;
 	}
 
 	if (new_f.f_name == NULL)
-		return;
+        	return NULL;
 
 	new_f.d_begin   = time(NULL);
 	/* This will be changed when config implemented 
@@ -331,63 +333,65 @@ void add_file_to_qr(QrSearchTree list, const char *filepath)
 
         if (rename(filepath, new_path)) {
         	perror("Adding aborted: Unable to move the file");
-        	return;
+        	return NULL;
         }
 
-        if (add_to_qr_list(list, new_f)) {
-
+        if ((tmpList = add_to_qr_list(list, new_f)) == NULL) {
+        	perror("QR: Could not add file to QR list");
+        	if (rename(new_path, filepath))
+        		perror("QR: Unable to move the file back to old path");
+        	return NULL;
         }
+        list = tmpList;
         save_qr_list(list);
+        return list;
 }
 
 /* Delete definitively a file from the quarantine */
-int rm_file_from_qr(QrSearchTree list, const char *filename)
+QrSearchTree rm_file_from_qr(QrSearchTree list, const char *filename)
 {
 	QrPosition rm_file;
 	char *p_rm = QR_STOCK;
 	if (strncat(p_rm, filename, strlen(filename)) == NULL) {
 		perror("QR: Unable to create path for file to remove");
-		return -1;
+		return NULL;
 	}
 
 	if ((rm_file = search_in_qr(list, filename)) == NULL){
 		perror("QR: Unable to locate file to remove");
-		return -1;
+		return NULL;
 	}
 
-	if (_rm_from_qr_list(list, rm_file->data)) {
+	if ((list = _rm_from_qr_list(list, rm_file->data))) {
 		perror("QR: Unable to remove file from qr_list");
-		return -1;
+		return NULL;
 	}
 
 	if (unlink(p_rm)) {
 		perror("QR: Unable to remove file from stock");
 		fprintf(stderr, "WARNING: [QR] File has been removed from qr_list!\n");
-		return -1;
 	}
-	return 0;
+	return list;
 }
 
 /* Restore file to its anterior state and place */
-int restore_file(QrSearchTree list, const char *filename)
+QrSearchTree restore_file(QrSearchTree list, const char *filename)
 {
 	QrPosition res_file = search_in_qr(list, filename);
 	char *p_rm = QR_STOCK;
 	if (res_file == NULL) {
 		perror("QR ERROR: Unable to find file to restore");
-		return -1;
+		return NULL;
 	}
-	if (_rm_from_qr_list(list, res_file->data)) {
+	if ((list = _rm_from_qr_list(list, res_file->data)) == NULL) {
 		perror("QR: Unable to remove file from QR list");
-		return -1;
+		return NULL;
 	}
 	if (strncat(p_rm, filename, strlen(filename)) == NULL) {
 		perror("QR: Unable to create path for file to remove");
-		return -1;
+		return list;
 	}
-	if (rename(p_rm, res_file->data.o_path)) {
+	if (rename(p_rm, res_file->data.o_path))
 		perror("Restore aborted: Unable to move the file");
-		return -1;
-	}
-	return 0;
+	return list;
 }

@@ -12,6 +12,8 @@
 #include <string.h>
 #include <time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -26,11 +28,21 @@
 #define ALL_R 		S_IRUSR | S_IRGRP | S_IROTH
 #define USER_RW		S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
 
-#define BASE_DIR "/usr/local/klearnel"
+#define BASE_DIR 	"/etc/klearnel"
+#define WORK_DIR	"/usr/local/klearnel"
+#define PID_FILE	BASE_DIR "/klearnel.pid"
 
-#define IPC_RAND "/dev/null"
-#define IPC_PERMS 0666
+#define IPC_RAND 	"/dev/null"
+#define IPC_PERMS 	0666
 
+#define SOCK_ACK 	"1"
+#define SOCK_NACK 	"2"
+#define SOCK_DENIED 	"3"
+#define SOCK_ABORTED 	"8"
+#define SOCK_RETRY 	"9"
+
+#define SOCK_ANS(socket, signal) \
+ 	send(socket, signal, strlen(signal), 0)
 
 /* ------ PROTOTYPES ----- */
 
