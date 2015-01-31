@@ -11,5 +11,25 @@
  */ 
 void execute_commands(int nb, char **commands)
 {
-	NOT_YET_IMP;
+	if (!strcmp(commands[2], "add-to-qr")) {
+		if (nb < 3) {
+			fprintf(stderr, "Element to add missing\n"
+				 "Correct syntax is: klearnel add-to-qr <filename or dirname>\n");
+		}
+		NOT_YET_IMP;
+	} else if (!strcmp(commands[2], "del-from-qr")) {
+		if (nb < 3) {
+			fprintf(stderr, "Element to add missing\n"
+				 "Correct syntax is: klearnel del-fom-qr <filename or dirname>\n");
+		}
+		NOT_YET_IMP;
+	} else if (!strcmp(commands[2], "get-qr-list")) {
+		NOT_YET_IMP;
+	} else if (!strcmp(commands[2], "-h")) {
+		NOT_YET_IMP;
+	} else {
+		fprintf(stderr, "Unknow command\n"
+			"Try klearnel -h to get a complete list of available commands\n");
+		exit(EXIT_FAILURE);
+	}
 }

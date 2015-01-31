@@ -86,6 +86,7 @@ int _save_main_pid(pid_t pid)
 /* Main function of the module 
  * It will initialize all components
  * and create the other processes required
+ * Return 0 on success, -1 on error
  */
 int main(int argc, char **argv)
 {
