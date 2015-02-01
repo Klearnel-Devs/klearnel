@@ -21,6 +21,7 @@ $(OBJ-KL): $(BUILD_DIR)/%.o : %.c
 subdirs: build
 	@cd quarantine; $(MAKE)
 	@cd core; 	$(MAKE)
+	@cd logging;	$(MAKE)
 
 build:
 	@mkdir -p build
@@ -35,4 +36,5 @@ clean-sub:
 	@echo "Removing all symlinks generated..."
 	@cd quarantine; $(MAKE) clean
 	@cd core;	$(MAKE) clean
+	@cd logging;	$(MAKE) clean
 	
