@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 	if (pid == 0) {
 		qr_worker();
 	} else if (pid > 0) {
-		/* Parent will call the other processes */
+		/* Parent will manage AF_INET socket communications */
 		/* DO NOTHING AT THIS TIME */
 		/* NEEDS TO BE APPROVED */
 	} else {
