@@ -65,7 +65,7 @@ int _save_main_pid(pid_t pid)
 	}
 	snprintf(pid_s, PID_MAX_S, "%d", pid);
 	if (access(PID_FILE, F_OK) == -1) {
-		if (creat(PID_FILE, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) {
+		if (creat(PID_FILE, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
 			perror("KL: Unable to create the pid file");
 			return -1;
 		}
@@ -101,18 +101,17 @@ int main(int argc, char **argv)
 		perror("KL: Unable to save the module pid");
 		return EXIT_FAILURE;
 	}
-
-	pid = fork();
+	qr_worker();
+	/*pid = fork();
 	if (pid == 0) {
-		qr_worker();
+		
 	} else if (pid > 0) {
-		/* Parent will manage AF_INET socket communications */
-		/* DO NOTHING AT THIS TIME */
-		/* NEEDS TO BE APPROVED */
+		
 	} else {
 		perror("KL: Unable to fork first processes");
 		return EXIT_FAILURE;
-	}
+	} 
+	*/
 
 	/* will be deamonized later */
 	return EXIT_SUCCESS;

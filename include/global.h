@@ -38,11 +38,15 @@
 #define SOCK_ACK 	"1"
 #define SOCK_NACK 	"2"
 #define SOCK_DENIED 	"3"
+#define SOCK_UNK	"4"
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
 
 #define SOCK_ANS(socket, signal) \
  	send(socket, signal, strlen(signal), 0)
+
+#define DEBUG_NOTIF \
+ 	printf("I'm in the function: %s\n", __func__);
 
 /* ------ PROTOTYPES ----- */
 
