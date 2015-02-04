@@ -43,10 +43,10 @@
 #define SOCK_RETRY 	"9"
 
 #define SOCK_ANS(socket, signal) \
- 	send(socket, signal, strlen(signal), 0)
+ 	write(socket, signal, strlen(signal))
 
 #define DEBUG_NOTIF \
- 	printf("I'm in the function: %s\n", __func__);
+ 	printf("[DEBUG] Function: %s\n", __func__);
 
 /* ------ PROTOTYPES ----- */
 

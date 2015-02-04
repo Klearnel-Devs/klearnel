@@ -22,41 +22,44 @@
 
 /* Structure of file into quarantine */
 struct qr_file {
-	char 		f_name[PATH_MAX + 1];
-	char		o_path[PATH_MAX + 1];
-	struct stat	o_ino; /* inode info before move into quarantine */
-	time_t 		d_begin; /* date at which file has been moved to quarantine */
-	time_t 		d_expire; /* date at which file will be dropped out (optional) */
+	char 		f_name[PATH_MAX];	/* Filename of the fil in qr */
+	char		o_path[PATH_MAX]; 	/* Old path to restore */
+	struct stat	o_ino; 			/* Inode info before move into quarantine */
+	time_t 		d_begin; 		/* Date at which file has been moved to quarantine */
+	time_t 		d_expire; 		/* Date at which file will be dropped out (optional) */
 };
 
 typedef struct qr_file QrData;
 
-struct qr_node;
-typedef struct qr_node* QrPosition;
-typedef struct qr_node* QrSearchTree;
+typedef struct qr_node *QrPosition;
+typedef struct qr_node *QrSearchTree;
 
 /* List of file into the quarantine */
 struct qr_node {
 	QrData		data;
-	QrSearchTree 	left;
+	QrSearchTree	left;
 	QrSearchTree	right;
 };
+
+
 
 /*----- PROTOYPE ------ */
 
 void init_qr();
 
-QrSearchTree load_qr();
+void load_qr(QrSearchTree *list);
+
+void clear_qr_list(QrSearchTree *list);
 
 QrPosition search_in_qr(QrSearchTree list, char *filename);
 
-int save_qr_list(QrSearchTree list);
+int save_qr_list(QrSearchTree *list);
 
-QrSearchTree add_file_to_qr(QrSearchTree list, const char *filepath);
+int add_file_to_qr(QrSearchTree *list, const char *filepath);
 
-QrSearchTree rm_file_from_qr(QrSearchTree list, char *filename);
+int rm_file_from_qr(QrSearchTree *list, char *filename);
 
-QrSearchTree restore_file(QrSearchTree list, char *filename);
+int restore_file(QrSearchTree *list, char *filename);
 
 void qr_worker();
 
