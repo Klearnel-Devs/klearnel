@@ -112,6 +112,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 					perror("QR-WORKER: Unable to send aborted");
 				return;
 			}
+			DEBUG_NOTIF;
 			sem_up(sync_worker, 0);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -199,12 +200,16 @@ void _get_instructions()
 		len = sizeof(remote);
 		if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
 			perror("QR-WORKER: Unable to accept the connection");
-			goto next;
+			free(buf);
+			continue;
 		}
 
-		if (_get_data(s_cl, &action, &buf) < 0) goto next;
+		if (_get_data(s_cl, &action, &buf) < 0) {
+			free(buf);
+			close(s_cl);
+			continue;
+		}
 		_call_related_action(&list, action, buf, s_cl);
-next:
 		free(buf);
 		close(s_cl);
 	} while(action != QR_EXIT);

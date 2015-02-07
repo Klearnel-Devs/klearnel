@@ -51,11 +51,10 @@ void add_to_qr_list(QrSearchTree *list, QrData new_f)
  */
 void clear_qr_list(QrSearchTree *list)
 {
-	DEBUG_NOTIF;
-	if (list != NULL) {
+	if ((*list) != NULL) {
 		clear_qr_list(&(*list)->left);
 		clear_qr_list(&(*list)->right);
-		free(*list);
+		free((*list));
 	}
 }
 
@@ -110,7 +109,7 @@ void _rm_from_qr_list(QrSearchTree *list, QrData node_rm)
 			(*list) = (*list)->right;
 		else if ((*list)->right == NULL)
 			(*list) = (*list)->left;
-		free(tmp);
+		free(tmp); /* TODO: Check if it cause SIGSEGV */
 	}
 }
 
@@ -195,15 +194,15 @@ char *_get_filename(const char *path)
 }
 
 /* Recursively write the data in the quarantine tree to QR_DB */
-void _write_node(QrSearchTree list, const int fd)
+void _write_node(QrSearchTree *list, const int fd)
 {
 	
-	if (!list) return;
-	_write_node(list->left, fd);
-	_write_node(list->right, fd);
+	if (!(*list)) return;
+	_write_node(&(*list)->left, fd);
+	_write_node(&(*list)->right, fd);
 
-	if (list->data.f_name != NULL) {
-		if (write(fd, &list->data, sizeof(struct qr_file)) < 0) {
+	if ((*list)->data.f_name != NULL) {
+		if (write(fd, &(*list)->data, sizeof(struct qr_file)) < 0) {
 			perror("Unable to write data from qr_node to QR_DB");
 			return;
 		}
@@ -232,8 +231,7 @@ int save_qr_list(QrSearchTree *list)
 		return -1;
 	}
 
-	_write_node(*list, fd);
-	clear_qr_list(list);
+	_write_node(list, fd);
 
 	close(fd);
 	return 0;	
@@ -314,7 +312,7 @@ int  add_file_to_qr(QrSearchTree *list, const char *filepath)
         	perror("[QR] Unable to save the quarantine in db");
         	return -1;
         }
- 
+ 	DEBUG_NOTIF;
         return 0;
 }
 
