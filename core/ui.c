@@ -30,8 +30,8 @@ int _qr_query(int nb, char **commands, int action)
 		perror("[UI] Unable to connect the qr_sock");
 		goto error;
 	}
-	len = 50;
-	res = malloc(4);
+	len = 20;
+	res = malloc(2);
 	query = malloc(len);
 	if ((query == NULL) || (res == NULL)) {
 		perror("[UI] Unable to allocate memory");
@@ -44,13 +44,13 @@ int _qr_query(int nb, char **commands, int action)
 		case QR_REST:
 			
 			do {
-				int c_len = strlen(commands[i]);
+				int c_len = strlen(commands[i]) + 1;
 				snprintf(query, len, "%d:%d", action, c_len);
 				if (write(s_cl, query, len) < 0) {
 					perror("[UI] Unable to send query");
 					goto error;
 				}
-				if (read(s_cl, res, 4) < 0) {
+				if (read(s_cl, res, 2) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;
 				}
@@ -59,11 +59,11 @@ int _qr_query(int nb, char **commands, int action)
 					perror("[UI] Unable to send args of the query");
 					goto error;
 				}
-				if (read(s_cl, res, 4) < 0) {
+				if (read(s_cl, res, 2) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;					
 				}
-				if (read(s_cl, res, 4) < 0) {
+				if (read(s_cl, res, 2) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;
 				}

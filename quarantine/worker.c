@@ -7,34 +7,14 @@
 #include <global.h>
 #include <quarantine/quarantine.h>
 
-/* Check if QR_DB has been modified 
- * Return: 
- *  1 if QR_DB has been modified
- *  0 if not
- * -1 in other cases
- */
-int _check_qr_db()
-{
-	static time_t cur_date = 0;
-	struct stat tmp;
-	if (stat(QR_DB, &tmp) < 0) {
-		perror("QR-WORKER: Unable to locate QR_DB");
-		return -1;
-	}
-	if ((cur_date == 0) || (cur_date != tmp.st_mtime)) {
-		cur_date = tmp.st_mtime;
-		return 1;
-	} 
-	return 0;
-}
 
 /* Get data from socket "sock" and put it in buffer "buf"
  * Return number of char read if >= 0, else -1
  */
 int _get_data(const int sock, int *action, char **buf)
 {
-	int c_len = 50;
-	char *a_type = malloc(50);
+	int c_len = 20;
+	char *a_type = malloc(c_len);
 	int len;
 	if (a_type == NULL) {
 		perror("[QR-WORKER] Unable to allocate memory");
@@ -48,6 +28,7 @@ int _get_data(const int sock, int *action, char **buf)
 
 	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
 		perror("QR-WORKER: Unable to send ack in socket");
+		free(a_type);
 		return -1;
 	}
 
@@ -60,6 +41,7 @@ int _get_data(const int sock, int *action, char **buf)
 			if (SOCK_ANS(sock, SOCK_RETRY) < 0)
 				perror("QR-WORKER: Unable to send retry");
 			perror("QR-WORKER: Unable to allocate memory");
+			free(a_type);
 			return -1;
 		}
 
@@ -67,15 +49,17 @@ int _get_data(const int sock, int *action, char **buf)
 			if (SOCK_ANS(sock, SOCK_NACK) < 0)
 				perror("QR-WORKER: Unable to send nack");
 			perror("QR-WORKER: Unable to allocate memory");
+			free(a_type);
 			return -1;			
 		}
 
 		if(SOCK_ANS(sock, SOCK_ACK) < 0) {
 			perror("[QR-WORKER] Unable to send ack");
+			free(a_type);
 			return -1;
 		}
-		DEBUG_NOTIF;
 	}
+	free(a_type);
 	return len;
 }
 
@@ -91,16 +75,11 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 		perror("QR-WORKER: Unable to create the sema to sync");
 		return;
 	}
-	DEBUG_NOTIF;
-	if (_check_qr_db() == 1) {
 
-		wait_crit_area(sync_worker, 0);
-		sem_down(sync_worker, 0);
-		DEBUG_NOTIF;
-		if (*list != NULL) clear_qr_list(list);
-		load_qr(list);
-		sem_up(sync_worker, 0);
-	} 
+	wait_crit_area(sync_worker, 0);
+	sem_down(sync_worker, 0);
+	load_qr(list);
+	sem_up(sync_worker, 0);
 	
 	printf("%s: I received this: %s\n", __func__, buf);
 	switch (action) {
@@ -112,7 +91,6 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 					perror("QR-WORKER: Unable to send aborted");
 				return;
 			}
-			DEBUG_NOTIF;
 			sem_up(sync_worker, 0);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -145,15 +123,12 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			NOT_YET_IMP;
 			break;
 		case QR_EXIT:
-			wait_crit_area(sync_worker, 0);
-			sem_down(sync_worker, 0);		
-			if (save_qr_list(list)) {
-				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
-					perror("QR-WORKER: Unable to send aborted");
-				return;
+			if ((*list) != NULL) {
+				wait_crit_area(sync_worker, 0);
+				sem_down(sync_worker, 0);
+				clear_qr_list(list);
+				sem_up(sync_worker, 0);
 			}
-			clear_qr_list(list);
-			sem_up(sync_worker, 0);
 			SOCK_ANS(s_cl, SOCK_ACK);			
 			break;
 		default: ;
@@ -193,14 +168,12 @@ void _get_instructions()
 	listen(s_srv, 10);
 
 	do {
-		DEBUG_NOTIF;
 		struct sockaddr_un remote;
 		char *buf = NULL;
 
 		len = sizeof(remote);
 		if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
 			perror("QR-WORKER: Unable to accept the connection");
-			free(buf);
 			continue;
 		}
 
@@ -257,7 +230,6 @@ void _expired_files()
 		now = time(NULL);
 		wait_crit_area(sync_worker, 0);
 		sem_down(sync_worker, 0);
-		if (list != NULL) clear_qr_list(&list);
 		load_qr(&list);
 		sem_up(sync_worker, 0);
 		/*
@@ -281,10 +253,7 @@ void _expired_files()
 		sem_up(sync_worker, 0);
 		
 	} while ( removed != 0 );
-	wait_crit_area(sync_worker, 0);
-	sem_down(sync_worker, 0);
-	clear_qr_list(&list);
-	sem_up(sync_worker, 0);
+
 	return;
 }
 

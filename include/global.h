@@ -22,6 +22,7 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <errno.h>
+#include <libgen.h>
 
 /* ------ CONSTANTS ------ */
 

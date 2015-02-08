@@ -22,7 +22,7 @@
 
 /* Structure of file into quarantine */
 struct qr_file {
-	char 		f_name[PATH_MAX];	/* Filename of the fil in qr */
+	char 		f_name[256];		/* Filename of the fil in qr */
 	char		o_path[PATH_MAX]; 	/* Old path to restore */
 	struct stat	o_ino; 			/* Inode info before move into quarantine */
 	time_t 		d_begin; 		/* Date at which file has been moved to quarantine */
@@ -55,7 +55,7 @@ QrPosition search_in_qr(QrSearchTree list, char *filename);
 
 int save_qr_list(QrSearchTree *list);
 
-int add_file_to_qr(QrSearchTree *list, const char *filepath);
+int add_file_to_qr(QrSearchTree *list, char *filepath);
 
 int rm_file_from_qr(QrSearchTree *list, char *filename);
 
