@@ -80,7 +80,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 	sem_down(sync_worker, 0);
 	load_qr(list);
 	sem_up(sync_worker, 0);
-	
+	QrSearchTree save = *list;
 	printf("%s: I received this: %s\n", __func__, buf);
 	switch (action) {
 		case QR_ADD: 
@@ -89,6 +89,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			if (add_file_to_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					perror("QR-WORKER: Unable to send aborted");
+				*list = save;
 				return;
 			}
 			sem_up(sync_worker, 0);
@@ -100,8 +101,10 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			if (rm_file_from_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					perror("QR-WORKER: Unable to send aborted");
+				*list = save;
 				return;
 			}
+			DEBUG_NOTIF;
 			sem_up(sync_worker, 0);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -111,6 +114,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			if (restore_file(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					perror("QR-WORKER: Unable to send aborted");
+				*list = save;
 				return;
 			}
 			sem_up(sync_worker, 0);
