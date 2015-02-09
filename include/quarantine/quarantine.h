@@ -49,7 +49,7 @@ void init_qr();
 
 void load_qr(QrSearchTree *list);
 
-void clear_qr_list(QrSearchTree *list);
+QrSearchTree clear_qr_list(QrSearchTree list);
 
 QrPosition search_in_qr(QrSearchTree list, char *filename);
 

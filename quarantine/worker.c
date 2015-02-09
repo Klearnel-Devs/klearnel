@@ -126,7 +126,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			if ((*list) != NULL) {
 				wait_crit_area(sync_worker, 0);
 				sem_down(sync_worker, 0);
-				clear_qr_list(list);
+				*list = clear_qr_list(*list);
 				sem_up(sync_worker, 0);
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);			
