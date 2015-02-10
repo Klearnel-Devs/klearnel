@@ -18,8 +18,8 @@ int _qr_query(int nb, char **commands, int action)
 	char *query, *res;;
 	struct sockaddr_un remote;
 	struct timeval timeout;
-	timeout.sec 	= SOCK_TO;
-	timeout.usec 	= 0;
+	timeout.tv_sec 	= SOCK_TO;
+	timeout.tv_usec	= 0;
 
 	if ((s_cl = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("[UI] Unable to create socket");
@@ -41,7 +41,7 @@ int _qr_query(int nb, char **commands, int action)
 	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
 		sizeof(timeout)) < 0)
 		write_to_log(WARNING, "[UI] Unable to set timeout for sending operations");
-	
+
 	len = 20;
 	res = malloc(2);
 	query = malloc(len);

@@ -6,6 +6,7 @@
  */
 #include <global.h>
 #include <quarantine/quarantine.h>
+#include <logging/logging.h>
 
 
 /* Get data from socket "sock" and put it in buffer "buf"
@@ -157,8 +158,8 @@ void _get_instructions()
 	struct sockaddr_un server;
 	QrSearchTree list = NULL;
 	struct timeval timeout;
-	timeout.sec 	= SOCK_TO;
-	timeout.usec 	= 0;
+	timeout.tv_sec 	= SOCK_TO;
+	timeout.tv_usec = 0;
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("QR-WORKER: Unable to open the socket");
@@ -186,6 +187,7 @@ void _get_instructions()
 		if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, 
 			sizeof(timeout)) < 0)
 			write_to_log(WARNING, "[QR-WORKER] Unable to set timeout for reception operations");
+
 		if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
 			sizeof(timeout)) < 0)
 			write_to_log(WARNING, "[QR-WORKER] Unable to set timeout for sending operations");		
