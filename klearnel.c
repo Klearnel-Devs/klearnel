@@ -21,6 +21,7 @@
 #include <global.h>
 #include <quarantine/quarantine.h>
 #include <core/ui.h>
+#include <logging/logging.h>
 
 /* Initialize all components required by the module */
 void _init_env()
@@ -38,6 +39,12 @@ void _init_env()
 	if (access(WORK_DIR, F_OK) == -1) {
 		if (mkdir(WORK_DIR, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 			perror("KL: Unable to create the configuration directory");
+			exit(EXIT_FAILURE);
+		}		
+	}
+	if (access(TMP_DIR, F_OK) == -1) {
+		if (mkdir(TMP_DIR, S_IRWXU | S_IRWXG | S_IRWXO)) {
+			perror("KL: Unable to create the temp directory");
 			exit(EXIT_FAILURE);
 		}		
 	}
@@ -63,24 +70,31 @@ int _save_main_pid(pid_t pid)
 		perror("KL: Unable to allocate memory");
 		return -1;
 	}
-	snprintf(pid_s, PID_MAX_S, "%d", pid);
+	if (snprintf(pid_s, PID_MAX_S, "%d", pid) < 0) {
+		write_to_log(FATAL, "[KL] Unable to create the pid file path");
+		goto error;
+	}
 	if (access(PID_FILE, F_OK) == -1) {
 		if (creat(PID_FILE, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
 			perror("KL: Unable to create the pid file");
-			return -1;
+			goto error;
 		}
 	}
 	if ((fd = open(PID_FILE, O_WRONLY, S_IWUSR)) < 0) {
 		perror("KL: Unable to open pid file");
-		return -1;
+		goto error;
 	}
 	if (write(fd, pid_s, strlen(pid_s)) < 0) {
 		perror("KL: Unable to write process id in the pid file");
 		close(fd);
-		return -1;
+		goto error;
 	}
 	close(fd);
+	free(pid_s);
 	return 0;
+error:
+	free(pid_s);
+	return -1;
 }
 
 /* Main function of the module 

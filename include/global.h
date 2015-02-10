@@ -32,6 +32,7 @@
 #define BASE_DIR 	"/etc/klearnel"
 #define WORK_DIR	"/usr/local/klearnel"
 #define LOG_DIR		"/var/klearnel"
+#define TMP_DIR		"/tmp/.klearnel"
 #define PID_FILE	BASE_DIR "/klearnel.pid"
 
 #define IPC_RAND 	"/dev/null"
@@ -43,6 +44,8 @@
 #define SOCK_UNK	"4"
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
+
+#define SOCK_TO 	15 /* Define the timeout applied to sockets */
 
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))
