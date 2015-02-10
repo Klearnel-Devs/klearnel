@@ -91,6 +91,7 @@ char *getLevel(int level)
 int write_to_log(int level, char *message)
 {
 	char date[7], tm[7];
+	va_list args;
 	char *msg_level = getLevel(level);
 	time_t rawtime;
   	struct tm * timeinfo;
@@ -98,35 +99,33 @@ int write_to_log(int level, char *message)
   	timeinfo = localtime(&rawtime);
   	strftime(date, sizeof(date), "%y%m%d", timeinfo);
   	strftime(tm, sizeof(tm), "%H%M%S", timeinfo);
-  	char *writer = malloc(strlen(tm) + strlen(msg_level) + strlen(message) + 2);
+  	char *writer = malloc(strlen(tm) + strlen(msg_level) + 2);
   	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + 1);
+  	if (!writer || !msg_level || !logs) {
+  		perror("[LOG] Unable to allocate memory");
+  		return -1;
+  	}
+
   	if (!strncpy(logs, LOG_DIR, strlen(LOG_DIR))) {
 		perror("LOG: Unable to copy time to log message");
-		return -1;
+		goto err;
 	}
   	if (!strncat(logs, date, strlen(date))) {
 		perror("LOG: Unable to concatenate date in log path");
-		return -1;
+		goto err;
 	}
 	if (!strncpy(writer, tm, strlen(tm))) {
 		perror("LOG: Unable to copy time to log message");
-		return -1;
+		goto err;
 	}
 	if (!strncat(writer, msg_level, strlen(msg_level))) {
 		perror("LOG: Unable to concatenate level to log message");
-		return -1;
+		goto err;
 	}
-	if (!strncat(writer, message, strlen(message))) {
-		perror("LOG: Unable to concatenate message to log message");
-		return -1;
-	}
-	if (!strncat(writer, "\n", sizeof(char))) {
-		perror("LOG: Unable to concatenate message to log message");
-		return -1;
-	}
+	
   	if (_check_log_file(logs) != 0) {
 		perror("LOG: Error when checking log file");
-		return -1;
+		goto err;
 	}
 
 	int fd;
@@ -151,5 +150,13 @@ int write_to_log(int level, char *message)
 	fcntl (fd, F_SETLKW, &lock);
 
 	close (fd);
+	free(msg_level);
+	free(writer);
+	free(logs);
   	return 0;
+err:
+	free(msg_level);
+	free(writer);
+	free(logs);
+	return -1;
 }

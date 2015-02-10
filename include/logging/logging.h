@@ -8,8 +8,8 @@
  */
 
 #include <dirent.h>
- #include <fcntl.h>
-
+#include <fcntl.h>
+ 
 /* Defines log severity */
 #define FATAL 		5
 #define URGENT 		4
