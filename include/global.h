@@ -44,6 +44,8 @@
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
 
+#define SOCK_TO 	15 /* Define the timeout applied to sockets */
+
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))
 

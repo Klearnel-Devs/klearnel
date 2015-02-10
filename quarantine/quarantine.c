@@ -151,7 +151,6 @@ QrPosition search_in_qr(QrSearchTree list, char *filename)
 		} 
 	}
 out:
-
 	free(base);
 	return NULL;
 	
@@ -160,7 +159,6 @@ out:
 /* Recursively write the data in the quarantine tree to QR_DB */
 void _write_node(QrSearchTree list, int fd)
 {
-	
 	if (!list) return;
 	printf("%s: Filename is \"%s\"\n", __func__, list->data.f_name);
 	_write_node(list->left, fd);
@@ -302,7 +300,6 @@ int rm_file_from_qr(QrSearchTree *list, char *filename)
 	return 0;
 rm_err:
 	free(p_rm);
-	DEBUG_NOTIF;
 	return -1;
 }
 

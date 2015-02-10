@@ -6,6 +6,7 @@
 #include <global.h>
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
+#include <logging/logging.h>
 
 /*
  * Allow to send a query to the quarantine and execute the related action
@@ -16,6 +17,9 @@ int _qr_query(int nb, char **commands, int action)
 	int len, s_cl, i;
 	char *query, *res;;
 	struct sockaddr_un remote;
+	struct timeval timeout;
+	timeout.sec 	= SOCK_TO;
+	timeout.usec 	= 0;
 
 	if ((s_cl = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("[UI] Unable to create socket");
@@ -30,6 +34,14 @@ int _qr_query(int nb, char **commands, int action)
 		perror("[UI] Unable to connect the qr_sock");
 		goto error;
 	}
+	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, 
+		sizeof(timeout)) < 0)
+		write_to_log(WARNING, "[UI] Unable to set timeout for reception operations");
+
+	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+		sizeof(timeout)) < 0)
+		write_to_log(WARNING, "[UI] Unable to set timeout for sending operations");
+	
 	len = 20;
 	res = malloc(2);
 	query = malloc(len);
@@ -85,9 +97,13 @@ int _qr_query(int nb, char **commands, int action)
 		default:
 			fprintf(stderr, "[UI] Unknown action");
 	}
+	free(query);
+	free(res);
 	close(s_cl);
 	return 0;
 error:
+	free(query);
+	free(res);
 	close(s_cl);
 	return -1;
 	

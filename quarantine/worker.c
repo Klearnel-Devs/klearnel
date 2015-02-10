@@ -156,6 +156,9 @@ void _get_instructions()
 	int action = -1;
 	struct sockaddr_un server;
 	QrSearchTree list = NULL;
+	struct timeval timeout;
+	timeout.sec 	= SOCK_TO;
+	timeout.usec 	= 0;
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("QR-WORKER: Unable to open the socket");
@@ -180,6 +183,12 @@ void _get_instructions()
 			perror("QR-WORKER: Unable to accept the connection");
 			continue;
 		}
+		if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, 
+			sizeof(timeout)) < 0)
+			write_to_log(WARNING, "[QR-WORKER] Unable to set timeout for reception operations");
+		if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+			sizeof(timeout)) < 0)
+			write_to_log(WARNING, "[QR-WORKER] Unable to set timeout for sending operations");		
 
 		if (_get_data(s_cl, &action, &buf) < 0) {
 			free(buf);
