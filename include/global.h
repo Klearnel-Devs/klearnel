@@ -22,6 +22,7 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <errno.h>
+#include <libgen.h>
 
 /* ------ CONSTANTS ------ */
 
@@ -39,11 +40,15 @@
 #define SOCK_ACK 	"1"
 #define SOCK_NACK 	"2"
 #define SOCK_DENIED 	"3"
+#define SOCK_UNK	"4"
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
 
 #define SOCK_ANS(socket, signal) \
- 	send(socket, signal, strlen(signal), 0)
+ 	write(socket, signal, strlen(signal))
+
+#define DEBUG_NOTIF \
+ 	printf("[DEBUG] Function: %s\n", __func__);
 
 /* ------ PROTOTYPES ----- */
 
