@@ -92,7 +92,38 @@ int _qr_query(int nb, char **commands, int action)
 			break;
 		case QR_LIST:
 			snprintf(query, len, "%d:0", action);
-			NOT_YET_IMP;
+			char *list_path = malloc(PATH_MAX);
+			if (!list_path) {
+				perror("[UI] Unable to allocate memory");
+				goto error;
+			}
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(list_path);
+				goto error;
+			} 
+			if (read(s_cl, list_path, PATH_MAX) < 0) {
+				perror("[UI] Unable to get query result");
+				free(list_path);
+				goto error;	
+			} 
+			if (strcmp(list_path, SOCK_ABORTED) == 0) {
+				perror("[UI] Action get-qr-list couldn't be executed");
+				free(list_path);
+				goto error;
+			} 
+			int fd = open(list_path, O_RDONLY, S_IRUSR);
+			if (fd < 0) {
+				perror("[UI] Unable to open qr list file");
+				free(list_path);
+				goto error;
+			}
+			QrSearchTree qr_list;
+			load_tmp_qr(&qr_list, fd);
+			close(fd);
+			print_qr(qr_list);
+			clear_qr_list(qr_list);
+			free(list_path);
 			break;
 		default:
 			fprintf(stderr, "[UI] Unknown action");
