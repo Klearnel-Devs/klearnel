@@ -105,7 +105,6 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 				*list = save;
 				return;
 			}
-			DEBUG_NOTIF;
 			sem_up(sync_worker, 0);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;

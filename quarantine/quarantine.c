@@ -66,7 +66,6 @@ void load_qr(QrSearchTree *list)
 {
 	int fd;
 	QrData tmp;
-	DEBUG_NOTIF;
 	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
 		perror("[QR] Unable to open QR_DB");
 		return;
@@ -74,7 +73,6 @@ void load_qr(QrSearchTree *list)
 
 	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) 
 		*list = _add_to_qr_list(*list, tmp);
-	DEBUG_NOTIF;
 	close(fd);
 }
 
@@ -132,7 +130,7 @@ QrPosition search_in_qr(QrSearchTree list, char *filename)
 	}
 	if (stat(base, &tmp) < 0) {
 		perror("[QR] Unable to find the specified file");
-		DEBUG_NOTIF;
+		LOG_DEBUG;
 		goto out;
 	}
 
@@ -263,7 +261,7 @@ int  add_file_to_qr(QrSearchTree *list, char *filepath)
         free(tmp);
  	free(new_path);
  	free(cp_path);
- 	DEBUG_NOTIF;
+ 	LOG_DEBUG;
         return 0;
 error:
 	free(tmp);

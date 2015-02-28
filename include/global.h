@@ -50,7 +50,7 @@
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))
 
-#define DEBUG_NOTIF \
+#define LOG_DEBUG \
  	printf("[DEBUG] Function: %s\n", __func__);
 
 /* ------ PROTOTYPES ----- */
