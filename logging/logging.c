@@ -34,7 +34,7 @@ int _delete_logs()
 	dir = LOG_DIR ;
 
 	if ((dtr = opendir(dir)) == NULL) {
-		write_to_log(WARNING, "LOG: Can't open log directory");
+		write_to_log(URGENT, "%s - %s", __func__, "Can't open log directory");
 		return -1;
 	}
 
@@ -44,14 +44,14 @@ int _delete_logs()
 		struct stat stbuf ;
 		sprintf( filename , "%s/%s",dir,dp->d_name) ;
 		if ( stat(filename,&stbuf) == -1 ) {
-			write_to_log(WARNING, "%s - %s", "LOG: Unable to stat file", filename);
+			write_to_log(WARNING, "%s - %s - %s", __func__, "Unable to stat file", filename);
 			continue ;
 		} else {
 			if (difftime(time(NULL), stbuf.st_atime) > OLD) {
 				if (unlink(filename) != 0)
-					write_to_log(WARNING,"%s - %s", "LOG: Unable to remove file", filename);
+					write_to_log(WARNING,"%s - %s - %s", __func__, "Unable to remove file", filename);
 				else
-					write_to_log(INFO, "%s - %s", "LOG FILE SUCCESSFULLY DELETED", filename);
+					write_to_log(INFO, "%s - %s - %s", __func__, "LOG FILE SUCCESSFULLY DELETED", filename);
 			}
 				
 		}
@@ -76,6 +76,7 @@ char *_getLevel(int level)
 {
     char *x;
 	switch (level) {
+		case 0:  x = " -   [DBUG]   - "; break;
     	case 1:  x = " -   [INFO]   - "; break;
     	case 2:  x = " -  [NOTIFY]  - "; break;
     	case 3:  x = " -   [WARN]   - "; break;

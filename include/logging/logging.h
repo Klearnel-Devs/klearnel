@@ -16,6 +16,7 @@
 #define WARNING		3
 #define NOTIFY		2
 #define INFO		1
+#define DEBUG		0
 
 /* TEMPORARY DEFINITION OF LOG MAX AGE */
 #define OLD		2592000
