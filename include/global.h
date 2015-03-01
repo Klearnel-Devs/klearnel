@@ -32,7 +32,7 @@
 
 #define BASE_DIR 	"/etc/klearnel"
 #define WORK_DIR	"/usr/local/klearnel"
-#define LOG_DIR		"/var/klearnel"
+#define LOG_DIR		"/var/log/klearnel"
 #define TMP_DIR		"/tmp/.klearnel"
 #define PID_FILE	BASE_DIR "/klearnel.pid"
 

@@ -6,22 +6,24 @@
  */
 #include <global.h>
 #include <quarantine/quarantine.h>
+#include <logging/logging.h>
 
 /* Initialize all requirements for Quarantine */
 void init_qr()
 {
 	if (access(QR_STOCK, F_OK) == -1) {
 		if (mkdir(QR_STOCK, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
-			perror("QR: Unable to create the stock");
+			write_to_log(FATAL, "%s - %s - %s - %s", __func__, __LINE__, "Unable to create the stock", QR_STOCK);
 			return;
 		}
 	}
 	if (access(QR_DB, F_OK) == -1) {
 		if (creat(QR_DB, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
-			perror("QR: Unable to create the database file");
+			write_to_log(FATAL, "%s - %s - %s - %s", __func__, __LINE__, "Unable to create the database file", QR_DB);
 			return;
 		}
 	}
+	write_to_log(INFO, "%s", "QR Initialized without error");
 }
 
 /* Add a file to the quarantine list 
@@ -32,7 +34,7 @@ QrSearchTree _add_to_qr_list(QrSearchTree list, QrData new_f)
 	if (list == NULL)  {
 		QrSearchTree new_n = (QrSearchTree) malloc(sizeof(struct qr_node));
 		if (!new_n) {
-			perror("[QR] Unable to allocate memory");
+			write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		new_n->data = new_f;
@@ -43,7 +45,8 @@ QrSearchTree _add_to_qr_list(QrSearchTree list, QrData new_f)
 		list->left = _add_to_qr_list(list->left, new_f);
 	} else if (new_f.o_ino.st_ino > list->data.o_ino.st_ino) {
 		list->right = _add_to_qr_list(list->right, new_f);
-	} else ;
+	}
+	write_to_log(INFO, "%s - %s", "File successfully added to QR List", new_f.f_name);
 	return list;
 }
 
@@ -57,6 +60,7 @@ QrSearchTree clear_qr_list(QrSearchTree list)
 		clear_qr_list(list->right);
 		free(list);
 	}
+	write_to_log(INFO, "%s", "Quarantine list cleared");
 	return NULL;
 }
 
@@ -78,13 +82,14 @@ void load_qr(QrSearchTree *list)
 	int fd;
 	QrData tmp;
 	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
-		perror("[QR] Unable to open QR_DB");
+		write_to_log(WARNING, "%s - %s - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
 		return;
 	}
 
 	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) 
 		*list = _add_to_qr_list(*list, tmp);
 	close(fd);
+	write_to_log(INFO, "%s", "Quarantine loaded with content of QR_DB");
 }
 
 /*
@@ -120,6 +125,7 @@ QrSearchTree _rm_from_qr_list(QrSearchTree list, QrData node_rm)
 		else if (list->right == NULL)
 			list = list->left;
 	}
+	write_to_log(INFO, "%s - %s", "File removed from QR List", node_rm.f_name);
 	return list;
 }
 
@@ -131,17 +137,15 @@ QrPosition search_in_qr(QrSearchTree list, char *filename)
 	char *base;
 	struct stat tmp;
 	if (!(base = malloc(strlen(QR_STOCK) + strlen(filename) + 5))) {
-		perror("[QR] Unable to allocate memory");
+		write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
 		return NULL;
 	}
-	if (snprintf(base, (strlen(QR_STOCK) + strlen(filename) + 5), "%s/%s", 
-		QR_STOCK, filename) < 0) {
-		perror("[QR] Unable to create the path of the researched file");
+	if (snprintf(base, (strlen(QR_STOCK) + strlen(filename) + 5), "%s/%s", QR_STOCK, filename) < 0) {
+		write_to_log(WARNING, "%s - %s - %s - %s/%s", __func__, __LINE__, "Unable to create the path of the searched file", QR_STOCK, filename);
 		goto out;
 	}
 	if (stat(base, &tmp) < 0) {
-		perror("[QR] Unable to find the specified file");
-		LOG_DEBUG;
+		write_to_log(WARNING, "%s - %s - %s - %s", __func__, __LINE__, "Unable to find the specified file to stat", base);
 		goto out;
 	}
 
@@ -152,6 +156,7 @@ QrPosition search_in_qr(QrSearchTree list, char *filename)
 		ino_t cur_ino = list->data.o_ino.st_ino;
 
 		if (inum == cur_ino) {
+			write_to_log(DEBUG, "%s - %s", "File searched in QR found", list->data.f_name);
 			return list;	
 		} else if (inum > cur_ino) {
 			list = list->right;
@@ -173,9 +178,10 @@ void _write_node(QrSearchTree list, int fd)
 	_write_node(list->right, fd);
 
 	if (write(fd, &list->data, sizeof(QrData)) < 0) {
-		perror("[QR] Unable to write data from qr_node to QR_DB");
+		write_to_log(URGENT, "%s - %s - %s", __func__, __LINE__, "Unable to write data from qr_node to QR_DB");
 		return;
 	}
+	write_to_log(INFO, "%s - %s", "File written to QR_DB", list->data.f_name);
 }
 
 /* Write the list into the quarantine DB 
@@ -191,14 +197,16 @@ int save_qr_list(QrSearchTree *list, int other)
 		fd = other;
 	} else {
 		if ((fd = open(QR_DB, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
-			perror("[QR] Unable to open QR_DB");
+			write_to_log(WARNING, "%s - %s - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
 			return -1;
 		}
 	}
 
 	_write_node(*list, fd);
-	if (other < 0) close(fd);
+	if (other < 0) 
+		close(fd);
 	*list = clear_qr_list(*list);
+	write_to_log(INFO, "%s", "QR List has been saved");
 	return 0;	
 }
 
@@ -215,47 +223,46 @@ int  add_file_to_qr(QrSearchTree *list, char *filepath)
 	int i = 1;
 	
 	if ((!new_path) || (!tmp) || (!cp_path)) {
-		perror("QR: Couldn't allocate memory");
-        	goto error;
+		write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Couldn't allocate memory");
+        goto error;
 	}
 
 	if (access(fn, F_OK) != -1) {		
 		do {
 			if (snprintf(tmp, strlen(fn) + sizeof(i) +1, "%s%d", fn, i) < 0) {
-				perror("QR: Unable to increment filename");
-        			goto error;
+				write_to_log(WARNING, "%s - %s - %s", __func__, __LINE__, "Unable to increment filename");
+        		goto error;
 			}
 			i++;
 		} while(access(tmp, F_OK) != -1);
 		if (!strncpy(fn, tmp, strlen(tmp) + 1)) {
-			perror("QR: Unable to modify filename");
-        		goto error;
+			write_to_log(WARNING, "%s - %s - %s", __func__, __LINE__, "Unable to modify filename");
+        	goto error;
 		}
 	}
 
-	if (!snprintf(new_path, (strlen(QR_STOCK)+strlen(fn)+10), 
-		"%s/%s", QR_STOCK, fn) < 0) {
-		perror("[QR] Unable to create the new path for file added");
+	if (!snprintf(new_path, (strlen(QR_STOCK)+strlen(fn)+10), "%s/%s", QR_STOCK, fn) < 0) {
+		write_to_log(WARNING, "%s - %s - %s - %s/%s", __func__, __LINE__, "Unable to create the new path for file added", QR_STOCK, fn);
 		goto error;
 	}
 
 	if (stat(filepath, &new_s) < 0) {
-		perror("QR: Unable to get stat of file");
+		write_to_log(WARNING, "%s - %s - %s - %s", __func__, __LINE__, "Unable to get stat of file", filepath);
 		goto error;
 	}
 
 	new_f.o_ino = new_s;
 	if (!strncpy(new_f.o_path, filepath, strlen(filepath)+1)) {
-		perror("QR: Unable to put current path to old path");
-        	goto error;
+		write_to_log(WARNING, "%s - %s - Unable to put current path - %s - to old path - %s", __func__, __LINE__, new_f.o_path, filepath);
+        goto error;
 	}
 	if (!strncpy(new_f.f_name, fn, strlen(fn)+1)) {
-		perror("QR: Unable to put new filename to qr_file struct");
-        	goto error;
+		write_to_log(WARNING, "%s - %s - Unable to put new filename - %s - to qr_file struct - %s", __func__, __LINE__, fn, new_f.f_name);
+        goto error;
 	}
 
 	if (new_f.f_name == NULL)
-        	goto error;
+        goto error;
 
 	new_f.d_begin   = time(NULL);
 	/* This will be changed when config implemented 
@@ -263,22 +270,22 @@ int  add_file_to_qr(QrSearchTree *list, char *filepath)
 	 */
 	new_f.d_expire  = 0;
 
-        if (rename(filepath, new_path)) {
-        	perror("Adding aborted: Unable to move the file");
-        	goto error;
-        }
+	if (rename(filepath, new_path)) {
+		write_to_log(WARNING, "%s - %s - Adding aborted: Unable to move the file %s to %s", __func__, __LINE__, filepath, new_path);
+		goto error;
+	}
 
-        *list = _add_to_qr_list(*list, new_f);
-
-     	
-        if (save_qr_list(list, -1) < 0) {
-        	perror("[QR] Unable to save the quarantine in db");
-        	goto error;
-        }
-        free(tmp);
- 	free(new_path);
- 	free(cp_path);
-        return 0;
+	*list = _add_to_qr_list(*list, new_f);
+		
+	if (save_qr_list(list, -1) < 0) {
+		write_to_log(WARNING, "%s - %s - %s", __func__, __LINE__, "Unable to save the quarantine in db");
+		goto error;
+	}
+	write_to_log(INFO, "File successfully moved from %s to %s in QR Stock", filepath, new_path);
+	free(tmp);
+	free(new_path);
+	free(cp_path);
+	return 0;
 error:
 	free(tmp);
 	free(new_path);
@@ -292,24 +299,24 @@ int rm_file_from_qr(QrSearchTree *list, char *filename)
 	QrPosition rm_file;
 	char *p_rm;
 	if ((p_rm = malloc(strlen(QR_STOCK)+strlen(filename)+3)) == NULL) {
-		perror("[QR] Unable to allocate memory");
+		write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
 		return -1;
 	}
-	if (snprintf(p_rm, (strlen(QR_STOCK)+strlen(filename)+3), 
-		"%s/%s", QR_STOCK, filename) < 0) {
-		perror("[QR] Unable to create path to file to remove");
+	if (snprintf(p_rm, (strlen(QR_STOCK)+strlen(filename)+3), "%s/%s", QR_STOCK, filename) < 0) {
+		write_to_log(WARNING, "%s - %s - %s - %s/%s", __func__, __LINE__, "Unable to create path to file to remove", QR_STOCK, filename);
 		goto rm_err;
 	}
 	if ((rm_file = search_in_qr(*list, filename)) == NULL){
-		perror("QR: Unable to locate file to remove");
+		write_to_log(WARNING, "%s - %s - %s - %s", __func__, __LINE__, "Unable to locate file to remove", filename);
 		goto rm_err;
 	}
 	*list = _rm_from_qr_list(*list, rm_file->data);
 	if (unlink(p_rm)) {
-		perror("QR: Unable to remove file from stock");
+		write_to_log(URGENT, "%s - %s - %s - %s", __func__, __LINE__, "Unable to remove file from stock", p_rm);
 		fprintf(stderr, "WARNING: [QR] File has been removed from qr_list!\n");
 	}
 	save_qr_list(list, -1);
+	write_to_log(INFO, "File %s removed from QR", p_rm);
 	free(p_rm);
 	return 0;
 rm_err:
@@ -323,25 +330,25 @@ int restore_file(QrSearchTree *list, char *filename)
 	QrPosition res_file = search_in_qr(*list, filename);
 	char *p_rm = malloc(strlen(QR_STOCK)+strlen(filename)+3);
 	if (!p_rm) {
-		perror("[QR] Unable to allocate memory");
+		write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
 		return -1;
 	}
 	if (res_file == NULL) {
-		perror("QR ERROR: Unable to find file to restore");
+		write_to_log(WARNING, "%s - %s - %s", __func__, __LINE__, "Unable to find file to restore");
 		return -1;
 	}
 
 	*list = _rm_from_qr_list(*list, res_file->data);
 
-	if (snprintf(p_rm, (strlen(QR_STOCK)+strlen(filename)+3), 
-		"%s/%s", QR_STOCK, filename) < 0) {
-		perror("QR: Unable to create path for file to remove");
+	if (snprintf(p_rm, (strlen(QR_STOCK)+strlen(filename)+3), "%s/%s", QR_STOCK, filename) < 0) {
+		write_to_log(WARNING, "%s - %s - %s %s/%s", __func__, __LINE__, "Unable to create path to remove", QR_STOCK, filename);
 		free(p_rm);
 		return -1;
 	}
 	if (rename(p_rm, res_file->data.o_path))
-		perror("Restore aborted: Unable to move the file");
+		write_to_log(URGENT, "%s - %s - %s - %s to %s", __func__, __LINE__, "Restore aborted: Unable to move the file ", filename, res_file->data.o_path);
 	save_qr_list(list, -1);
+	write_to_log(INFO, "File %s removed from QR and restored to %s", filename, res_file->data.o_path);
 	free(p_rm);
 	return 0;
 }

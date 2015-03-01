@@ -18,17 +18,17 @@ int _get_data(const int sock, int *action, char **buf)
 	char *a_type = malloc(c_len);
 	int len;
 	if (a_type == NULL) {
-		perror("[QR-WORKER] Unable to allocate memory");
+		write_to_log(FATAL, "%s - %s", __func__, "Unable to allocate memory");
 		return -1;
 	}
 
 	if (read(sock, a_type, c_len) < 0) {
-		perror("QR-WORKER: Error while receiving data through socket");
+		write_to_log(WARNING, "%s - %s", __func__, "Error while receiving data through socket");
 		return -1;
 	}
 
 	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
-		perror("QR-WORKER: Unable to send ack in socket");
+		write_to_log(WARNING, "%s - %s", __func__, "Unable to send ack in socket");
 		free(a_type);
 		return -1;
 	}
@@ -40,26 +40,27 @@ int _get_data(const int sock, int *action, char **buf)
 		*buf = malloc(sizeof(char)*len);
 		if (*buf == NULL) {
 			if (SOCK_ANS(sock, SOCK_RETRY) < 0)
-				perror("QR-WORKER: Unable to send retry");
-			perror("QR-WORKER: Unable to allocate memory");
+				write_to_log(WARNING,"%s - %s", __func__, "Unable to send retry");
+			write_to_log(FATAL,"%s - %s", __func__, "Unable to allocate memory");
 			free(a_type);
 			return -1;
 		}
 
 		if (read(sock, *buf, len) < 0) {
 			if (SOCK_ANS(sock, SOCK_NACK) < 0)
-				perror("QR-WORKER: Unable to send nack");
-			perror("QR-WORKER: Unable to allocate memory");
+				write_to_log(WARNING,"%s - %s", __func__, "Unable to send nack");
+			write_to_log(FATAL,"%s - %s", __func__, "Unable to allocate memory");
 			free(a_type);
 			return -1;			
 		}
 
 		if(SOCK_ANS(sock, SOCK_ACK) < 0) {
-			perror("[QR-WORKER] Unable to send ack");
+			write_to_log(WARNING,"%s - %s", __func__, "Unable to send ack");
 			free(a_type);
 			return -1;
 		}
 	}
+	write_to_log(DEBUG, "%s successfully completed", __func__);
 	free(a_type);
 	return len;
 }
@@ -73,7 +74,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 	key_t sync_worker_key = ftok(IPC_RAND, IPC_QR);
 	int sync_worker = semget(sync_worker_key, 1, IPC_CREAT | IPC_PERMS);
 	if (sync_worker < 0) {
-		perror("QR-WORKER: Unable to create the sema to sync");
+		write_to_log(WARNING, "%s - %s", __func__, "Unable to create the sema to sync");
 		return;
 	}
 
@@ -88,7 +89,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			sem_down(sync_worker, 0);
 			if (add_file_to_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
-					perror("QR-WORKER: Unable to send aborted");
+					write_to_log(WARNING, "%s - %s", __func__, "Unable to send aborted");
 				*list = save;
 				return;
 			}
@@ -100,7 +101,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			sem_down(sync_worker, 0); 			
 			if (rm_file_from_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
-					perror("QR-WORKER: Unable to send aborted");
+					write_to_log(WARNING, "%s - %s", __func__, "Unable to send aborted");
 				*list = save;
 				return;
 			}
@@ -112,7 +113,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			sem_down(sync_worker, 0);		
 			if (restore_file(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
-					perror("QR-WORKER: Unable to send aborted");
+					write_to_log(WARNING, "%s - %s", __func__, "Unable to send aborted");
 				*list = save;
 				return;
 			}
@@ -125,18 +126,18 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));
 			char *file = malloc(sizeof(char)*(sizeof(timestamp)+30));
 			if (!path_to_list || !file) {
-				perror("QR-WORKER: Unable to allocate memory");
+				write_to_log(FATAL, "%s - %s", __func__, "Unable to allocate memory");
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
-					perror("QR-WORKER: Unable to send aborted");
+					write_to_log(WARNING, "%s - %s", __func__, "Unable to send aborted");
 				}
 				return;
 			}
 			sprintf(path_to_list, "/tmp/.klearnel/%d", (int)timestamp);
 			if (access(path_to_list, F_OK) == -1) {
 				if (mkdir(path_to_list, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
-					perror("QR: Unable to create the tmp_stock folder");
+					write_to_log(WARNING, "%s - %s", __func__, "Unable to create the tmp_stock folder");
 					if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
-						perror("QR-WORKER: Unable to send aborted");
+						write_to_log(WARNING, "%s - %s", __func__, "Unable to send aborted");
 					}
 					free(path_to_list);
 					return;
@@ -145,9 +146,9 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			sprintf(file, "%s/qr_stock", path_to_list);
 			tmp_stock = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
 			if (tmp_stock < 0) {
-				perror("QR-WORKER: Unable to open tmp_stock");
+				write_to_log(WARNING, "%s - %s", __func__, "Unable to open tmp_stock");
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
-					perror("QR-WORKER: Unable to send aborted");
+					write_to_log(WARNING, "%s - %s", __func__, "Unable to send aborted");
 				}
 				free(path_to_list);
 				free(file);
@@ -173,6 +174,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			break;
 		default: ;
 	}
+	write_to_log(DEBUG, "%s successfully completed", __func__);
 }
 
 /* Get instructions via Unix domain sockets
@@ -197,7 +199,7 @@ void _get_instructions()
 	timeout.tv_usec = 0;
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-		perror("QR-WORKER: Unable to open the socket");
+		write_to_log(WARNING, "%s - %s", __func__, "Unable to open the socket");
 		return;
 	}
 	server.sun_family = AF_UNIX;
@@ -205,7 +207,7 @@ void _get_instructions()
 	unlink(server.sun_path);
 	len = strlen(server.sun_path) + sizeof(server.sun_family);
 	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
-		perror("QR-WORKER: Unable to bind the socket");
+		write_to_log(WARNING, "%s - %s", __func__, "Unable to bind the socket");
 		return;
 	}
 	listen(s_srv, 10);
@@ -216,21 +218,21 @@ void _get_instructions()
 
 		len = sizeof(remote);
 		if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
-			perror("QR-WORKER: Unable to accept the connection");
+			write_to_log(WARNING, "%s - %s", __func__, "Unable to accept the connection");
 			continue;
 		}
-		if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, 
-			sizeof(timeout)) < 0)
-			write_to_log(WARNING, "[QR-WORKER] Unable to set timeout for reception operations");
+		if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+			write_to_log(WARNING, "%s - %s", __func__, "Unable to set timeout for reception operations");
 
-		if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
-			sizeof(timeout)) < 0)
-			write_to_log(WARNING, "[QR-WORKER] Unable to set timeout for sending operations");		
+		if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+			write_to_log(WARNING, "%s - %s", __func__, "Unable to set timeout for sending operations");		
 
 		if (_get_data(s_cl, &action, &buf) < 0) {
 			free(buf);
 			close(s_cl);
 			continue;
+		} else {
+			write_to_log(INFO, "%s - %s", __func__, "successfully called _get_data");
 		}
 		_call_related_action(&list, action, buf, s_cl);
 		free(buf);
@@ -238,6 +240,7 @@ void _get_instructions()
 	} while (action != QR_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
+	write_to_log(DEBUG, "%s successfully completed", __func__);
 }
 
 /*
@@ -247,15 +250,15 @@ void _get_instructions()
 void _search_expired(QrSearchTree *list, int *removed, time_t now)
 {
 	if ((*list) == NULL)
-      		return;
-      	if ((*list)->left != NULL)
-      		_search_expired(&(*list)->left, removed, now);
+      	return;
+	if ((*list)->left != NULL)
+		_search_expired(&(*list)->left, removed, now);
 	if ((*list)->right != NULL)
 		_search_expired(&(*list)->right, removed, now);
-      	if ((*list)->data.d_expire < now) {
+	if ((*list)->data.d_expire < now) {
 		rm_file_from_qr(list, (*list)->data.f_name);
 		*removed += 1;
-      	}
+	}
 }
 
 /*
@@ -271,7 +274,7 @@ void _expired_files()
 	key_t sync_worker_key = ftok(IPC_RAND, IPC_QR);
 	int sync_worker = semget(sync_worker_key, 1, IPC_CREAT | IPC_PERMS);
 	if (sync_worker < 0) {
-		perror("QR-WORKER: Unable to create the sema to sync");
+		write_to_log(WARNING, "%s - %s - %s", __func__, __LINE__, "Unable to create the sema to sync");
 		return;
 	}
 	sem_reset(sync_worker, 0);
@@ -282,16 +285,14 @@ void _expired_files()
 		sem_down(sync_worker, 0);
 		load_qr(&list);
 		sem_up(sync_worker, 0);
-		/*
-		 * TO IMPLEMENT: PROCESS IN CASE OF BELOW ERROR
-		 */
+
 		if (list == NULL) {
 			if (access(QR_DB, F_OK) == -1) {
-				perror("QR-WORKER: QR FILE DOES NOT EXIST");
+				write_to_log(URGENT, "%s - %s - %s", __func__, __LINE__, "QR DOES NOT EXIST");
 				usleep(300000);
 				_expired_files();
 			} else {
-				perror("QR-WORKER: QR file exists, but cannot be loaded -- process ending");
+				write_to_log(NOTIFY, "%s - %s - %s", __func__, __LINE__, "QR file exists, but cannot be loaded or is empty -- process ending");
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -299,11 +300,11 @@ void _expired_files()
 		wait_crit_area(sync_worker, 0);
 		sem_down(sync_worker, 0);
 		if (save_qr_list(&list, -1) != 0)
-			perror("QR-WORKER: QR file could not be saved");
+			write_to_log(WARNING, "%s - %s - %s", __func__, __LINE__, "QR file could not be saved");
 		sem_up(sync_worker, 0);
 		
 	} while ( removed != 0 );
-
+	write_to_log(DEBUG, "%s successfully completed", __func__);
 	return;
 }
 
@@ -318,6 +319,5 @@ void qr_worker()
 			_expired_files();
 			usleep(300000);
 		}
-		
 	}
 }
