@@ -82,7 +82,6 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 	load_qr(list);
 	sem_up(sync_worker, 0);
 	QrSearchTree save = *list;
-	printf("%s: I received this: %s\n", __func__, buf);
 	switch (action) {
 		case QR_ADD: 
 			wait_crit_area(sync_worker, 0);
@@ -120,8 +119,45 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			sem_up(sync_worker, 0);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
-		case QR_LIST:
-			NOT_YET_IMP;
+		case QR_LIST: ;
+			time_t timestamp = time(NULL);
+			int tmp_stock;
+			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));
+			char *file = malloc(sizeof(char)*(sizeof(timestamp)+30));
+			if (!path_to_list || !file) {
+				perror("QR-WORKER: Unable to allocate memory");
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
+					perror("QR-WORKER: Unable to send aborted");
+				}
+				return;
+			}
+			sprintf(path_to_list, "/tmp/.klearnel/%d", (int)timestamp);
+			if (access(path_to_list, F_OK) == -1) {
+				if (mkdir(path_to_list, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+					perror("QR: Unable to create the tmp_stock folder");
+					if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
+						perror("QR-WORKER: Unable to send aborted");
+					}
+					free(path_to_list);
+					return;
+				}
+			}
+			sprintf(file, "%s/qr_stock", path_to_list);
+			tmp_stock = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
+			if (tmp_stock < 0) {
+				perror("QR-WORKER: Unable to open tmp_stock");
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
+					perror("QR-WORKER: Unable to send aborted");
+				}
+				free(path_to_list);
+				free(file);
+				return;
+			}
+			save_qr_list(list, tmp_stock);
+			close(tmp_stock);
+			write(s_cl, file, PATH_MAX);
+			free(path_to_list);
+			free(file);
 			break;
 		case QR_INFO:
 			NOT_YET_IMP;
@@ -199,7 +235,7 @@ void _get_instructions()
 		_call_related_action(&list, action, buf, s_cl);
 		free(buf);
 		close(s_cl);
-	} while(action != QR_EXIT);
+	} while (action != QR_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
 }
@@ -262,7 +298,7 @@ void _expired_files()
 		_search_expired(&list, &removed, now);
 		wait_crit_area(sync_worker, 0);
 		sem_down(sync_worker, 0);
-		if (save_qr_list(&list) != 0)
+		if (save_qr_list(&list, -1) != 0)
 			perror("QR-WORKER: QR file could not be saved");
 		sem_up(sync_worker, 0);
 		

@@ -30,15 +30,15 @@ void init_qr()
 QrSearchTree _add_to_qr_list(QrSearchTree list, QrData new_f)
 {
 	if (list == NULL)  {
-		QrSearchTree new = (QrSearchTree) malloc(sizeof(struct qr_node));
-		if (!new) {
+		QrSearchTree new_n = (QrSearchTree) malloc(sizeof(struct qr_node));
+		if (!new_n) {
 			perror("[QR] Unable to allocate memory");
 			exit(EXIT_FAILURE);
 		}
-		new->data = new_f;
-		new->left = NULL;
-		new->right = NULL;
-		list = new;
+		new_n->data = new_f;
+		new_n->left = NULL;
+		new_n->right = NULL;
+		list = new_n;
 	} else if (new_f.o_ino.st_ino < list->data.o_ino.st_ino) {
 		list->left = _add_to_qr_list(list->left, new_f);
 	} else if (new_f.o_ino.st_ino > list->data.o_ino.st_ino) {
@@ -59,6 +59,17 @@ QrSearchTree clear_qr_list(QrSearchTree list)
 	}
 	return NULL;
 }
+
+/*
+ * Load temporary QR file (used by user to list files in qr)
+ */
+void load_tmp_qr(QrSearchTree *list, int fd)
+{
+	QrData tmp;
+	while (read(fd, &tmp, sizeof(struct qr_file)) != 0)
+		*list = _add_to_qr_list(*list, tmp);
+}
+
 
 /* Load quarantine with content of QR_DB  
  */
@@ -158,7 +169,6 @@ out:
 void _write_node(QrSearchTree list, int fd)
 {
 	if (!list) return;
-	printf("%s: Filename is \"%s\"\n", __func__, list->data.f_name);
 	_write_node(list->left, fd);
 	_write_node(list->right, fd);
 
@@ -169,18 +179,25 @@ void _write_node(QrSearchTree list, int fd)
 }
 
 /* Write the list into the quarantine DB 
+ * Can save list to another file than QR_STOCK with param: other (file descriptor)
+ * other: must be set to -1 if not used
  * Return 0 on success and -1 on error
  */
-int save_qr_list(QrSearchTree *list)
+int save_qr_list(QrSearchTree *list, int other)
 {
 	int fd;
 
-	if ((fd = open(QR_DB, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
-		perror("[QR] Unable to open QR_DB");
-		return -1;
+	if (other >= 0) {
+		fd = other;
+	} else {
+		if ((fd = open(QR_DB, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
+			perror("[QR] Unable to open QR_DB");
+			return -1;
+		}
 	}
+
 	_write_node(*list, fd);
-	close(fd);
+	if (other < 0) close(fd);
 	*list = clear_qr_list(*list);
 	return 0;	
 }
@@ -254,14 +271,13 @@ int  add_file_to_qr(QrSearchTree *list, char *filepath)
         *list = _add_to_qr_list(*list, new_f);
 
      	
-        if (save_qr_list(list) < 0) {
+        if (save_qr_list(list, -1) < 0) {
         	perror("[QR] Unable to save the quarantine in db");
         	goto error;
         }
         free(tmp);
  	free(new_path);
  	free(cp_path);
- 	LOG_DEBUG;
         return 0;
 error:
 	free(tmp);
@@ -293,7 +309,7 @@ int rm_file_from_qr(QrSearchTree *list, char *filename)
 		perror("QR: Unable to remove file from stock");
 		fprintf(stderr, "WARNING: [QR] File has been removed from qr_list!\n");
 	}
-	save_qr_list(list);
+	save_qr_list(list, -1);
 	free(p_rm);
 	return 0;
 rm_err:
@@ -325,7 +341,33 @@ int restore_file(QrSearchTree *list, char *filename)
 	}
 	if (rename(p_rm, res_file->data.o_path))
 		perror("Restore aborted: Unable to move the file");
-	save_qr_list(list);
+	save_qr_list(list, -1);
 	free(p_rm);
 	return 0;
+}
+
+void _print_node(QrSearchTree node) 
+{
+	if (node == NULL) return;
+	printf("\nFile \"%s\":\n", node->data.f_name);
+	printf("\t- Old path: %s\n", node->data.o_path);
+	printf("\t- In QR since %d\n", (int)node->data.d_begin);
+
+	_print_node(node->left);
+	_print_node(node->right);
+}
+
+/*
+ * Print all elements contained in qr-list to stdout
+ */
+void print_qr(QrSearchTree list)
+{
+	clock_t begin, end;
+	double spent;
+	begin = clock();
+	printf("Quarantine elements:\n");
+	_print_node(list);
+	end = clock();
+	spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf("\nQuery executed in: %.2lf seconds\n", spent);
 }
