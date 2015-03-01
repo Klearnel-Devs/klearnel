@@ -49,6 +49,7 @@ void _init_env()
 		}		
 	}
 	init_qr();
+	init_logging();
 }
 
 /* Daemonize the module */

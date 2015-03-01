@@ -8,20 +8,24 @@
  */
 
 #include <dirent.h>
-#include <fcntl.h>
+#include <stdarg.h>
  
 /* Defines log severity */
 #define FATAL 		5
 #define URGENT 		4
 #define WARNING		3
-#define NOTIF		2
+#define NOTIFY		2
 #define INFO		1
 
 /* TEMPORARY DEFINITION OF LOG MAX AGE */
 #define OLD		2592000
 
+/* Logging Semaphore */
+ #define IPC_LOG 48
+
 /*----- PROTOYPE ------ */
 
-int write_to_log(int level, char *message);
+int write_to_log(int level, char const *format, ...);
+void init_logging();
 
 #endif /* _KLEARNEL_LOGGING_H */
