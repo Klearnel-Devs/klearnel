@@ -94,8 +94,15 @@ char *_getLevel(int level)
 */
 int write_to_log(int level, const char *format, ...)
 {
+	key_t sync_logging_key = ftok(IPC_RAND, IPC_LOG);
+  	int sync_logging = semget(sync_logging_key, 1, IPC_CREAT | IPC_PERMS);
+	if (sync_logging < 0) {
+		perror("LOG: Unable to create the sema to sync");
+		goto err;
+	}
+	
 	va_list(args);
-	char date[7], tm[7];
+	char date[7], tm[9];
 	char *msg_level = malloc(sizeof(char)*17);
 	msg_level = strcpy(msg_level, _getLevel(level));
 
@@ -105,38 +112,28 @@ int write_to_log(int level, const char *format, ...)
   	time(&rawtime);
   	timeinfo = localtime(&rawtime);
   	strftime(date, sizeof(date), "%y%m%d", timeinfo);
-  	strftime(tm, sizeof(tm), "%H%M%S", timeinfo);
+  	strftime(tm, sizeof(tm), "%H:%M:%S", timeinfo);
 
-  	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + 1);
+  	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + strlen(".txt") + 1);
 
-  	key_t sync_logging_key = ftok(IPC_RAND, IPC_LOG);
-  	int sync_logging = semget(sync_logging_key, 1, IPC_CREAT | IPC_PERMS);
-	if (sync_logging < 0) {
-		perror("LOG: Unable to create the sema to sync");
-		goto err;
-	}
+
 
   	if (!msg_level || !logs) {
   		perror("LOG: Unable to allocate memory");
   		goto err;
   	}
 
-  	if (!strncpy(logs, LOG_DIR, strlen(LOG_DIR))) {
-		perror("LOG: Unable to copy time to log message");
+  	if (snprintf(logs, strlen(LOG_DIR) + strlen(date) + strlen(".txt") + 1, "%s%s%s", LOG_DIR, date,".txt") < 0){
+  		perror("LOG: Unable print path for logs");
 		goto err;
-	}
-  	if (!strncat(logs, date, strlen(date))) {
-		perror("LOG: Unable to concatenate date in log path");
-		goto err;
-	}	
+  	}
+  	
   	if (_check_log_file(logs) != 0) {
 		perror("LOG: Error when checking log file");
 		goto err;
 	}
-
 	wait_crit_area(sync_logging, 0);
 	sem_down(sync_logging, 0);
-
 	FILE *fd;
 	/* Open a file descriptor to the file.  */
 	if ((fd = fopen(logs, "a+")) == NULL) {
