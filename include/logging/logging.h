@@ -20,8 +20,12 @@
 /* TEMPORARY DEFINITION OF LOG MAX AGE */
 #define OLD		2592000
 
+/* Logging Semaphore */
+ #define IPC_LOG 48
+
 /*----- PROTOYPE ------ */
 
 int write_to_log(int level, char const *format, ...);
+void init_logging();
 
 #endif /* _KLEARNEL_LOGGING_H */

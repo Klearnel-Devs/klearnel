@@ -8,6 +8,17 @@
 #include <global.h>
 #include <logging/logging.h>
 
+/* Initializes the logging semaphore */
+ void init_logging()
+ {
+ 	key_t sync_logging_key = ftok(IPC_RAND, IPC_LOG);
+  	int sync_logging = semget(sync_logging_key, 1, IPC_CREAT | IPC_PERMS);
+	if (sync_logging < 0) {
+		perror("LOG: Unable to create the sema to sync");
+	}
+	sem_reset(sync_logging, 0);
+ }
+
 /* Function that iterates through the log files contained in the Klearnel
  * log directory defined in global.h. Each log files last accessed time is
  * compared to the current time, and if older than desired, deleted
@@ -64,7 +75,7 @@ int _check_log_file(char *logs)
 
 /* Translates severity level to string
 */
-char *getLevel(int level)
+char *_getLevel(int level)
 {
     char *x;
 	switch (level) {
@@ -87,8 +98,9 @@ int write_to_log(int level, const char *format, ...)
 	va_list(args);
 	char date[7], tm[7];
 	char *msg_level = malloc(sizeof(char)*17);
-	msg_level = strcpy(msg_level, getLevel(level));
+	msg_level = strcpy(msg_level, _getLevel(level));
 
+	// Time variables
 	time_t rawtime;
   	struct tm * timeinfo;
   	time(&rawtime);
@@ -98,9 +110,15 @@ int write_to_log(int level, const char *format, ...)
 
   	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + 1);
 
+  	key_t sync_logging_key = ftok(IPC_RAND, IPC_LOG);
+  	int sync_logging = semget(sync_logging_key, 1, IPC_CREAT | IPC_PERMS);
+	if (sync_logging < 0) {
+		perror("LOG: Unable to create the sema to sync");
+		goto err;
+	}
   	if (!msg_level || !logs) {
   		perror("[LOG] Unable to allocate memory");
-  		return -1;
+  		goto err;
   	}
 
   	if (!strncpy(logs, LOG_DIR, strlen(LOG_DIR))) {
@@ -115,9 +133,9 @@ int write_to_log(int level, const char *format, ...)
 		perror("LOG: Error when checking log file");
 		goto err;
 	}
-
+	wait_crit_area(sync_logging, 0);
+	sem_down(sync_logging, 0);
 	FILE *fd;
-
 	/* Open a file descriptor to the file.  */
 	if ((fd = fopen(logs, "a+")) == NULL)
 		perror("LOG: Unable to open/create");
@@ -128,7 +146,10 @@ int write_to_log(int level, const char *format, ...)
 	va_start(args, format);
 	vfprintf(fd,format,args);
 	fprintf(fd, "\n");
+
+	// Free memory, close files, reset sema
 	fclose(fd);
+	sem_reset(sync_logging, 0);
 	free(logs);
 	free(msg_level);
 	va_end(args);
