@@ -115,6 +115,7 @@ int write_to_log(int level, const char *format, ...)
 		perror("LOG: Unable to create the sema to sync");
 		goto err;
 	}
+
   	if (!msg_level || !logs) {
   		perror("LOG: Unable to allocate memory");
   		goto err;
@@ -132,18 +133,22 @@ int write_to_log(int level, const char *format, ...)
 		perror("LOG: Error when checking log file");
 		goto err;
 	}
+
 	wait_crit_area(sync_logging, 0);
 	sem_down(sync_logging, 0);
+
 	FILE *fd;
 	/* Open a file descriptor to the file.  */
-	if ((fd = fopen(logs, "a+")) == NULL)
+	if ((fd = fopen(logs, "a+")) == NULL) {
 		perror("LOG: Unable to open/create");
-
+		goto err;
+	}
 	/* Write to file */
 	fprintf(fd, "%s", tm);
 	fprintf(fd, "%s", msg_level);
 	va_start(args, format);
 	vfprintf(fd,format,args);
+	va_end(args);
 	fprintf(fd, "\n");
 
 	// Free memory, close files, reset sema
@@ -151,7 +156,6 @@ int write_to_log(int level, const char *format, ...)
 	sem_reset(sync_logging, 0);
 	free(logs);
 	free(msg_level);
-	va_end(args);
   	return 0;
 err:
 	free(msg_level);

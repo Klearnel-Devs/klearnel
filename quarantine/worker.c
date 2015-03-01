@@ -315,7 +315,8 @@ void qr_worker()
 	if (pid) {
 		_get_instructions();
 	} else {
-		while(1) {
+		int parent_pid = getppid();
+		while(kill(parent_pid, 0) == 0) {
 			_expired_files();
 			usleep(300000);
 		}

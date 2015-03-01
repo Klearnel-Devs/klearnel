@@ -14,14 +14,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdarg.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/sem.h>
 #include <errno.h>
 #include <libgen.h>
 
@@ -32,7 +33,7 @@
 
 #define BASE_DIR 	"/etc/klearnel"
 #define WORK_DIR	"/usr/local/klearnel"
-#define LOG_DIR		"/var/log/klearnel"
+#define LOG_DIR		"/var/log/klearnel/"
 #define TMP_DIR		"/tmp/.klearnel"
 #define PID_FILE	BASE_DIR "/klearnel.pid"
 
