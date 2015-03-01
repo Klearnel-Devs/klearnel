@@ -14,7 +14,7 @@
 #define FATAL 		5
 #define URGENT 		4
 #define WARNING		3
-#define NOTIF		2
+#define NOTIFY		2
 #define INFO		1
 
 /* TEMPORARY DEFINITION OF LOG MAX AGE */

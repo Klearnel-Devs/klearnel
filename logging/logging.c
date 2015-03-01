@@ -34,7 +34,7 @@ int _delete_logs()
 	dir = LOG_DIR ;
 
 	if ((dtr = opendir(dir)) == NULL) {
-		write_to_log(WARNING, "LOG: Can't open directory");
+		write_to_log(WARNING, "LOG: Can't open log directory");
 		return -1;
 	}
 
@@ -44,14 +44,14 @@ int _delete_logs()
 		struct stat stbuf ;
 		sprintf( filename , "%s/%s",dir,dp->d_name) ;
 		if ( stat(filename,&stbuf) == -1 ) {
-			write_to_log(WARNING, "LOG: Unable to stat file");
+			write_to_log(WARNING, "%s - %s", "LOG: Unable to stat file", filename);
 			continue ;
 		} else {
 			if (difftime(time(NULL), stbuf.st_atime) > OLD) {
 				if (unlink(filename) != 0)
-					write_to_log(WARNING,"LOG: Unable to remove file");
+					write_to_log(WARNING,"%s - %s", "LOG: Unable to remove file", filename);
 				else
-					write_to_log(INFO,"LOG FILE SUCCESSFULLY DELETED");
+					write_to_log(INFO, "%s - %s", "LOG FILE SUCCESSFULLY DELETED", filename);
 			}
 				
 		}
@@ -59,9 +59,7 @@ int _delete_logs()
 	return 0;
 }
 
-/* Verifies if log directory exists, creates if not
- * Verifies if log file exists, creates if not
-*/
+/* Verifies if log directory exists, creates if not */
 int _check_log_file(char *logs)
 {
 	if (access(LOG_DIR, F_OK) == -1) {
@@ -73,24 +71,24 @@ int _check_log_file(char *logs)
 	return 0;
 }
 
-/* Translates severity level to string
-*/
+/* Translates severity level to string */
 char *_getLevel(int level)
 {
     char *x;
 	switch (level) {
-    	case 1:  x = " -  [INFO]    - "; break;
-    	case 2:  x = " -  [NOTIF]   - "; break;
-    	case 3:  x = " -  [WARNING] - "; break;
+    	case 1:  x = " -   [INFO]   - "; break;
+    	case 2:  x = " -  [NOTIFY]  - "; break;
+    	case 3:  x = " -   [WARN]   - "; break;
     	case 4:  x = " -  [URGENT]  - "; break;
-    	case 5:  x = " -  [FATAL]   - "; break;
+    	case 5:  x = " -   [FATL]   - "; break;
 	}
 	return x;
 }
 
 /* Function for writing messages to program log files
  * Entries are preceeded by time -> severity level -> message
- * File is locked to prevent multiple processes from writing simultaneously
+ * Semaphore used to guarantee that only one process may write at a time
+ * Variable arguments passed by parameter
  * Returns -1 in case of error, 0 if succeeded (to be removed)
 */
 int write_to_log(int level, const char *format, ...)
@@ -117,7 +115,7 @@ int write_to_log(int level, const char *format, ...)
 		goto err;
 	}
   	if (!msg_level || !logs) {
-  		perror("[LOG] Unable to allocate memory");
+  		perror("LOG: Unable to allocate memory");
   		goto err;
   	}
 
