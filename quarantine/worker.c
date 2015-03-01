@@ -82,7 +82,6 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 	load_qr(list);
 	sem_up(sync_worker, 0);
 	QrSearchTree save = *list;
-	printf("%s received this: %s\n", __func__, buf);
 	switch (action) {
 		case QR_ADD: 
 			wait_crit_area(sync_worker, 0);

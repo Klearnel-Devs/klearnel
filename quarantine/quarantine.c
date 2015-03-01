@@ -30,15 +30,15 @@ void init_qr()
 QrSearchTree _add_to_qr_list(QrSearchTree list, QrData new_f)
 {
 	if (list == NULL)  {
-		QrSearchTree new = (QrSearchTree) malloc(sizeof(struct qr_node));
-		if (!new) {
+		QrSearchTree new_n = (QrSearchTree) malloc(sizeof(struct qr_node));
+		if (!new_n) {
 			perror("[QR] Unable to allocate memory");
 			exit(EXIT_FAILURE);
 		}
-		new->data = new_f;
-		new->left = NULL;
-		new->right = NULL;
-		list = new;
+		new_n->data = new_f;
+		new_n->left = NULL;
+		new_n->right = NULL;
+		list = new_n;
 	} else if (new_f.o_ino.st_ino < list->data.o_ino.st_ino) {
 		list->left = _add_to_qr_list(list->left, new_f);
 	} else if (new_f.o_ino.st_ino > list->data.o_ino.st_ino) {
@@ -66,8 +66,8 @@ QrSearchTree clear_qr_list(QrSearchTree list)
 void load_tmp_qr(QrSearchTree *list, int fd)
 {
 	QrData tmp;
-	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) 
-		*list = _add_to_qr_list(*list, tmp);	
+	while (read(fd, &tmp, sizeof(struct qr_file)) != 0)
+		*list = _add_to_qr_list(*list, tmp);
 }
 
 
@@ -169,7 +169,6 @@ out:
 void _write_node(QrSearchTree list, int fd)
 {
 	if (!list) return;
-	printf("%s: Filename is \"%s\"\n", __func__, list->data.f_name);
 	_write_node(list->left, fd);
 	_write_node(list->right, fd);
 
@@ -350,7 +349,7 @@ int restore_file(QrSearchTree *list, char *filename)
 void _print_node(QrSearchTree node) 
 {
 	if (node == NULL) return;
-	printf("\nFile: %s:\n", node->data.f_name);
+	printf("\nFile \"%s\":\n", node->data.f_name);
 	printf("\t- Old path: %s\n", node->data.o_path);
 	printf("\t- In QR since %d\n", (int)node->data.d_begin);
 
@@ -370,5 +369,5 @@ void print_qr(QrSearchTree list)
 	_print_node(list);
 	end = clock();
 	spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf("Query executed in: %.2lf seconds\n", spent);
+	printf("\nQuery executed in: %.2lf seconds\n", spent);
 }
