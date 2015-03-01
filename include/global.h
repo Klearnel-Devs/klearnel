@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
@@ -32,6 +33,7 @@
 #define BASE_DIR 	"/etc/klearnel"
 #define WORK_DIR	"/usr/local/klearnel"
 #define LOG_DIR		"/var/klearnel"
+#define TMP_DIR		"/tmp/.klearnel"
 #define PID_FILE	BASE_DIR "/klearnel.pid"
 
 #define IPC_RAND 	"/dev/null"
@@ -44,10 +46,12 @@
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
 
+#define SOCK_TO 	15 /* Define the timeout applied to sockets */
+
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))
 
-#define DEBUG_NOTIF \
+#define LOG_DEBUG \
  	printf("[DEBUG] Function: %s\n", __func__);
 
 /* ------ PROTOTYPES ----- */

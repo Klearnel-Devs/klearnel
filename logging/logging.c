@@ -91,7 +91,6 @@ char *getLevel(int level)
 int write_to_log(int level, char *message)
 {
 	char date[7], tm[7];
-	va_list args;
 	char *msg_level = getLevel(level);
 	time_t rawtime;
   	struct tm * timeinfo;

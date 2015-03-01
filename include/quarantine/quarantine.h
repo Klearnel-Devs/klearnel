@@ -9,7 +9,7 @@
 
 #define QR_STOCK 	WORK_DIR "/qr_stock"
 #define QR_DB 		BASE_DIR "/qr.db"
-#define QR_SOCK 	BASE_DIR "/qr_sock"
+#define QR_SOCK 	TMP_DIR "/kl-qr-sck"
 
 #define QR_ADD 		1
 #define QR_RM 		2
@@ -47,13 +47,15 @@ struct qr_node {
 
 void init_qr();
 
+void load_tmp_qr(QrSearchTree *list, int fd);
+
 void load_qr(QrSearchTree *list);
 
 QrSearchTree clear_qr_list(QrSearchTree list);
 
 QrPosition search_in_qr(QrSearchTree list, char *filename);
 
-int save_qr_list(QrSearchTree *list);
+int save_qr_list(QrSearchTree *list, int other);
 
 int add_file_to_qr(QrSearchTree *list, char *filepath);
 
@@ -62,5 +64,7 @@ int rm_file_from_qr(QrSearchTree *list, char *filename);
 int restore_file(QrSearchTree *list, char *filename);
 
 void qr_worker();
+
+void print_qr(QrSearchTree list);
 
 #endif /* _KLEARNEL_QUARANTINE_H */

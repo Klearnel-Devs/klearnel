@@ -6,6 +6,7 @@
 #include <global.h>
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
+#include <logging/logging.h>
 
 /*
  * Allow to send a query to the quarantine and execute the related action
@@ -16,6 +17,9 @@ int _qr_query(int nb, char **commands, int action)
 	int len, s_cl, i;
 	char *query, *res;;
 	struct sockaddr_un remote;
+	struct timeval timeout;
+	timeout.tv_sec 	= SOCK_TO;
+	timeout.tv_usec	= 0;
 
 	if ((s_cl = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("[UI] Unable to create socket");
@@ -30,6 +34,14 @@ int _qr_query(int nb, char **commands, int action)
 		perror("[UI] Unable to connect the qr_sock");
 		goto error;
 	}
+	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, 
+		sizeof(timeout)) < 0)
+		write_to_log(WARNING, "[UI] Unable to set timeout for reception operations");
+
+	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+		sizeof(timeout)) < 0)
+		write_to_log(WARNING, "[UI] Unable to set timeout for sending operations");
+
 	len = 20;
 	res = malloc(2);
 	query = malloc(len);
@@ -80,14 +92,49 @@ int _qr_query(int nb, char **commands, int action)
 			break;
 		case QR_LIST:
 			snprintf(query, len, "%d:0", action);
-			NOT_YET_IMP;
+			char *list_path = malloc(PATH_MAX);
+			if (!list_path) {
+				perror("[UI] Unable to allocate memory");
+				goto error;
+			}
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(list_path);
+				goto error;
+			} 
+			if (read(s_cl, list_path, PATH_MAX) < 0) {
+				perror("[UI] Unable to get query result");
+				free(list_path);
+				goto error;	
+			} 
+			if (strcmp(list_path, SOCK_ABORTED) == 0) {
+				perror("[UI] Action get-qr-list couldn't be executed");
+				free(list_path);
+				goto error;
+			} 
+			int fd = open(list_path, O_RDONLY, S_IRUSR);
+			if (fd < 0) {
+				perror("[UI] Unable to open qr list file");
+				free(list_path);
+				goto error;
+			}
+			QrSearchTree qr_list;
+			load_tmp_qr(&qr_list, fd);
+			close(fd);
+			print_qr(qr_list);
+			clear_qr_list(qr_list);
+			free(list_path);
 			break;
 		default:
 			fprintf(stderr, "[UI] Unknown action");
 	}
+	free(query);
+	free(res);
 	close(s_cl);
 	return 0;
 error:
+	free(query);
+	free(res);
 	close(s_cl);
 	return -1;
 	
