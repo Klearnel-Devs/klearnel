@@ -8,7 +8,7 @@
  */
 
 #include <dirent.h>
-#include <fcntl.h>
+#include <stdarg.h>
  
 /* Defines log severity */
 #define FATAL 		5
@@ -22,6 +22,6 @@
 
 /*----- PROTOYPE ------ */
 
-int write_to_log(int level, char *message);
+int write_to_log(int level, char const *format, ...);
 
 #endif /* _KLEARNEL_LOGGING_H */

@@ -59,12 +59,6 @@ int _check_log_file(char *logs)
 			return -1;
 		}
 	}
-	if (access(logs, F_OK) == -1) {
-		if (creat(logs, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) {
-			perror("LOG: Unable to create log file");
-			return -1;
-		}
-	}
 	return 0;
 }
 
@@ -72,13 +66,13 @@ int _check_log_file(char *logs)
 */
 char *getLevel(int level)
 {
-    	char *x;
+    char *x;
 	switch (level) {
-    	case 1:  x = " - INFO    - "; break;
-    	case 2:  x = " - NOTIF   - "; break;
-    	case 3:  x = " - WARNING - "; break;
-    	case 4:  x = " - URGENT  - "; break;
-    	case 5:  x = " - FATAL   - "; break;
+    	case 1:  x = " -  [INFO]    - "; break;
+    	case 2:  x = " -  [NOTIF]   - "; break;
+    	case 3:  x = " -  [WARNING] - "; break;
+    	case 4:  x = " -  [URGENT]  - "; break;
+    	case 5:  x = " -  [FATAL]   - "; break;
 	}
 	return x;
 }
@@ -88,19 +82,23 @@ char *getLevel(int level)
  * File is locked to prevent multiple processes from writing simultaneously
  * Returns -1 in case of error, 0 if succeeded (to be removed)
 */
-int write_to_log(int level, char *message)
+int write_to_log(int level, const char *format, ...)
 {
+	va_list(args);
 	char date[7], tm[7];
-	char *msg_level = getLevel(level);
+	char *msg_level = malloc(sizeof(char)*17);
+	msg_level = strcpy(msg_level, getLevel(level));
+
 	time_t rawtime;
   	struct tm * timeinfo;
   	time(&rawtime);
   	timeinfo = localtime(&rawtime);
   	strftime(date, sizeof(date), "%y%m%d", timeinfo);
   	strftime(tm, sizeof(tm), "%H%M%S", timeinfo);
-  	char *writer = malloc(strlen(tm) + strlen(msg_level) + 2);
+
   	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + 1);
-  	if (!writer || !msg_level || !logs) {
+
+  	if (!msg_level || !logs) {
   		perror("[LOG] Unable to allocate memory");
   		return -1;
   	}
@@ -112,50 +110,31 @@ int write_to_log(int level, char *message)
   	if (!strncat(logs, date, strlen(date))) {
 		perror("LOG: Unable to concatenate date in log path");
 		goto err;
-	}
-	if (!strncpy(writer, tm, strlen(tm))) {
-		perror("LOG: Unable to copy time to log message");
-		goto err;
-	}
-	if (!strncat(writer, msg_level, strlen(msg_level))) {
-		perror("LOG: Unable to concatenate level to log message");
-		goto err;
-	}
-	
+	}	
   	if (_check_log_file(logs) != 0) {
 		perror("LOG: Error when checking log file");
 		goto err;
 	}
 
-	int fd;
-	struct flock lock;
+	FILE *fd;
 
 	/* Open a file descriptor to the file.  */
-	while ((fd = open(logs, O_WRONLY, USER_RW)) == -1)
-		usleep(100);
-	lseek(fd, 0, SEEK_END);
-	/* Initialize the flock structure.  */
-	memset (&lock, 0, sizeof(lock));
-	lock.l_type = F_WRLCK;
-	/* Place a write lock on the file.  */
-	fcntl (fd, F_SETLKW, &lock);
+	if ((fd = fopen(logs, "a+")) == NULL)
+		perror("LOG: Unable to open/create");
 
 	/* Write to file */
-	if (write(fd, writer, strlen(writer)+1) == -1)
-		perror("Could not write to log file");
-
-	/* Release the lock.  */
-	lock.l_type = F_UNLCK;
-	fcntl (fd, F_SETLKW, &lock);
-
-	close (fd);
-	free(msg_level);
-	free(writer);
+	fprintf(fd, "%s", tm);
+	fprintf(fd, "%s", msg_level);
+	va_start(args, format);
+	vfprintf(fd,format,args);
+	fprintf(fd, "\n");
+	fclose(fd);
 	free(logs);
+	free(msg_level);
+	va_end(args);
   	return 0;
 err:
 	free(msg_level);
-	free(writer);
 	free(logs);
 	return -1;
 }
