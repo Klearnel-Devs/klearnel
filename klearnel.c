@@ -36,7 +36,6 @@ void _init_env()
 			exit(EXIT_FAILURE);
 		}		
 	}
-	LOG_DEBUG;
 	if (access(WORK_DIR, F_OK) == -1) {
 		if (mkdir(WORK_DIR, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 			perror("KL: Unable to create the configuration directory");
@@ -106,8 +105,7 @@ error:
  */
 int main(int argc, char **argv)
 {
-	int pid;
-	
+	//int pid;
 	if (argc > 1) {
 		execute_commands(argc, argv);
 		return EXIT_SUCCESS;

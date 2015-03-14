@@ -76,12 +76,13 @@ char *_getLevel(int level)
 {
     char *x;
 	switch (level) {
-		case 0:  x = " -   [DBUG]   - "; break;
+	case 0:  x = " -   [DBUG]   - "; break;
     	case 1:  x = " -   [INFO]   - "; break;
     	case 2:  x = " -  [NOTIFY]  - "; break;
     	case 3:  x = " -   [WARN]   - "; break;
     	case 4:  x = " -  [URGENT]  - "; break;
     	case 5:  x = " -   [FATL]   - "; break;
+    	default: x = " -  [UNDEFI]  - "; break;
 	}
 	return x;
 }
@@ -93,19 +94,17 @@ char *_getLevel(int level)
  * Returns -1 in case of error, 0 if succeeded (to be removed)
 */
 int write_to_log(int level, const char *format, ...)
-{
+{ 
 	key_t sync_logging_key = ftok(IPC_RAND, IPC_LOG);
   	int sync_logging = semget(sync_logging_key, 1, IPC_CREAT | IPC_PERMS);
 	if (sync_logging < 0) {
 		perror("LOG: Unable to create the sema to sync");
 		goto err;
-	}
-	
+	} 
 	va_list(args);
 	char date[7], tm[9];
 	char *msg_level = malloc(sizeof(char)*17);
-	msg_level = strcpy(msg_level, _getLevel(level));
-
+	msg_level = strcpy(msg_level, _getLevel(level)); 
 	// Time variables
 	time_t rawtime;
   	struct tm * timeinfo;
@@ -113,9 +112,7 @@ int write_to_log(int level, const char *format, ...)
   	timeinfo = localtime(&rawtime);
   	strftime(date, sizeof(date), "%y%m%d", timeinfo);
   	strftime(tm, sizeof(tm), "%H:%M:%S", timeinfo);
-
-  	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + strlen(".txt") + 1);
-
+  	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + strlen(".log") + 1);
 
 
   	if (!msg_level || !logs) {
@@ -123,15 +120,14 @@ int write_to_log(int level, const char *format, ...)
   		goto err;
   	}
 
-  	if (snprintf(logs, strlen(LOG_DIR) + strlen(date) + strlen(".txt") + 1, "%s%s%s", LOG_DIR, date,".txt") < 0){
+  	if (snprintf(logs, strlen(LOG_DIR) + strlen(date) + strlen(".log") + 1, "%s%s%s", LOG_DIR, date,".log") < 0){
   		perror("LOG: Unable print path for logs");
 		goto err;
-  	}
-  	
+  	} 
   	if (_check_log_file(logs) != 0) {
 		perror("LOG: Error when checking log file");
 		goto err;
-	}
+	} 
 	wait_crit_area(sync_logging, 0);
 	sem_down(sync_logging, 0);
 	FILE *fd;
@@ -146,8 +142,7 @@ int write_to_log(int level, const char *format, ...)
 	va_start(args, format);
 	vfprintf(fd,format,args);
 	va_end(args);
-	fprintf(fd, "\n");
-
+	fprintf(fd, "\n"); 
 	// Free memory, close files, reset sema
 	fclose(fd);
 	sem_reset(sync_logging, 0);
