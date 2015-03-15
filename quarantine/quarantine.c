@@ -32,9 +32,10 @@ void init_qr()
 QrSearchTree _add_to_qr_list(QrSearchTree list, QrData new_f)
 {
 	if (list == NULL)  {
+		write_to_log(INFO, "%s : %s", "List is empty, loading root", new_f.f_name);
 		QrSearchTree new_n = (QrSearchTree) malloc(sizeof(struct qr_node));
 		if (!new_n) {
-			write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+			write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		new_n->data = new_f;
@@ -43,10 +44,11 @@ QrSearchTree _add_to_qr_list(QrSearchTree list, QrData new_f)
 		list = new_n;
 	} else if (new_f.o_ino.st_ino < list->data.o_ino.st_ino) {
 		list->left = _add_to_qr_list(list->left, new_f);
+		write_to_log(INFO, "%s - %s", "File successfully added to QR List (left)", list->data.f_name);
 	} else if (new_f.o_ino.st_ino > list->data.o_ino.st_ino) {
 		list->right = _add_to_qr_list(list->right, new_f);
+		write_to_log(INFO, "%s - %s", "File successfully added to QR List (right)", list->data.f_name);
 	}
-	write_to_log(INFO, "%s - %s", "File successfully added to QR List", new_f.f_name);
 	return list;
 }
 
@@ -56,10 +58,8 @@ QrSearchTree _add_to_qr_list(QrSearchTree list, QrData new_f)
 QrSearchTree clear_qr_list(QrSearchTree list)
 {
 	if (list != NULL) {
-		if (list->left != NULL)
-			clear_qr_list(list->left);
-		if (list->right != NULL)
-			clear_qr_list(list->right);
+		clear_qr_list(list->left);
+		clear_qr_list(list->right);
 		free(list);
 	}
 	return NULL;
@@ -83,12 +83,14 @@ void load_qr(QrSearchTree *list)
 	int fd;
 	QrData tmp;
 	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
-		write_to_log(WARNING, "%s - %d - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
+		write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
 		return;
 	}
 
-	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) 
+	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) {
+		write_to_log(INFO, "%s : %s", "Quarantine loading file", tmp.f_name);
 		*list = _add_to_qr_list(*list, tmp);
+	}
 	close(fd);
 	write_to_log(INFO, "%s", "Quarantine loaded with content of QR_DB");
 }
@@ -98,12 +100,25 @@ void load_qr(QrSearchTree *list)
  */
 QrPosition _find_min(QrSearchTree list)
 {
-	if (list != NULL){
-		while (list->left != NULL)
-			list = list->left;
+	if (list == NULL) {
+                return NULL;
+	} else {
+		if (list->left == NULL) {
+			return list;
+		} else {
+			return _find_min(list->left);
+		}
 	}
-	return list;
 }
+
+QrPosition _find_max(QrSearchTree list)
+        {
+            if (list != NULL)
+                while( list->right != NULL ) {
+                    list = list->right;
+                }
+            return list;
+        }
 
 /* Remove file data from the qr_list */
 QrSearchTree _rm_from_qr_list(QrSearchTree list, QrData node_rm)
@@ -112,10 +127,10 @@ QrSearchTree _rm_from_qr_list(QrSearchTree list, QrData node_rm)
 	if (list == NULL) {
 		return NULL;
 	} else if (node_rm.o_ino.st_ino < list->data.o_ino.st_ino) {
-		list->left = _rm_from_qr_list(list->left, node_rm);
-	} else if (node_rm.o_ino.st_ino > list->data.o_ino.st_ino) {
-		list->right = _rm_from_qr_list(list->right, node_rm);
-	} else if ((list->left != NULL) && (list->right != NULL)) {
+		list->left = _rm_from_qr_list(list, node_rm);
+	} else if (node_rm.o_ino.st_ino > list->data.o_ino.st_ino){
+		list->right = _rm_from_qr_list(list, node_rm);
+	} else if ((list->left != NULL) && (list->right != NULL)){
 		tmp = _find_min(list->right);
 		list->data = tmp->data;
 		list->right = _rm_from_qr_list(list->right, list->data);
@@ -125,9 +140,25 @@ QrSearchTree _rm_from_qr_list(QrSearchTree list, QrData node_rm)
 			list = list->right;
 		else if (list->right == NULL)
 			list = list->left;
+		free(tmp);
 	}
 	write_to_log(INFO, "%s - %s", "File removed from QR List", node_rm.f_name);
 	return list;
+}
+
+QrPosition _find(QrSearchTree list, ino_t inum) {
+	if (list == NULL) {
+		write_to_log(DEBUG, "%s - %s", "File searched in QR not found", list->data.f_name);
+		return NULL;
+	}
+	if (inum < list->data.o_ino.st_ino)
+		return _find(list->left, inum);
+	else if (inum > list->data.o_ino.st_ino)
+		return _find(list->right, inum);
+	else {
+		write_to_log(DEBUG, "%s - %s", "File searched in QR found", list->data.f_name);
+		return list;
+	}
 }
 
 /* Search for a file in the list on filename base 
@@ -149,32 +180,20 @@ QrPosition search_in_qr(QrSearchTree list, char *filename)
 		write_to_log(WARNING, "%s - %d - %s - %s", __func__, __LINE__, "Unable to find the specified file to stat", base);
 		goto out;
 	}
-
 	ino_t inum = tmp.st_ino;
-
-	while (list) {
-
-		ino_t cur_ino = list->data.o_ino.st_ino;
-
-		if (inum == cur_ino) {
-			write_to_log(DEBUG, "%s - %s", "File searched in QR found", list->data.f_name);
-			return list;	
-		} else if (inum > cur_ino) {
-			list = list->right;
-		} else {
-			list = list->left;
-		} 
-	}
+	list = _find(list, inum);
 out:
 	free(base);
-	return NULL;
+	return list;
 	
 }
 
 /* Recursively write the data in the quarantine tree to QR_DB */
 void _write_node(QrSearchTree list, int fd)
 {
-	if (!list) return;
+	if (list==NULL) {
+		return;
+	}
 	_write_node(list->left, fd);
 	_write_node(list->right, fd);
 
