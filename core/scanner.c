@@ -128,7 +128,7 @@ int save_watch_list()
 /* Get data from socket "sock" and put it in buffer "buf"
  * Return number of char read if >= 0, else -1
  */
-int _get_data(const int sock, int *task, char **buf)
+static int _get_data(const int sock, int *task, char **buf)
 {
 	int c_len = 20;
 	char *a_type = malloc(c_len);
@@ -188,7 +188,7 @@ int _get_data(const int sock, int *task, char **buf)
 	return len;
 }
 
-int scanner_worker()
+void scanner_worker()
 {
 	int len, s_srv, s_cl;
 	int task = -1;
@@ -196,7 +196,7 @@ int scanner_worker()
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to open the socket");
-		return -1;
+		return;
 	}
 	server.sun_family = AF_UNIX;
 	strncpy(server.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
@@ -204,7 +204,7 @@ int scanner_worker()
 	len = strlen(server.sun_path) + sizeof(server.sun_family);
 	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to bind the socket");
-		return -1;
+		return;
 	}
 	listen(s_srv, 10);
 
@@ -260,7 +260,6 @@ int scanner_worker()
 	close(s_srv);
 	unlink(server.sun_path);
 	exit_scanner();
-	return 0;
 }
 
 int perform_task(const int task, const char* buf) 

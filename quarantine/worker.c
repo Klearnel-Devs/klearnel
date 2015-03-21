@@ -51,7 +51,7 @@ void _expired_files(QrSearchTree *list)
 /* Get data from socket "sock" and put it in buffer "buf"
  * Return number of char read if >= 0, else -1
  */
-int _get_data(const int sock, int *action, char **buf)
+static int _get_data(const int sock, int *action, char **buf)
 {
 	int c_len = 20;
 	char *a_type = malloc(c_len);
@@ -183,7 +183,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 		case QR_INFO:
 			NOT_YET_IMP;
 			break;
-		case QR_EXIT:
+		case KL_EXIT:
 			if ((*list) != NULL) {
 				*list = clear_qr_list(*list);
 			}
