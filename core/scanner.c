@@ -249,7 +249,7 @@ void scanner_worker()
 						__func__, __LINE__, "_get_data FAILED");
 					continue;
 				}
-				perform_task(task, buf);
+				perform_task(task, buf, s_cl);
 				free(buf);
 				close(s_cl);
 			}
@@ -262,9 +262,86 @@ void scanner_worker()
 	exit_scanner();
 }
 
-int perform_task(const int task, const char* buf) 
+TWatchElement get_watch_elem(const char* path) 
 {
-	NOT_YET_IMP;
+	TWatchElement tmp;
+	strcpy(tmp.path, EMPTY_PATH);
+	if (!watch_list) {
+		if (load_watch_list() < 0) {
+			LOG(WARNING, "Unable to load the watch list");
+			return tmp;			
+		}
+	}
+	int i;
+	TWatchElementNode* item = watch_list->first;
+	for (i = 0; i < watch_list->count; i++) {
+		if (!strcmp(item->element.path, path)) {
+			return item->element;
+		}
+	}
+	return tmp;
+}
+
+int perform_task(const int task, const char* buf, const int s_cl) 
+{
+	if (load_watch_list() < 0) {
+		LOG(WARNING, "Unable to load the watch list");
+		return -1;
+	}
+
+	switch (task) {
+		case SCAN_ADD:
+			if (buf == NULL) {
+				LOG(URGENT, "Buffer received is empty");
+				return -1;
+			}
+			TWatchElement new;
+			strcpy(new.path, buf);
+			/* TEMPORARY ASSIGNATION */
+			strcpy(new.options, "011001000");
+			new.isTemp = false;
+			new.limit_size = 0;
+			new.max_age = 0;
+			if (add_watch_elem(new) < 0) {
+				write_to_log(URGENT,"%s:%d: Unable to add %s to watch_list", 
+					__func__, __LINE__, new.path);
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to send aborted");
+				return -1;
+			}
+			SOCK_ANS(s_cl, SOCK_ACK);
+			break;
+		case SCAN_RM:
+			if (buf == NULL) {
+				LOG(URGENT, "Buffer received is empty");
+				return -1;				
+			}
+			TWatchElement tmp = get_watch_elem(buf);
+			if (!strcmp(tmp.path, EMPTY_PATH)) {
+				LOG(NOTIFY, "Unable to find the element to remove");
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to send aborted");
+				return -1;				
+			}
+			if (remove_watch_elem(tmp) < 0) {
+				write_to_log(NOTIFY, "%s:%d: Unable to remove %s", 
+					__func__, __LINE__, tmp.path);
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to send aborted");
+				return -1;				
+			}
+			SOCK_ANS(s_cl, SOCK_ACK);
+			break;
+		case SCAN_LIST:
+			NOT_YET_IMP;
+			break;
+		default:
+			LOG(NOTIFY, "Unknown task. Scan execution aborted");
+	}
+
 	return 0;
 }
 
