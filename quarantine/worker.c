@@ -111,6 +111,7 @@ static int _get_data(const int sock, int *action, char **buf)
  */
 void _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
 {
+	(*list) = calloc(1, sizeof(QrList));
 	load_qr(list);
 	QrList *save = *list;
 	switch (action) {
@@ -211,7 +212,7 @@ void _get_instructions()
 	int len, s_srv, s_cl;
 	int action = 0;
 	struct sockaddr_un server;
-	QrList *list = calloc(1, sizeof(QrList));
+	QrList *list = NULL;
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open the socket");
