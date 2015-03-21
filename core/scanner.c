@@ -5,6 +5,7 @@
  */
 #include <global.h>
 #include <quarantine/quarantine.h>
+#include <logging/logging.h>
 #include <core/scanner.h>
 
 static TWatchElementList elem_list = NULL;
@@ -21,3 +22,14 @@ int init_scanner()
 	return 0;
 }
 
+int load_watch_list()
+{
+	int fd = 0;
+
+	if ((fd = open(SCAN_DB, O_RONLY)) < 0) {
+		LOG(URGENT, "Unable to open the SCAN_DB");
+		return -1;
+	}
+
+	return 0;
+}

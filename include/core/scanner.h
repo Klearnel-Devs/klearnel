@@ -46,7 +46,7 @@ void get_command();
 /* Load the scan list from SCAN_DB 
  * Return 0 on success and -1 on error
  */
-int load_scan_list();
+int load_watch_list();
 /* Add a new folder/file to supervise to the scan list
  * Return 0 on success and -1 on error
  */
