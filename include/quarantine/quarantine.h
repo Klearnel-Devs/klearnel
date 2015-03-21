@@ -48,27 +48,27 @@ typedef struct QrList {
 
 #define LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
     QrListNode *V = NULL;\
-    for(V = _node = L->S; _node != NULL; V = _node = _node->M)
+    for(V = _node = (*L)->S; _node != NULL; V = _node = _node->M)
 
 /*----- PROTOYPE ------ */
 
 void init_qr();
 
-void load_tmp_qr(QrList *list, int fd);
+void load_tmp_qr(QrList **list, int fd);
 
-void load_qr(QrList *list);
+void load_qr(QrList **list);
 
-void clear_qr_list(QrList *list);
+void clear_qr_list(QrList **list);
 
 QrListNode* search_in_qr(QrList *list, char *filename);
 
-int save_qr_list(QrList *list, int custom);
+int save_qr_list(QrList **list, int custom);
 
-int add_file_to_qr(QrList *list, char *filepath);
+int add_file_to_qr(QrList **list, char *filepath);
 
-int rm_file_from_qr(QrList *list, char *filename);
+int rm_file_from_qr(QrList **list, char *filename);
 
-int restore_file(QrList *list, char *filename);
+int restore_file(QrList **list, char *filename);
 
 void qr_worker();
 

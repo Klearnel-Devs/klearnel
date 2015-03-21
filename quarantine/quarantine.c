@@ -10,7 +10,7 @@
 
 /* Add a file to the quarantine list 
  */
-void _add_to_qr_list(QrList *list, QrData new_f)
+void _add_to_qr_list(QrList **list, QrData new_f)
 {
 	QrListNode *node = calloc(1, sizeof(QrListNode));
 	if (!node) {
@@ -20,19 +20,19 @@ void _add_to_qr_list(QrList *list, QrData new_f)
 
 	node->data = new_f;
 
-	if(list->last == NULL) {
-		list->first = node;
-		list->last = node;
-	} else if (list->last->data.o_ino.st_ino < new_f.o_ino.st_ino) {
-		list->last->next = node;
-		node->prev = list->last;
-		list->last = node;
-	} else if (list->first->data.o_ino.st_ino > new_f.o_ino.st_ino) {
-		node->next = list->first;
-		list->first->prev = node;
-		list->first = node;
+	if((*list)->last == NULL) {
+		(*list)->first = node;
+		(*list)->last = node;
+	} else if ((*list)->last->data.o_ino.st_ino < new_f.o_ino.st_ino) {
+		(*list)->last->next = node;
+		node->prev = (*list)->last;
+		(*list)->last = node;
+	} else if ((*list)->first->data.o_ino.st_ino > new_f.o_ino.st_ino) {
+		node->next = (*list)->first;
+		(*list)->first->prev = node;
+		(*list)->first = node;
 	} else {
-		QrListNode *tmp = list->first;
+		QrListNode *tmp = (*list)->first;
 		QrListNode *tmp_prev = NULL;
 		while(tmp->data.o_ino.st_ino < node->data.o_ino.st_ino) {
 			tmp_prev = tmp;
@@ -43,7 +43,7 @@ void _add_to_qr_list(QrList *list, QrData new_f)
 		tmp->prev = node;
 		tmp_prev->next = node;
 	}
-	list->count++;
+	(*list)->count++;
 	write_to_log(INFO, "%s - %s", "File successfully added to QR List", new_f.f_name);
 }
 
@@ -60,9 +60,9 @@ QrListNode* _find_QRNode(QrListNode *node, int num)
 }
 
 /* Remove file data from the qr_list */
-int _rm_from_qr_list(QrList *list, QrListNode *node)
+int _rm_from_qr_list(QrList **list, QrListNode *node)
 {
-	if((list->first == NULL) && (list->last == NULL)){
+	if(((*list)->first == NULL) && ((*list)->last == NULL)){
 		write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "List is empty!");
 		goto error;
 	} else if (node == NULL){
@@ -70,27 +70,27 @@ int _rm_from_qr_list(QrList *list, QrListNode *node)
 		goto error;
 	}
 
-	if((node->data.o_ino.st_ino == list->first->data.o_ino.st_ino) && (node->data.o_ino.st_ino == list->last->data.o_ino.st_ino)) {
-		list->first = NULL;
-		list->last = NULL;
+	if((node->data.o_ino.st_ino == (*list)->first->data.o_ino.st_ino) && (node->data.o_ino.st_ino == (*list)->last->data.o_ino.st_ino)) {
+		(*list)->first = NULL;
+		(*list)->last = NULL;
 		write_to_log(INFO,"%s : %s", "Last file removed from QR List", node->data.f_name);
-	} else if(node->data.o_ino.st_ino == list->first->data.o_ino.st_ino) {
-		list->first = node->next;
-		if(list->first != NULL)
+	} else if(node->data.o_ino.st_ino == (*list)->first->data.o_ino.st_ino) {
+		(*list)->first = node->next;
+		if((*list)->first != NULL)
 			write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Invalid list, somehow got a first that is NULL");
-		list->first->prev = NULL;
-	} else if (node->data.o_ino.st_ino == list->last->data.o_ino.st_ino) {
-		list->last = node->prev;
-		if(list->last != NULL)
+		(*list)->first->prev = NULL;
+	} else if (node->data.o_ino.st_ino == (*list)->last->data.o_ino.st_ino) {
+		(*list)->last = node->prev;
+		if((*list)->last != NULL)
 			write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Invalid list, somehow got a next that is NULL.");
-		list->last->next = NULL;
+		(*list)->last->next = NULL;
 	} else {
 		QrListNode *after = node->next;
 		QrListNode *before = node->prev;
 		after->prev = before;
 		before->next = after;
 	}
-	list->count--;
+	(*list)->count--;
 	free(node);
 	write_to_log(INFO, "%s - %s", "File removed from QR List", node->data.f_name);
 	return 0;
@@ -146,22 +146,23 @@ void init_qr()
 /* Recursively clear the quarantine list 
  * Keep the memory clean
  */
-void clear_qr_list(QrList *list)
+void clear_qr_list(QrList **list)
 {
+	LOG_DEBUG;
 	LIST_FOREACH(list, first, next, cur) {
+		LOG_DEBUG;
 		if(cur->prev) {
 		    	free(cur->prev);
 		}
 	}
-
-	free(list->last);
-	free(list);
+	LOG_DEBUG;
+	free(*list);
 }
 
 /*
  * Load temporary QR file (used by user to list files in qr)
  */
-void load_tmp_qr(QrList *list, int fd)
+void load_tmp_qr(QrList **list, int fd)
 {
 	list = calloc(1, sizeof(QrList));
 	QrData tmp;
@@ -174,9 +175,8 @@ void load_tmp_qr(QrList *list, int fd)
 
 /* Load quarantine with content of QR_DB  
  */
-void load_qr(QrList *list)
+void load_qr(QrList **list)
 {
-	list = calloc(1, sizeof(QrList));
 	int fd;
 	QrData tmp;
 	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
@@ -197,7 +197,7 @@ void load_qr(QrList *list)
  * custom: must be set to -1 if not used
  * Return 0 on success and -1 on error
  */
-int save_qr_list(QrList *list, int custom)
+int save_qr_list(QrList **list, int custom)
 {
 	int fd;
 
@@ -209,18 +209,21 @@ int save_qr_list(QrList *list, int custom)
 			return -1;
 		}
 	}
-	_write_node(list->first, fd);
+	_write_node((*list)->first, fd);
 	write_to_log(INFO, "%s", "QR List has been saved");
+	LOG_DEBUG;
 	if (custom < 0) 
 		close(fd);
+	LOG_DEBUG;
 	clear_qr_list(list);
+	LOG_DEBUG;
 	write_to_log(INFO, "%s", "Quarantine list cleared");
 	
 	return 0;	
 }
 
 /* Move file to STOCK_QR */
-int  add_file_to_qr(QrList *list, char *filepath)
+int  add_file_to_qr(QrList **list, char *filepath)
 {
 	QrData new_f;
 	struct stat new_s;
@@ -333,7 +336,7 @@ out:
 }
 
 /* Delete definitively a file from the quarantine */
-int rm_file_from_qr(QrList *list, char *filename)
+int rm_file_from_qr(QrList **list, char *filename)
 {
 	QrListNode *rm_file;
 	char *p_rm = malloc(strlen(QR_STOCK)+strlen(filename)+3);
@@ -345,7 +348,7 @@ int rm_file_from_qr(QrList *list, char *filename)
 		write_to_log(WARNING, "%s - %d - %s : %s/%s", __func__, __LINE__, "Unable to create path to file to remove", QR_STOCK, filename);
 		goto rm_err;
 	}
-	if ((rm_file = search_in_qr(list, filename)) == NULL){
+	if ((rm_file = search_in_qr(*list, filename)) == NULL){
 		write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, "Unable to locate file to remove", filename);
 		goto rm_err;
 	}
@@ -368,9 +371,9 @@ err:
 }
 
 /* Restore file to its anterior state and place */
-int restore_file(QrList *list, char *filename)
+int restore_file(QrList **list, char *filename)
 {
-	QrListNode *res_file = search_in_qr(list, filename);
+	QrListNode *res_file = search_in_qr(*list, filename);
 	char *p_res = malloc(strlen(QR_STOCK)+strlen(filename)+3);
 	if (!p_res) {
 		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
