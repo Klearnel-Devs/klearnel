@@ -52,7 +52,7 @@ void _expired_files(QrList *list)
 /* Get data from socket "sock" and put it in buffer "buf"
  * Return number of char read if >= 0, else -1
  */
-int _get_data(const int sock, int *action, char **buf)
+static int _get_data(const int sock, int *action, char **buf)
 {
 	int c_len = 20;
 	char *a_type = malloc(c_len);
@@ -184,7 +184,7 @@ void _call_related_action(QrList *list, const int action, char *buf, const int s
 		case QR_INFO:
 			NOT_YET_IMP;
 			break;
-		case QR_EXIT:
+		case KL_EXIT:
 			if (list != NULL) {
 				clear_qr_list(list);
 			}
@@ -209,7 +209,7 @@ void _call_related_action(QrList *list, const int action, char *buf, const int s
 void _get_instructions()
 {
 	int len, s_srv, s_cl;
-	int action = -1;
+	int action = 0;
 	struct sockaddr_un server;
 	QrList *list = NULL;
 
@@ -271,7 +271,7 @@ void _get_instructions()
 		} else {
 			_expired_files(list);
 		}
-	} while (action != QR_EXIT);
+	} while (action != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
 	write_to_log(DEBUG, "%s successfully completed", __func__);

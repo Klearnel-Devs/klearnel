@@ -16,7 +16,6 @@
 #define QR_REST		3
 #define QR_LIST 	4
 #define QR_INFO		5
-#define QR_EXIT		0
 
 /* Structure of file into quarantine */
 struct qr_file {
