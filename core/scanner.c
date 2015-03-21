@@ -270,7 +270,6 @@ int perform_task(const int task, const char* buf)
 
 int perform_event() 
 {
-	LOG_DEBUG;
 	NOT_YET_IMP;
 	return 0;
 }
