@@ -27,6 +27,7 @@ build:
 	@mkdir -p build
 	@mkdir -p build/bin
 	@cp LICENSE build/bin
+	@cp README.md build/bin
 
 
 clean: clean-sub
