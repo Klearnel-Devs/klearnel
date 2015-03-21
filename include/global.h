@@ -51,10 +51,7 @@
 #define SEL_TO 		600 /* Define the timeout waiting on sockets */
 
 #define SOCK_ANS(socket, signal) \
- 	write(socket, signal, strlen(signal))
-
-#define LOG_DEBUG \
- 	write_to_log(DEBUG," Function: %s\n", __func__);
+ 	write(socket, signal, strlen(signal));
 
 /* ------ PROTOTYPES ----- */
 

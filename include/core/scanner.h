@@ -28,11 +28,18 @@ typedef struct watchElement {
 	float max_age; 		/* Used by option 8 */
 } TWatchElement;
 
-/* Structure for chained list of Scanner */
-typedef struct watchElementList {
+/* Structure for list node of Scanner */
+typedef struct watchElementNode {
 	struct watchElement element;
-	struct watchElementList* next;
-	struct watchElementList* prev;
+	struct watchElementNode* next;
+	struct watchElementNode* prev;
+} TWatchElementNode;
+
+/* Structure for linked list of Scanner */
+typedef struct watchElementList {
+	int count;
+	struct watchElementNode* first;
+	struct watchElementNode* last;
 } TWatchElementList;
 
 /* List of prototypes */

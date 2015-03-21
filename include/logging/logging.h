@@ -28,6 +28,9 @@
 
 int write_to_log(int level, char const *format, ...);
 
+#define LOG_DEBUG \
+ 	write_to_log(DEBUG," Function: %s\n", __func__);
+
 #define LOG(level, msg) \
 	write_to_log(level, "%s:%d: %s", __func__, __LINE__, msg);
 
