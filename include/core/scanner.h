@@ -7,6 +7,7 @@
  */
 
 #define SCAN_DB 	BASE_DIR "/scan.db"
+#define SCAN_SOCK	TMP_DIR	"/kl-scan-sck"
 
 /* Structure for folder/file to be supervised by Scanner */
 typedef struct watchElement {
@@ -49,7 +50,7 @@ typedef struct watchElementList {
  */
 int init_scanner();
 /* Get the command through the socket */
-void get_command();
+void scanner_worker();
 /* Load the scan list from SCAN_DB 
  * Return 0 on success and -1 on error
  */
@@ -70,10 +71,14 @@ int get_watch_list();
  * Return 0 on success and -1 on error
  */
 int save_watch_list();
-/* Execute the task ordered by the user or by the timer event
+/* Execute the task ordered by the user
  * Return 0 on success and -1 on error
  */
-int perform_task(int task);
+int perform_task(const int task, const char* buf);
+/* Execute the classic scan task
+ * Return 0 on success and -1 on error
+ */
+int perform_event();
 /* Exit the scanner process
  * Return 0 on success and -1 on error
  */

@@ -48,6 +48,8 @@
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
 
+#define KL_EXIT 	-1
+
 #define SOCK_TO 	15 /* Define the timeout applied to sockets */
 #define SEL_TO 		600 /* Define the timeout waiting on sockets */
 

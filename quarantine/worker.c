@@ -270,7 +270,7 @@ void _get_instructions()
 		} else {
 			_expired_files(&list);
 		}
-	} while (action != QR_EXIT);
+	} while (action != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
 	write_to_log(DEBUG, "%s successfully completed", __func__);

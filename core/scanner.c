@@ -98,6 +98,12 @@ int load_watch_list()
 	return 0;
 }
 
+int get_watch_list()
+{
+	NOT_YET_IMP;
+	return 0;
+}
+
 int save_watch_list()
 {
 	int fd, i;
@@ -116,5 +122,164 @@ int save_watch_list()
 	}
 	free(watch_list);
 	close(fd);
+	return 0;
+}
+
+/* Get data from socket "sock" and put it in buffer "buf"
+ * Return number of char read if >= 0, else -1
+ */
+int _get_data(const int sock, int *task, char **buf)
+{
+	int c_len = 20;
+	char *a_type = malloc(c_len);
+	int len;
+	if (a_type == NULL) {
+		write_to_log(FATAL, "%s:%d: %s", 
+			__func__, __LINE__, "Unable to allocate memory");
+		return -1;
+	}
+
+	if (read(sock, a_type, c_len) < 0) {
+		write_to_log(WARNING, "%s:%d: %s", 
+			__func__, __LINE__, "Error while receiving data through socket");
+		return -1;
+	}
+
+	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
+		write_to_log(WARNING, "%s:%d: %s", 
+			__func__, __LINE__, "Unable to send ack in socket");
+		free(a_type);
+		return -1;
+	}
+
+	*task = atoi(strtok(a_type, ":"));
+	len = atoi(strtok(NULL, ":"));
+	
+	if (len > 0) {
+		*buf = malloc(sizeof(char)*len);
+		if (*buf == NULL) {
+			if (SOCK_ANS(sock, SOCK_RETRY) < 0)
+				write_to_log(WARNING,"%s:%d: %s", 
+					__func__, __LINE__, "Unable to send retry");
+			write_to_log(FATAL,"%s:%d: %s", 
+				__func__, __LINE__, "Unable to allocate memory");
+			free(a_type);
+			return -1;
+		}
+
+		if (read(sock, *buf, len) < 0) {
+			if (SOCK_ANS(sock, SOCK_NACK) < 0)
+				write_to_log(WARNING,"%s:%d: %s", 
+					__func__, __LINE__, "Unable to send nack");
+			write_to_log(FATAL,"%s:%d: %s", 
+				__func__, __LINE__, "Unable to allocate memory");
+			free(a_type);
+			return -1;			
+		}
+
+		if(SOCK_ANS(sock, SOCK_ACK) < 0) {
+			write_to_log(WARNING,"%s:%d: %s", 
+				__func__, __LINE__, "Unable to send ack");
+			free(a_type);
+			return -1;
+		}
+	}
+	free(a_type);
+	return len;
+}
+
+int scanner_worker()
+{
+	int len, s_srv, s_cl;
+	int task = -1;
+	struct sockaddr_un server;
+
+	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to open the socket");
+		return -1;
+	}
+	server.sun_family = AF_UNIX;
+	strncpy(server.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
+	unlink(server.sun_path);
+	len = strlen(server.sun_path) + sizeof(server.sun_family);
+	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
+		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to bind the socket");
+		return -1;
+	}
+	listen(s_srv, 10);
+
+	do {
+		struct timeval to_socket;
+		to_socket.tv_sec 	= SOCK_TO;
+		to_socket.tv_usec = 0;
+		struct timeval to_select;
+		to_select.tv_sec 	= SEL_TO;
+		to_select.tv_usec = 0;
+		fd_set fds;
+		int res;
+
+		FD_ZERO (&fds);
+		FD_SET (s_srv, &fds);
+
+		struct sockaddr_un remote;
+		char *buf = NULL;
+
+		res = select (s_srv + 1, &fds, NULL, NULL, &to_select);
+
+		if (res < 0) {
+			if (FD_ISSET(s_srv, &fds)) {
+				len = sizeof(remote);
+				if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to accept the connection");
+					continue;
+				}
+				if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to set timeout for reception operations");
+
+				if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to set timeout for sending operations");		
+
+				if (_get_data(s_cl, &task, &buf) < 0) {
+					free(buf);
+					close(s_cl);
+					write_to_log(NOTIFY, "%s:%d: %s", 
+						__func__, __LINE__, "_get_data FAILED");
+					continue;
+				}
+				perform_task(task, buf);
+				free(buf);
+				close(s_cl);
+			}
+		} else {
+			perform_event();
+		}
+	} while (task != KL_EXIT);
+	close(s_srv);
+	unlink(server.sun_path);
+	exit_scanner();
+	return 0;
+}
+
+int perform_task(const int task, const char* buf) 
+{
+	NOT_YET_IMP;
+	return 0;
+}
+
+int perform_event() 
+{
+	NOT_YET_IMP;
+	return 0;
+}
+
+int exit_scanner()
+{
+	if (save_watch_list() < 0) {
+		LOG(FATAL, "Unable to save the watch_list");
+		return -1;
+	}
 	return 0;
 }
