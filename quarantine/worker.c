@@ -14,7 +14,6 @@
  */
 void _search_expired(QrList **list, QrListNode *listNode, int *removed, time_t now)
 {
-	LOG_DEBUG;
 	if (listNode == NULL)
       		return;
       	if (listNode->data.d_expire < now) {
@@ -113,13 +112,13 @@ static int _get_data(const int sock, int *action, char **buf)
 void _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
 {
 	load_qr(list);
-//	QrList save = *list;
+	QrList *save = *list;
 	switch (action) {
 		case QR_ADD: 
 			if (add_file_to_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
-//				*list = save;
+				*list = save;
 				return;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
@@ -128,7 +127,7 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			if (rm_file_from_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
-//				*list = save;
+				*list = save;
 				return;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
@@ -137,7 +136,7 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			if (restore_file(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
-//				*list = save;
+				*list = save;
 				return;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);

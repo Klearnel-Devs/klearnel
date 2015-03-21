@@ -76,12 +76,12 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 		write_to_log(INFO,"%s : %s", "Last file removed from QR List", node->data.f_name);
 	} else if(node->data.o_ino.st_ino == (*list)->first->data.o_ino.st_ino) {
 		(*list)->first = node->next;
-		if((*list)->first != NULL)
+		if((*list)->first == NULL)
 			write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Invalid list, somehow got a first that is NULL");
 		(*list)->first->prev = NULL;
 	} else if (node->data.o_ino.st_ino == (*list)->last->data.o_ino.st_ino) {
 		(*list)->last = node->prev;
-		if((*list)->last != NULL)
+		if((*list)->last == NULL)
 			write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Invalid list, somehow got a next that is NULL.");
 		(*list)->last->next = NULL;
 	} else {
@@ -91,8 +91,8 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 		before->next = after;
 	}
 	(*list)->count--;
-	free(node);
 	write_to_log(INFO, "%s - %s", "File removed from QR List", node->data.f_name);
+	free(node);
 	return 0;
 	error:
 		return -1;
@@ -148,14 +148,11 @@ void init_qr()
  */
 void clear_qr_list(QrList **list)
 {
-	LOG_DEBUG;
 	LIST_FOREACH(list, first, next, cur) {
-		LOG_DEBUG;
 		if(cur->prev) {
 		    	free(cur->prev);
 		}
 	}
-	LOG_DEBUG;
 	free(*list);
 }
 
@@ -204,19 +201,16 @@ int save_qr_list(QrList **list, int custom)
 	if (custom >= 0) {
 		fd = custom;
 	} else {
-		if ((fd = open(QR_DB, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
+		if ((fd = open(QR_DB, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
 			write_to_log(WARNING, "%s - %d - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
 			return -1;
 		}
 	}
 	_write_node((*list)->first, fd);
 	write_to_log(INFO, "%s", "QR List has been saved");
-	LOG_DEBUG;
 	if (custom < 0) 
 		close(fd);
-	LOG_DEBUG;
 	clear_qr_list(list);
-	LOG_DEBUG;
 	write_to_log(INFO, "%s", "Quarantine list cleared");
 	
 	return 0;	
