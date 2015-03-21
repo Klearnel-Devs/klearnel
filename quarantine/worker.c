@@ -14,6 +14,7 @@
  */
 void _search_expired(QrList *list, QrListNode *listNode, int *removed, time_t now)
 {
+	LOG_DEBUG;
 	if (listNode == NULL)
       		return;
       	if (listNode->data.d_expire < now) {
@@ -34,7 +35,7 @@ void _search_expired(QrList *list, QrListNode *listNode, int *removed, time_t no
  */
 void _expired_files(QrList *list)
 {
-	if((list) == NULL) {
+	if(list == NULL) {
 		write_to_log(NOTIFY, "%s - Quarantine List is empty", __func__);
 		return;
 	}
