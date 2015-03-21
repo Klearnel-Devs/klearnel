@@ -91,7 +91,7 @@ int _qr_query(int nb, char **commands, int action)
 		case QR_LIST:
 			snprintf(query, len, "%d:0", action);
 			char *list_path = malloc(PATH_MAX);
-			QrSearchTree qr_list = NULL;
+			QrList *qr_list = NULL;
 			int fd;
 			if (!list_path) {
 				perror("[UI] Unable to allocate memory");
@@ -124,7 +124,7 @@ int _qr_query(int nb, char **commands, int action)
 				goto error;
 			}
 			
-			load_tmp_qr(&qr_list, fd);
+			load_tmp_qr(qr_list, fd);
 			close(fd);
 
 			print_qr(qr_list);

@@ -29,50 +29,50 @@ struct qr_file {
 
 typedef struct qr_file QrData;
 
-struct QRListNode;
+struct QrListNode;
 
-typedef struct QRListNode {
-    struct QRListNode *next;
-    struct QRListNode *prev;
-    QRData data;
-} QRListNode;
+typedef struct QrListNode {
+    struct QrListNode *next;
+    struct QrListNode *prev;
+    QrData data;
+} QrListNode;
 
-typedef struct QRList {
+typedef struct QrList {
     int count;
-    QRListNode *first;
-    QRListNode *last;
-} QRList;
+    QrListNode *first;
+    QrListNode *last;
+} QrList;
 
 #define List_count(A) ((A)->count)
 #define List_first(A) ((A)->first != NULL ? (A)->first->value : NULL)
 #define List_last(A) ((A)->last != NULL ? (A)->last->value : NULL)
 
-#define LIST_FOREACH(L, S, M, V) QRListNode *_node = NULL;\
-    QRListNode *V = NULL;\
+#define LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
+    QrListNode *V = NULL;\
     for(V = _node = L->S; _node != NULL; V = _node = _node->M)
 
 /*----- PROTOYPE ------ */
 
 void init_qr();
 
-void load_tmp_qr(QRList *list, int fd);
+void load_tmp_qr(QrList *list, int fd);
 
-void load_qr(QRList *list);
+void load_qr(QrList *list);
 
-void clear_qr_list(QRList *list);
+void clear_qr_list(QrList *list);
 
-void search_in_qr(QRList *list, char *filename);
+QrListNode* search_in_qr(QrList *list, char *filename);
 
-int save_qr_list(QRList *list, int custom);
+int save_qr_list(QrList *list, int custom);
 
-int add_file_to_qr(QRList *list, char *filepath);
+int add_file_to_qr(QrList *list, char *filepath);
 
-int rm_file_from_qr(QRList *list, char *filename);
+int rm_file_from_qr(QrList *list, char *filename);
 
-int restore_file(QRList *list, char *filename);
+int restore_file(QrList *list, char *filename);
 
 void qr_worker();
 
-void print_qr(QRList *list);
+void print_qr(QrList *list);
 
 #endif /* _KLEARNEL_QUARANTINE_H */
