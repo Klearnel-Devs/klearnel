@@ -19,7 +19,6 @@ void _search_expired(QrList **list, QrListNode *listNode, int *removed, time_t n
       	if (listNode->data.d_expire < now) {
 		rm_file_from_qr(list, listNode->data.f_name);
 		*removed += 1;
-		_search_expired(list, listNode, removed, now);
 	} else {
 		_search_expired(list, listNode->next, removed, now);
 	}
@@ -34,6 +33,8 @@ void _search_expired(QrList **list, QrListNode *listNode, int *removed, time_t n
  */
 void _expired_files(QrList **list)
 {
+	(*list) = calloc(1, sizeof(QrList));
+	load_qr(list);
 	if(list == NULL) {
 		write_to_log(NOTIFY, "%s - Quarantine List is empty", __func__);
 		return;
@@ -46,6 +47,7 @@ void _expired_files(QrList **list)
 		_search_expired(list, (*list)->first, &removed, now);
 	} while ( removed != 0 );
 	write_to_log(DEBUG, "%s successfully completed", __func__);
+	clear_qr_list(list);
 	return;
 }
 
@@ -121,6 +123,8 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				*list = save;
 				return;
+			} else {
+				clear_qr_list(list);
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -130,6 +134,8 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				*list = save;
 				return;
+			} else {
+				clear_qr_list(list);
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -139,6 +145,8 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				*list = save;
 				return;
+			} else {
+				clear_qr_list(list);
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -245,7 +253,6 @@ void _get_instructions()
 		char *buf = NULL;
 
 		res = select (s_srv + 1, &fds, NULL, NULL, &to_select);
-
 		if (res > 0) {
 			if (FD_ISSET(s_srv, &fds)) {
 				len = sizeof(remote);

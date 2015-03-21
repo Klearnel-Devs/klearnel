@@ -210,7 +210,7 @@ int save_qr_list(QrList **list, int custom)
 	write_to_log(INFO, "%s", "QR List has been saved");
 	if (custom < 0) 
 		close(fd);
-	clear_qr_list(list);
+	
 	write_to_log(INFO, "%s", "Quarantine list cleared");
 	
 	return 0;	
