@@ -108,7 +108,7 @@ int save_watch_list()
 	}
 	TWatchElementNode* item = watch_list->first;
 	for(i = 0; i < watch_list->count; i++) {
-		if (write(fd, item->element, sizeof(struct watchElement)) < 0) {
+		if (write(fd, &item->element, sizeof(struct watchElement)) < 0) {
 			write_to_log(FATAL, "%s:%s: Unable to write \"%s\" in SCAN_DB", 
 				__func__, __LINE__, item->element.path);
 			return -1;
