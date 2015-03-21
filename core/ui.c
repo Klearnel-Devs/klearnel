@@ -180,6 +180,31 @@ void execute_commands(int nb, char **commands)
 		_qr_query(nb, commands, QR_REST);
 	} else if (!strcmp(commands[1], "-h")) {
 		NOT_YET_IMP; /* IMPORTANT: TO DO NEARLY */
+	} else if (!strcmp(commands[1], "view-rt-log")) {
+		char date[7];
+		time_t rawtime;
+	  	struct tm * timeinfo;
+	  	time(&rawtime);
+	  	timeinfo = localtime(&rawtime);
+	  	strftime(date, sizeof(date), "%y%m%d", timeinfo);
+	  	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + strlen(".log") + 1);
+	  	char *task = malloc(strlen(logs)+20);
+
+	  	if (!logs || !task) {
+	  		perror("UI: Unable to allocate memory");
+	  		exit(EXIT_FAILURE);
+	  	}
+	  	if (snprintf(logs, strlen(LOG_DIR) + strlen(date) + strlen(".log") + 1, "%s%s%s", LOG_DIR, date,".log") < 0){
+	  		perror("LOG: Unable print path for logs");
+			exit(EXIT_FAILURE);
+	  	} 
+	  	if (access(logs, F_OK) == -1) {
+	  		perror("UI: Unable to find log file");
+	  		exit(EXIT_FAILURE);
+	  	}
+
+	  	sprintf(task, "tail -f %s", logs);
+	  	system(task);
 	} else {
 		fprintf(stderr, "Unknown command\n"
 			"Try klearnel -h to get a complete list of available commands\n");

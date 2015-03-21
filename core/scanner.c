@@ -191,7 +191,7 @@ static int _get_data(const int sock, int *task, char **buf)
 void scanner_worker()
 {
 	int len, s_srv, s_cl;
-	int task = -1;
+	int task = 0;
 	struct sockaddr_un server;
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
@@ -270,6 +270,7 @@ int perform_task(const int task, const char* buf)
 
 int perform_event() 
 {
+	LOG_DEBUG;
 	NOT_YET_IMP;
 	return 0;
 }

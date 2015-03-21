@@ -208,7 +208,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 void _get_instructions()
 {
 	int len, s_srv, s_cl;
-	int action = -1;
+	int action = 0;
 	struct sockaddr_un server;
 	QrSearchTree list = NULL;
 
