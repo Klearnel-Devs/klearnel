@@ -156,12 +156,14 @@ void execute_commands(int nb, char **commands)
 		if (nb < 3) {
 			fprintf(stderr, "Element to add missing\n"
 				 "Correct syntax is: klearnel add-to-qr <filename or dirname>\n");
+			exit(EXIT_FAILURE);
 		}
 		_qr_query(nb, commands, QR_ADD);
 	} else if (!strcmp(commands[1], "rm-from-qr")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to remove missing\n"
 				 "Correct syntax is: klearnel rm-fom-qr <filename or dirname>\n");
+			exit(EXIT_FAILURE);
 		}
 		_qr_query(nb, commands, QR_RM);
 	} else if (!strcmp(commands[1], "get-qr-list")) {
@@ -170,12 +172,14 @@ void execute_commands(int nb, char **commands)
 		if (nb < 3) {
 			fprintf(stderr, "Element to detail missing\n"
 				 "Correct syntax is: klearnel get-info <filename or dirname>\n");
+			exit(EXIT_FAILURE);
 		}
 		_qr_query(nb, commands, QR_INFO);
 	} else if (!strcmp(commands[1], "restore-qr")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to restore missing\n"
 				 "Correct syntax is: klearnel restore-qr <filename or dirname>\n");
+			exit(EXIT_FAILURE);
 		}
 		_qr_query(nb, commands, QR_REST);
 	} else if (!strcmp(commands[1], "-h")) {
