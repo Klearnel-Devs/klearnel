@@ -18,6 +18,7 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/stat.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -51,7 +52,7 @@
 #define SEL_TO 		600 /* Define the timeout waiting on sockets */
 
 #define SOCK_ANS(socket, signal) \
- 	write(socket, signal, strlen(signal));
+ 	write(socket, signal, strlen(signal))
 
 /* ------ PROTOTYPES ----- */
 

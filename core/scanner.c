@@ -24,11 +24,6 @@ int init_scanner()
 
 int add_watch_elem(TWatchElement elem) 
 {
-	if (!elem) {
-		LOG(INFO, "Element to add is empty");
-		return -1;
-	}
-
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
 	if (!node) {
 		LOG(FATAL, "Unable to allocate memory");
@@ -58,19 +53,14 @@ int add_watch_elem(TWatchElement elem)
 
 int remove_watch_elem(TWatchElement elem) 
 {
-	if (!elem) {
-		LOG(INFO, "Element to remove is empty");
-		return -1;
-	}
-
 	TWatchElementNode* item = elem_list->first;
 	if (!item) return 0;
 	while (item) {
-		if (strcmp(item->elem.path, elem.path) == 0) {
-			if (strcmp(elem_list->first->elem.path, item->elem.path) == 0) {
+		if (strcmp(item->element.path, elem.path) == 0) {
+			if (strcmp(elem_list->first->element.path, item->element.path) == 0) {
 				elem_list->first = item->next;
 			}
-			if (strcmp(elem_list->last->elem.path, item->elem.path) == 0) {
+			if (strcmp(elem_list->last->element.path, item->element.path) == 0) {
 				elem_list->last = item->prev;
 			}
 			if (item->next) item->next->prev = item->prev;
@@ -90,7 +80,7 @@ int load_watch_list()
 	int fd = 0;
 	TWatchElement tmp;
 
-	if ((fd = open(SCAN_DB, O_RONLY)) < 0) {
+	if ((fd = open(SCAN_DB, O_RDONLY)) < 0) {
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
@@ -99,10 +89,12 @@ int load_watch_list()
 		if (add_watch_elem(tmp) < 0) {
 			write_to_log(URGENT, "%s:%d: Unable to add \"%s\" to the watch list", 
 				__func__, __LINE__, tmp.path);
+			close(fd);
 			return -1;
 		}
 	}
 
+	close(fd);
 	return 0;
 }
 
