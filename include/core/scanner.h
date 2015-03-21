@@ -6,6 +6,8 @@
  * Copyright (C) 2014, 2015 Klearnel-Devs 
  */
 
+#define SCAN_DB 	BASE_DIR "/scan.db"
+
 /* Structure for folder/file to be supervised by Scanner */
 typedef struct watchElement {
 	char path[PATH_MAX];
@@ -32,5 +34,42 @@ typedef struct watchElementList {
 	struct watchElementList* next;
 	struct watchElementList* prev;
 } TWatchElementList;
+
+/* List of prototypes */
+
+/* Create the SCAN_DB if it doesn't exist
+ * Return 0 on success and -1 on error
+ */
+int init_scanner();
+/* Get the command through the socket */
+void get_command();
+/* Load the scan list from SCAN_DB 
+ * Return 0 on success and -1 on error
+ */
+int load_scan_list();
+/* Add a new folder/file to supervise to the scan list
+ * Return 0 on success and -1 on error
+ */
+int add_watch_elem(TWatchElement new);
+/* Remove a folder/file from the scan list
+ * Return 0 on success and -1 on error
+ */
+int remove_watch_elem(TWatchElement elem);
+/* Send the scan list to user by socket 
+ * Return 0 on success and -1 on error
+ */
+int get_watch_list();
+/* Write the scan list to SCAN_DB
+ * Return 0 on success and -1 on error
+ */
+int save_watch_list();
+/* Execute the task ordered by the user or by the timer event
+ * Return 0 on success and -1 on error
+ */
+int perform_task(int task);
+/* Exit the scanner process
+ * Return 0 on success and -1 on error
+ */
+int exit_scanner();
 
 #endif /* _KLEARNEL_SCANNER_H */
