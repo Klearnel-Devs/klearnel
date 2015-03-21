@@ -210,7 +210,7 @@ void _get_instructions()
 	int len, s_srv, s_cl;
 	int action = -1;
 	struct sockaddr_un server;
-	QrSearchTree list = NULL;
+	QRList list = NULL;
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open the socket");
