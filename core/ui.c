@@ -34,13 +34,11 @@ int _qr_query(int nb, char **commands, int action)
 		perror("[UI] Unable to connect the qr_sock");
 		goto error;
 	}
-	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, 
-		sizeof(timeout)) < 0)
-		write_to_log(WARNING, "[UI] Unable to set timeout for reception operations");
+	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
+		perror("[UI] Unable to set timeout for reception operations");
 
-	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
-		sizeof(timeout)) < 0)
-		write_to_log(WARNING, "[UI] Unable to set timeout for sending operations");
+	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+		perror("[UI] Unable to set timeout for sending operations");
 
 	len = 20;
 	res = malloc(2);
@@ -183,7 +181,7 @@ void execute_commands(int nb, char **commands)
 	} else if (!strcmp(commands[1], "-h")) {
 		NOT_YET_IMP; /* IMPORTANT: TO DO NEARLY */
 	} else {
-		fprintf(stderr, "Unknow command\n"
+		fprintf(stderr, "Unknown command\n"
 			"Try klearnel -h to get a complete list of available commands\n");
 		exit(EXIT_FAILURE);
 	}

@@ -18,8 +18,6 @@
 #define QR_INFO		5
 #define QR_EXIT		0
 
-#define IPC_QR 		42
-
 /* Structure of file into quarantine */
 struct qr_file {
 	char 		f_name[256];		/* Filename of the fil in qr */
@@ -55,7 +53,7 @@ QrSearchTree clear_qr_list(QrSearchTree list);
 
 QrPosition search_in_qr(QrSearchTree list, char *filename);
 
-int save_qr_list(QrSearchTree *list, int other);
+int save_qr_list(QrSearchTree *list, int custom);
 
 int add_file_to_qr(QrSearchTree *list, char *filepath);
 

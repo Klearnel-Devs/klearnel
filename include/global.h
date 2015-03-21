@@ -48,12 +48,13 @@
 #define SOCK_RETRY 	"9"
 
 #define SOCK_TO 	15 /* Define the timeout applied to sockets */
+#define SEL_TO 		600 /* Define the timeout waiting on sockets */
 
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))
 
 #define LOG_DEBUG \
- 	printf("[DEBUG] Function: %s\n", __func__);
+ 	write_to_log(DEBUG," Function: %s\n", __func__);
 
 /* ------ PROTOTYPES ----- */
 
