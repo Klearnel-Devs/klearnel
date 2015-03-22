@@ -113,18 +113,15 @@ static int _get_data(const int sock, int *action, char **buf)
  */
 void _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
 {
-	(*list) = calloc(1, sizeof(QrList));
-	load_qr(list);
 	QrList *save = *list;
 	switch (action) {
 		case QR_ADD: 
 			if (add_file_to_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+				clear_qr_list(list);
 				*list = save;
 				return;
-			} else {
-				clear_qr_list(list);
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -132,10 +129,9 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			if (rm_file_from_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+				clear_qr_list(list);
 				*list = save;
 				return;
-			} else {
-				clear_qr_list(list);
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -143,10 +139,9 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			if (restore_file(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+				clear_qr_list(list);
 				*list = save;
 				return;
-			} else {
-				clear_qr_list(list);
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -195,9 +190,7 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
-			if (list != NULL) {
-				clear_qr_list(list);
-			}
+			clear_qr_list(list);
 			SOCK_ANS(s_cl, SOCK_ACK);			
 			break;
 		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");;
@@ -221,7 +214,8 @@ void _get_instructions()
 	int len, s_srv, s_cl;
 	int action = 0;
 	struct sockaddr_un server;
-	QrList *list = NULL;
+	QrList *list = calloc(1, sizeof(QrList));
+	load_qr(&list);
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open the socket");
