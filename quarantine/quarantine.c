@@ -222,7 +222,6 @@ void init_qr()
 void clear_qr_list(QrList **list)
 {
 	if ((*list)->first != NULL) {
-		LOG_DEBUG;
 		LIST_FOREACH(list, first, next, cur) {
 			if (cur->prev) {
 			    	free(cur->prev);
@@ -300,7 +299,6 @@ int save_qr_list(QrList **list, int custom)
 
 	if (custom >= 0) {
 		fd = custom;
-		LOG_DEBUG;
 	} else {
 		if ((fd = open(QR_DB, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
 			write_to_log(WARNING, "%s - %d - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
