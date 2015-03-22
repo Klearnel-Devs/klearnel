@@ -69,6 +69,7 @@ int remove_watch_elem(TWatchElement elem)
 			watch_list->count--;
 			return 0;
 		}
+		item = item->next;
 	}
 	write_to_log(FATAL, "%s:%d: Element \"%s\" to remove not found", 
 		__func__, __LINE__, elem.path);
