@@ -1,17 +1,43 @@
-# Klearnel build makefile
+# Klearnel Top-level makefile
 
-CC = gcc
+include include/Makefile
 
-default:
-	INC_DIR = include
-	CFLAGS = -Wall -Werror -I$(INC_DIR)
+OBJ-KL:=$(patsubst %.c, $(BUILD_DIR)/%.o, $(SRC))
+EXECUTABLE:=$(BUILD_DIR)/bin/klearnel
 
-	$(CC) $(CFLAGS) klearnel.c -o klearnel.o
+default: info $(EXECUTABLE)
 
-module:
 
-	obj-m += klearnel.o
-clean:
+info:
+	@echo "This module will be compiled with following CFLAGS: "$(CFLAGS)
+	@echo "Created by Klearnel-Devs"
 
-	@rm -r *.o
-	@echo "The klearnel dir is now clean!"
+$(EXECUTABLE): subdirs $(OBJ-KL) 
+	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o)
+
+$(OBJ-KL): $(BUILD_DIR)/%.o : %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+subdirs: build
+	@cd quarantine; $(MAKE)
+	@cd core; 	$(MAKE)
+	@cd logging;	$(MAKE)
+
+build:
+	@mkdir -p build
+	@mkdir -p build/bin
+	@cp LICENSE build/bin
+	@cp README.md build/bin
+
+
+clean: clean-sub
+	@echo "Removing all objects and build dirs..."
+	@rm -rf $(BUILD_DIR)
+	@echo "The project directory is now clean!"
+
+clean-sub:
+	@echo "Removing all symlinks generated..."
+	@cd quarantine; $(MAKE) clean
+	@cd core;	$(MAKE) clean
+	@cd logging;	$(MAKE) clean
+	
