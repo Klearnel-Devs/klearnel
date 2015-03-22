@@ -9,6 +9,12 @@
 #define SCAN_DB 	BASE_DIR "/scan.db"
 #define SCAN_SOCK	TMP_DIR	"/kl-scan-sck"
 
+#define SCAN_ADD	10
+#define SCAN_RM		11
+#define SCAN_LIST	12
+
+#define EMPTY_PATH	"empty"
+
 /* Structure for folder/file to be supervised by Scanner */
 typedef struct watchElement {
 	char path[PATH_MAX];
@@ -74,7 +80,7 @@ int save_watch_list();
 /* Execute the task ordered by the user
  * Return 0 on success and -1 on error
  */
-int perform_task(const int task, const char* buf);
+int perform_task(const int task, const char* buf, const int s_cl);
 /* Execute the classic scan task
  * Return 0 on success and -1 on error
  */
