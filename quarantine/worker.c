@@ -12,18 +12,18 @@
  * Searches QR list and deletes a file who's date is older than todays date time
  * Calls to rm_file_from_qr to delete file physically, logically
  */
-void _search_expired(QrSearchTree *list, int *removed, time_t now)
+void _search_expired(QrList **list, QrListNode *listNode, int *removed, time_t now)
 {
-	if ((*list) == NULL)
+	if (listNode == NULL)
       		return;
-	if ((*list)->left != NULL)
-		_search_expired(&(*list)->left, removed, now);
-	if ((*list)->right != NULL)
-		_search_expired(&(*list)->right, removed, now);
-	if ((*list)->data.d_expire < now) {
-		rm_file_from_qr(list, (*list)->data.f_name);
+      	if (listNode->data.d_expire < now) {
+		rm_file_from_qr(list, listNode->data.f_name);
 		*removed += 1;
+	} else {
+		_search_expired(list, listNode->next, removed, now);
 	}
+	
+	return;
 }
 
 /*
@@ -31,9 +31,11 @@ void _search_expired(QrSearchTree *list, int *removed, time_t now)
  * earmarked by a deletion date older than todays date time
  * Loops until no more expired files are detected
  */
-void _expired_files(QrSearchTree *list)
+void _expired_files(QrList **list)
 {
-	if((*list) == NULL) {
+	(*list) = calloc(1, sizeof(QrList));
+	load_qr(list);
+	if(list == NULL) {
 		write_to_log(NOTIFY, "%s - Quarantine List is empty", __func__);
 		return;
 	}
@@ -42,9 +44,10 @@ void _expired_files(QrSearchTree *list)
 	do {
 		removed = 0;
 		now = time(NULL);
-		_search_expired(list, &removed, now);
+		_search_expired(list, (*list)->first, &removed, now);
 	} while ( removed != 0 );
 	write_to_log(DEBUG, "%s successfully completed", __func__);
+	clear_qr_list(list);
 	return;
 }
 
@@ -108,15 +111,15 @@ static int _get_data(const int sock, int *action, char **buf)
  * If action has been executed correctly return the new qr_list, 
  * if not return the unchanged list or NULL
  */
-void _call_related_action(QrSearchTree *list, const int action, char *buf, const int s_cl) 
+void _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
 {
-	load_qr(list);
-	QrSearchTree save = *list;
+	QrList *save = *list;
 	switch (action) {
 		case QR_ADD: 
 			if (add_file_to_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+				clear_qr_list(list);
 				*list = save;
 				return;
 			}
@@ -126,6 +129,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			if (rm_file_from_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+				clear_qr_list(list);
 				*list = save;
 				return;
 			}
@@ -135,12 +139,14 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			if (restore_file(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+				clear_qr_list(list);
 				*list = save;
 				return;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case QR_LIST: ;
+			LOG_DEBUG;
 			time_t timestamp = time(NULL);
 			int tmp_stock;
 			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));
@@ -164,7 +170,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 				}
 			}
 			sprintf(file, "%s/qr_stock", path_to_list);
-			tmp_stock = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
+			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
 			if (tmp_stock < 0) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open tmp_stock");
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
@@ -184,9 +190,7 @@ void _call_related_action(QrSearchTree *list, const int action, char *buf, const
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
-			if ((*list) != NULL) {
-				*list = clear_qr_list(*list);
-			}
+			clear_qr_list(list);
 			SOCK_ANS(s_cl, SOCK_ACK);			
 			break;
 		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");;
@@ -210,7 +214,8 @@ void _get_instructions()
 	int len, s_srv, s_cl;
 	int action = 0;
 	struct sockaddr_un server;
-	QrSearchTree list = NULL;
+	QrList *list = calloc(1, sizeof(QrList));
+	load_qr(&list);
 
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open the socket");
@@ -243,7 +248,6 @@ void _get_instructions()
 		char *buf = NULL;
 
 		res = select (s_srv + 1, &fds, NULL, NULL, &to_select);
-
 		if (res > 0) {
 			if (FD_ISSET(s_srv, &fds)) {
 				len = sizeof(remote);
