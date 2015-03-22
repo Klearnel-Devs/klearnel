@@ -6,7 +6,13 @@ OBJ-KL:=$(patsubst %.c, $(BUILD_DIR)/%.o, $(SRC))
 EXECUTABLE:=$(BUILD_DIR)/bin/klearnel
 
 default: info $(EXECUTABLE)
-
+	@mkdir -p build/out
+	@echo "Creating compressed ZIP archive..."
+	@zip build/out/klearnel-binaries.zip build/bin/*
+	@echo "ZIP archive created successfully"
+	@echo "Creating compressed TAR BZ2 archive..."
+	@tar cvfj build/out/klearnel-binaries.tar.bz2 build/bin
+	@echo "TAR BZ2 archive created successfully"
 
 info:
 	@echo "This module will be compiled with following CFLAGS: "$(CFLAGS)
