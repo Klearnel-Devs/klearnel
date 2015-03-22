@@ -108,7 +108,7 @@ int save_watch_list()
 {
 	int fd, i;
 
-	if ((fd = open(SCAN_DB, O_WRONLY)) < 0) {
+	if ((fd = open(SCAN_DB, O_WRONLY | O_TRUNC)) < 0) {
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
