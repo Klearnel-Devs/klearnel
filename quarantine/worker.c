@@ -151,6 +151,7 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case QR_LIST: ;
+			LOG_DEBUG;
 			time_t timestamp = time(NULL);
 			int tmp_stock;
 			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));
@@ -174,7 +175,7 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 				}
 			}
 			sprintf(file, "%s/qr_stock", path_to_list);
-			tmp_stock = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
+			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
 			if (tmp_stock < 0) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open tmp_stock");
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {

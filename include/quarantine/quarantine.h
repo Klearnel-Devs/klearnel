@@ -72,6 +72,6 @@ int restore_file(QrList **list, char *filename);
 
 void qr_worker();
 
-void print_qr(QrList *list);
+void print_qr(QrList **list);
 
 #endif /* _KLEARNEL_QUARANTINE_H */

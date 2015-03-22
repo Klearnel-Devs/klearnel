@@ -10,16 +10,13 @@
 
 /* Add a file to the quarantine list 
  */
-void _add_to_qr_list(QrList **list, QrData new_f)
+int _add_to_qr_list(QrList **list, QrData new_f)
 {
 	QrListNode *node = calloc(1, sizeof(QrListNode));
 	if (!node) {
-		write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
-
 	node->data = new_f;
-
 	if((*list)->last == NULL) {
 		(*list)->first = node;
 		(*list)->last = node;
@@ -44,7 +41,7 @@ void _add_to_qr_list(QrList **list, QrData new_f)
 		tmp_prev->next = node;
 	}
 	(*list)->count++;
-	write_to_log(INFO, "%s - %s", "File successfully added to QR List", new_f.f_name);
+	return 0;
 }
 
 QrListNode* _find_QRNode(QrListNode *node, int num) 
@@ -104,8 +101,6 @@ void _write_node(QrListNode *listNode, int fd)
 	if (listNode==NULL) {
 		return;
 	}
-
-
 	if (write(fd, &listNode->data, sizeof(QrData)) < 0) {
 		write_to_log(URGENT, "%s - %d - %s", __func__, __LINE__, "Unable to write data from qr_node to QR_DB");
 		return;
@@ -113,107 +108,6 @@ void _write_node(QrListNode *listNode, int fd)
 	_write_node(listNode->next, fd);
 
 	write_to_log(INFO, "%s - %s", "File written to QR_DB", listNode->data.f_name);
-}
-
-void _print_node(QrListNode *node) 
-{
-	if (node == NULL) return;
-	printf("\nFile \"%s\":\n", node->data.f_name);
-	printf("\t- Old path: %s\n", node->data.o_path);
-	printf("\t- In QR since %d\n", (int)node->data.d_begin);
-
-	_print_node(node->next);
-}
-
-/* Initialize all requirements for Quarantine */
-void init_qr()
-{
-	if (access(QR_STOCK, F_OK) == -1) {
-		if (mkdir(QR_STOCK, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
-			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the stock", QR_STOCK);
-			return;
-		}
-	}
-	if (access(QR_DB, F_OK) == -1) {
-		if (creat(QR_DB, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
-			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the database file", QR_DB);
-			return;
-		}
-	}
-	write_to_log(INFO, "%s", "QR Initialized without error");
-}
-
-/* Recursively clear the quarantine list 
- * Keep the memory clean
- */
-void clear_qr_list(QrList **list)
-{
-	LIST_FOREACH(list, first, next, cur) {
-		if(cur->prev) {
-		    	free(cur->prev);
-		}
-	}
-	free(*list);
-}
-
-/*
- * Load temporary QR file (used by user to list files in qr)
- */
-void load_tmp_qr(QrList **list, int fd)
-{
-	list = calloc(1, sizeof(QrList));
-	QrData tmp;
-	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) {
-		_add_to_qr_list(list, tmp);
-		write_to_log(INFO, "%s : %s", "Quarantine loading file", tmp.f_name);
-	}
-}
-
-
-/* Load quarantine with content of QR_DB  
- */
-void load_qr(QrList **list)
-{
-	int fd;
-	QrData tmp;
-	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
-		write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
-		return;
-	}
-
-	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) {
-		_add_to_qr_list(list, tmp);
-		write_to_log(INFO, "%s : %s", "Quarantine loading file", tmp.f_name);
-	}
-	close(fd);
-	write_to_log(INFO, "%s", "Quarantine loaded with content of QR_DB");
-}
-
-/* Write the list into the quarantine DB 
- * Can save list to another file than QR_STOCK with param: custom (file descriptor)
- * custom: must be set to -1 if not used
- * Return 0 on success and -1 on error
- */
-int save_qr_list(QrList **list, int custom)
-{
-	int fd;
-
-	if (custom >= 0) {
-		fd = custom;
-	} else {
-		if ((fd = open(QR_DB, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
-			write_to_log(WARNING, "%s - %d - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
-			return -1;
-		}
-	}
-	_write_node((*list)->first, fd);
-	write_to_log(INFO, "%s", "QR List has been saved");
-	if (custom < 0) 
-		close(fd);
-	
-	write_to_log(INFO, "%s", "Quarantine list cleared");
-	
-	return 0;	
 }
 
 /* Move file to STOCK_QR */
@@ -281,7 +175,12 @@ int  add_file_to_qr(QrList **list, char *filepath)
 		goto error;
 	}
 
-	_add_to_qr_list(list, new_f);
+	if (_add_to_qr_list(list, new_f) != 0){
+		write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
+		exit(EXIT_FAILURE);
+	} else {
+		write_to_log(INFO, "%s - %s", "File successfully added to QR List", new_f.f_name);
+	}
 		
 	if (save_qr_list(list, -1) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to save the quarantine in db");
@@ -297,6 +196,122 @@ error:
 	free(new_path);
 	free(cp_path);
 	return -1;
+}
+
+/* Initialize all requirements for Quarantine */
+void init_qr()
+{
+	if (access(QR_STOCK, F_OK) == -1) {
+		if (mkdir(QR_STOCK, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the stock", QR_STOCK);
+			return;
+		}
+	}
+	if (access(QR_DB, F_OK) == -1) {
+		if (creat(QR_DB, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
+			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the database file", QR_DB);
+			return;
+		}
+	}
+	write_to_log(INFO, "%s", "QR Initialized without error");
+}
+
+/* Recursively clear the quarantine list 
+ * Keep the memory clean
+ */
+void clear_qr_list(QrList **list)
+{
+	LIST_FOREACH(list, first, next, cur) {
+		if(cur->prev) {
+		    	free(cur->prev);
+		}
+	}
+	free(*list);
+}
+
+/*
+ * Load temporary QR file (used by user to list files in qr)
+ */
+void load_tmp_qr(QrList **list, int fd)
+{
+	QrData tmp;
+	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) {
+		if (_add_to_qr_list(list, tmp) != 0){
+			perror("Out of memory!");
+			exit(EXIT_FAILURE);
+		}
+	}
+}
+
+
+/* Load quarantine with content of QR_DB  
+ */
+void load_qr(QrList **list)
+{
+	int fd;
+	QrData tmp;
+	if ((fd = open(QR_DB, O_RDONLY, S_IRUSR)) < 0) {
+		write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
+		return;
+	}
+
+	while (read(fd, &tmp, sizeof(struct qr_file)) != 0) {
+		if (_add_to_qr_list(list, tmp) != 0){
+			write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
+			exit(EXIT_FAILURE);
+		}
+		write_to_log(INFO, "%s : %s", "Quarantine loading file", tmp.f_name);
+	}
+	close(fd);
+	write_to_log(INFO, "%s", "Quarantine loaded with content of QR_DB");
+}
+
+
+/*
+ * Print all elements contained in qr-list to stdout
+ */
+void print_qr(QrList **list)
+{
+	clock_t begin, end;
+	double spent;
+	begin = clock();
+	printf("Quarantine elements:\n");
+	LIST_FOREACH(list, first, next, cur) {
+		printf("\nFile \"%s\":\n", cur->data.f_name);
+		printf("\t- Old path: %s\n", cur->data.o_path);
+		printf("\t- In QR since %d\n", (int)cur->data.d_begin);
+	}
+	end = clock();
+	spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf("\nQuery executed in: %.2lf seconds\n", spent);
+}
+
+/* Write the list into the quarantine DB 
+ * Can save list to another file than QR_STOCK with param: custom (file descriptor)
+ * custom: must be set to -1 if not used
+ * Return 0 on success and -1 on error
+ */
+int save_qr_list(QrList **list, int custom)
+{
+	int fd;
+
+	if (custom >= 0) {
+		fd = custom;
+		LOG_DEBUG;
+	} else {
+		if ((fd = open(QR_DB, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
+			write_to_log(WARNING, "%s - %d - %s - %s", __func__, __LINE__, "Unable to open QR_DB", QR_DB);
+			return -1;
+		}
+	}
+	_write_node((*list)->first, fd);
+	write_to_log(INFO, "%s", "QR List has been saved");
+	if (custom < 0) 
+		close(fd);
+	
+	write_to_log(INFO, "%s", "Quarantine list cleared");
+	
+	return 0;	
 }
 
 /* Search for a file in the list on filename base 
@@ -392,19 +407,4 @@ int restore_file(QrList **list, char *filename)
 	write_to_log(INFO, "File %s removed from QR and restored to %s", filename, res_file->data.o_path);
 	free(p_res);
 	return 0;
-}
-
-/*
- * Print all elements contained in qr-list to stdout
- */
-void print_qr(QrList *list)
-{
-	clock_t begin, end;
-	double spent;
-	begin = clock();
-	printf("Quarantine elements:\n");
-	_print_node(list->first);
-	end = clock();
-	spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf("\nQuery executed in: %.2lf seconds\n", spent);
 }

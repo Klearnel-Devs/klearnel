@@ -123,13 +123,10 @@ int _qr_query(int nb, char **commands, int action)
 				free(list_path);
 				goto error;
 			}
-			
 			load_tmp_qr(&qr_list, fd);
 			close(fd);
-
-			print_qr(qr_list);
+			print_qr(&qr_list);
 			clear_qr_list(&qr_list);
-			
 			free(list_path);
 			break;
 		default:
