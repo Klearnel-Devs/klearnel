@@ -129,6 +129,21 @@ int qr_query(int nb, char **commands, int action)
 			clear_qr_list(&qr_list);
 			free(list_path);
 			break;
+		case KL_EXIT:
+			snprintf(query, len, "%d:0", action);
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			break;
 		default:
 			fprintf(stderr, "[UI] Unknown action");
 	}

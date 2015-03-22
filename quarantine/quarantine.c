@@ -221,9 +221,12 @@ void init_qr()
  */
 void clear_qr_list(QrList **list)
 {
-	LIST_FOREACH(list, first, next, cur) {
-		if(cur->prev) {
-		    	free(cur->prev);
+	if ((*list)->first != NULL) {
+		LOG_DEBUG;
+		LIST_FOREACH(list, first, next, cur) {
+			if (cur->prev) {
+			    	free(cur->prev);
+			}
 		}
 	}
 	free(*list);

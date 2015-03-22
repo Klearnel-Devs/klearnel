@@ -190,10 +190,11 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
+			LOG(INFO, "Klearnel Qr-Worker exiting");			
 			clear_qr_list(list);
-			SOCK_ANS(s_cl, SOCK_ACK);			
+			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
-		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");;
+		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");
 	}
 	write_to_log(DEBUG, "%s successfully completed", __func__);
 }
@@ -277,7 +278,7 @@ void _get_instructions()
 	} while (action != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
-	write_to_log(DEBUG, "%s successfully completed", __func__);
+	LOG(INFO, "Successfully completed, ending Qr-Worker process");
 }
 
 /* Main function of qr-worker process */
