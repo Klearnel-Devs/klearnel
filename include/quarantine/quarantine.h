@@ -16,9 +16,6 @@
 #define QR_REST		3
 #define QR_LIST 	4
 #define QR_INFO		5
-#define QR_EXIT		0
-
-#define IPC_QR 		42
 
 /* Structure of file into quarantine */
 struct qr_file {
@@ -31,40 +28,50 @@ struct qr_file {
 
 typedef struct qr_file QrData;
 
-typedef struct qr_node *QrPosition;
-typedef struct qr_node *QrSearchTree;
+struct QrListNode;
 
-/* List of file into the quarantine */
-struct qr_node {
-	QrData		data;
-	QrSearchTree	left;
-	QrSearchTree	right;
-};
+typedef struct QrListNode {
+    struct QrListNode *next;
+    struct QrListNode *prev;
+    QrData data;
+} QrListNode;
 
+typedef struct QrList {
+    int count;
+    QrListNode *first;
+    QrListNode *last;
+} QrList;
 
+#define List_count(A) ((A)->count)
+#define List_first(A) ((A)->first != NULL ? (A)->first->value : NULL)
+#define List_last(A) ((A)->last != NULL ? (A)->last->value : NULL)
+
+#define LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
+    QrListNode *V = NULL;\
+    for(V = _node = (*L)->S; _node != NULL; V = _node = _node->M)
 
 /*----- PROTOYPE ------ */
 
 void init_qr();
 
-void load_tmp_qr(QrSearchTree *list, int fd);
+void load_tmp_qr(QrList **list, int fd);
 
-void load_qr(QrSearchTree *list);
+void load_qr(QrList **list);
 
-QrSearchTree clear_qr_list(QrSearchTree list);
+void clear_qr_list(QrList **list);
 
-QrPosition search_in_qr(QrSearchTree list, char *filename);
+QrListNode* search_in_qr(QrList *list, char *filename);
 
-int save_qr_list(QrSearchTree *list, int other);
+int save_qr_list(QrList **list, int custom);
 
-int add_file_to_qr(QrSearchTree *list, char *filepath);
+int add_file_to_qr(QrList **list, char *filepath);
 
-int rm_file_from_qr(QrSearchTree *list, char *filename);
+int rm_file_from_qr(QrList **list, char *filename);
 
-int restore_file(QrSearchTree *list, char *filename);
+int restore_file(QrList **list, char *filename);
 
 void qr_worker();
 
-void print_qr(QrSearchTree list);
+void print_qr(QrList **list);
 
 #endif /* _KLEARNEL_QUARANTINE_H */
