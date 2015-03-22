@@ -6,6 +6,7 @@
 #include <global.h>
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
+#include <core/scanner.c>
 #include <logging/logging.h>
 
 
@@ -69,6 +70,8 @@ void execute_commands(int nb, char **commands)
 
 	  	sprintf(task, "tail -f %s", logs);
 	  	system(task);
+	} else if (!strcmp(commands[1], "add-scan-elem")) {
+		scan_query(nb, commands, SCAN_ADD);
 	} else if (!strcmp(commands[1], "license")) {
 		NOT_YET_IMP;
 		printf("See the LICENSE file located in /etc/klearnel\n");

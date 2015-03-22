@@ -200,7 +200,7 @@ void scanner_worker()
 		return;
 	}
 	server.sun_family = AF_UNIX;
-	strncpy(server.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
+	strncpy(server.sun_path, SCAN_SOCK, strlen(SCAN_SOCK) + 1);
 	unlink(server.sun_path);
 	len = strlen(server.sun_path) + sizeof(server.sun_family);
 	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
