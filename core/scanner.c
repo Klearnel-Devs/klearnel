@@ -301,7 +301,8 @@ int perform_task(const int task, const char* buf, const int s_cl)
 			/* TEMPORARY ASSIGNATION */
 			strcpy(new.options, "011001000");
 			new.isTemp = false;
-			new.limit_size = 0;
+			new.del_limit_size = 0;
+			new.back_limit_size = 0;
 			new.max_age = 0;
 			if (add_watch_elem(new) < 0) {
 				write_to_log(URGENT,"%s:%d: Unable to add %s to watch_list", 

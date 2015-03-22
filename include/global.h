@@ -26,6 +26,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <libgen.h>
+#include <ctype.h>
 
 /* ------ CONSTANTS ------ */
 

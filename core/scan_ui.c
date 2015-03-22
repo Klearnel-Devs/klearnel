@@ -13,13 +13,13 @@ TWatchElement _new_elem_form()
 	TWatchElement new_elem;
 	strcpy(new_elem.path, EMPTY_PATH);
 	new_elem.back_limit_size = -1;
-	new_elem.del_limite_size = -1;
+	new_elem.del_limit_size = -1;
 	new_elem.max_age = -1;
-	char res = '';
+	char res = ' ';
 	int isDir = -1;
 	struct stat s;
 	printf("Enter the path to folder/file to scan: ");
-	if (!fgets(new_elem.path, MAX_PATH, stdin)) {
+	if (!fgets(new_elem.path, PATH_MAX, stdin)) {
 		perror("UI: Unable to read the path");
 		return new_elem;
 	}
@@ -29,7 +29,7 @@ TWatchElement _new_elem_form()
 		perror("SCAN-UI: Unable to find the specified file/folder");
 		return new_elem;
 	}
-	if (s.st_mode & S_ISDIR) isDir = 1;
+	if (s.st_mode & S_IFDIR) isDir = 1;
 	else isDir = 0;
 	if (isDir) {
 		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
@@ -40,7 +40,7 @@ TWatchElement _new_elem_form()
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_BR_S] = '1';
 		else new_elem.options[SCAN_BR_S] = '0';
-		res = '';
+		res = ' ';
 
 		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
 			printf("\nScan for duplicate symlink ? (Y/N) : ");
@@ -50,7 +50,7 @@ TWatchElement _new_elem_form()
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_DUP_S] = '1';
 		else new_elem.options[SCAN_DUP_S] = '0';
-		res = '';
+		res = ' ';
 
 		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
 			printf("\nDelete duplicate files ? (Y/N) : ");
@@ -60,7 +60,7 @@ TWatchElement _new_elem_form()
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_DUP_F] = '1';
 		else new_elem.options[SCAN_DUP_F] = '0';
-		res = '';
+		res = ' ';
 
 		if (!new_elem.options[SCAN_DUP_F]) {
 			while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
@@ -71,7 +71,7 @@ TWatchElement _new_elem_form()
 			if (toupper(res) == 'Y') 
 				new_elem.options[SCAN_FUSE] = '1';
 			else new_elem.options[SCAN_FUSE] = '0';
-			res = '';
+			res = ' ';
 		} else {
 			new_elem.options[SCAN_FUSE] = '0';
 		}
@@ -84,7 +84,7 @@ TWatchElement _new_elem_form()
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_INTEGRITY] = '1';
 		else new_elem.options[SCAN_INTEGRITY] = '0';
-		res = '';
+		res = ' ';
 
 		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
 			printf("\nIs this folder containing only temp files ? (Y/N) : ");
@@ -94,7 +94,7 @@ TWatchElement _new_elem_form()
 		if (toupper(res) == 'Y') 
 			new_elem.isTemp = true;
 		else new_elem.isTemp = false;
-		res = '';
+		res = ' ';
 
 		if (new_elem.isTemp) {
 			while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
@@ -105,7 +105,7 @@ TWatchElement _new_elem_form()
 			if (toupper(res) == 'Y') 
 				new_elem.options[SCAN_CL_TEMP] = '1';
 			else new_elem.options[SCAN_CL_TEMP] = '0';
-			res = '';					
+			res = ' ';					
 		} else {
 			new_elem.options[SCAN_CL_TEMP] = '0';
 		}
@@ -125,7 +125,7 @@ TWatchElement _new_elem_form()
 		res = getchar();
 		fflush(stdin);
 	}
-	if (toupper(res) == 'Y') 
+	if (toupper(res) == 'Y') {
 		new_elem.options[SCAN_BACKUP] = '1';
 		char size[1024];
 		while (new_elem.back_limit_size <= 0) {
@@ -137,18 +137,20 @@ TWatchElement _new_elem_form()
 			sscanf(size, "%lf", &new_elem.back_limit_size);
 			fflush(stdin);
 		}
-	else new_elem.options[SCAN_BACKUP] = '0';
-	res = '';
+	} else {
+		new_elem.options[SCAN_BACKUP] = '0';
+	} 
+	res = ' ';
 
 	while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
 		printf("\nDelete large file ? (Y/N) : ");
 		res = getchar();
 		fflush(stdin);
 	}
-	if (toupper(res) == 'Y') 
+	if (toupper(res) == 'Y') {
 		new_elem.options[SCAN_DEL_F_SIZE] = '1';
 		char size[1024];
-		while (new_elem.del_limite_size <= 0) {
+		while (new_elem.del_limit_size <= 0) {
 			printf("\nEnter the limit size of file (in MB): ");
 			if (!fgets(size, 1024, stdin)) {
 				perror("SCAN-UI: Unable to read limit size");
@@ -157,8 +159,10 @@ TWatchElement _new_elem_form()
 			sscanf(size, "%lf", &new_elem.del_limit_size);
 			fflush(stdin);
 		}
-	else new_elem.options[SCAN_DEL_F_SIZE] = '0';
-	res = '';
+	} else {
+		new_elem.options[SCAN_DEL_F_SIZE] = '0';
+	}
+	res = ' ';
 
 	while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
 		printf("\nDelete old files ? (Y/N) : ");
@@ -168,7 +172,7 @@ TWatchElement _new_elem_form()
 	if (toupper(res) == 'Y') 
 		new_elem.options[SCAN_DEL_F_OLD] = '1';
 	else new_elem.options[SCAN_DEL_F_OLD] = '0';
-	res = '';
+	res = ' ';
 
 	if (!new_elem.options[SCAN_DEL_F_OLD]) {
 		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
@@ -179,7 +183,7 @@ TWatchElement _new_elem_form()
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_BACKUP_OLD] = '1';
 		else new_elem.options[SCAN_BACKUP_OLD] = '0';
-		res = '';
+		res = ' ';
 	}
 
 	if (new_elem.options[SCAN_DEL_F_OLD] || new_elem.options[SCAN_BACKUP_OLD]) {
@@ -190,7 +194,7 @@ TWatchElement _new_elem_form()
 				perror("SCAN-UI: Unable to read limit age");
 				return new_elem;
 			}
-			sscanf(age, "%lf", &new_elem.max_age);
+			sscanf(age, "%f", &new_elem.max_age);
 			fflush(stdin);
 		}				
 	}
@@ -199,7 +203,7 @@ TWatchElement _new_elem_form()
 
 int scan_query(int nb, char **commands, int action)
 {
-	int len, s_cl, i;
+	int len, s_cl;
 	char *query, *res;;
 	struct sockaddr_un remote;
 	struct timeval timeout;
@@ -217,7 +221,7 @@ int scan_query(int nb, char **commands, int action)
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
 		perror("[UI] Unable to connect the qr_sock");
-		goto error;
+		return -1;
 	}
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
 		perror("[UI] Unable to set timeout for reception operations");
@@ -230,10 +234,10 @@ int scan_query(int nb, char **commands, int action)
 	query = malloc(len);
 	if ((query == NULL) || (res == NULL)) {
 		perror("[UI] Unable to allocate memory");
-		goto error;
+		return -1;
 	}
 	switch (action) {
-		case SCAN_ADD:
+		case SCAN_ADD: ;
 			TWatchElement new_elem = _new_elem_form();
 
 			break;

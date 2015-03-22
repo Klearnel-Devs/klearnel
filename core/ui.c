@@ -6,7 +6,7 @@
 #include <global.h>
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
-#include <core/scanner.c>
+#include <core/scanner.h>
 #include <logging/logging.h>
 
 
