@@ -76,8 +76,9 @@ void execute_commands(int nb, char **commands)
 		printf("Killing Klearnel processes\n");
 		if (qr_query(nb, commands, KL_EXIT) != 0) {
 			printf("Check Klearnel logs, Qr-Worker did not terminate correctly");
-		} else {
-			printf("Klearnel Processes killed\n");
+		}
+		if (scan_query(nb, commands, KL_EXIT) != 0) {
+			printf("Check Klearnel logs, Scanner did not terminate correctly");
 		}
 	} else if (!strcmp(commands[1], "help")) {
 		printf("\n\e[4mKlearnel commands:\e[24m\n\n");
