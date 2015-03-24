@@ -19,12 +19,12 @@ TWatchElement _new_elem_form()
 	int isDir = -1;
 	struct stat s;
 	printf("Enter the path to folder/file to scan: ");
-	if (!fgets(new_elem.path, PATH_MAX, stdin)) {
+	if (!scanf("%s", new_elem.path) == EOF) {
 		perror("UI: Unable to read the path");
 		return new_elem;
 	}
 	fflush(stdin);
-
+	printf("Path=%sother", new_elem.path);
 	if (stat(new_elem.path, &s) < 0) {
 		perror("SCAN-UI: Unable to find the specified file/folder");
 		return new_elem;
@@ -204,7 +204,7 @@ TWatchElement _new_elem_form()
 int scan_query(int nb, char **commands, int action)
 {
 	int len, s_cl;
-	char *query, *res;;
+	char *query, *res;
 	struct sockaddr_un remote;
 	struct timeval timeout;
 	timeout.tv_sec 	= SOCK_TO;

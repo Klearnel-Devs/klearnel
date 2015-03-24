@@ -226,8 +226,7 @@ void scanner_worker()
 		char *buf = NULL;
 
 		res = select (s_srv + 1, &fds, NULL, NULL, &to_select);
-
-		if (res < 0) {
+		if (res > 0) {
 			if (FD_ISSET(s_srv, &fds)) {
 				len = sizeof(remote);
 				if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
