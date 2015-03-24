@@ -339,6 +339,9 @@ int perform_task(const int task, const char* buf, const int s_cl)
 		case SCAN_LIST:
 			NOT_YET_IMP;
 			break;
+		case KL_EXIT:
+			watch_list = NULL;
+			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");
 	}

@@ -102,7 +102,7 @@ static int _get_data(const int sock, int *action, char **buf)
 			return -1;
 		}
 	}
-	write_to_log(DEBUG, "%s successfully completed", __func__);
+	LOG_DEBUG;
 	free(a_type);
 	return len;
 }
@@ -190,12 +190,13 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
+			LOG(INFO, "Received KL_EXIT command");			
 			clear_qr_list(list);
-			SOCK_ANS(s_cl, SOCK_ACK);			
+			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
-		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");;
+		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");
 	}
-	write_to_log(DEBUG, "%s successfully completed", __func__);
+	LOG_DEBUG;
 }
 
 /* Get instructions via Unix domain sockets
@@ -277,7 +278,7 @@ void _get_instructions()
 	} while (action != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
-	write_to_log(DEBUG, "%s successfully completed", __func__);
+	LOG_DEBUG;
 }
 
 /* Main function of qr-worker process */
