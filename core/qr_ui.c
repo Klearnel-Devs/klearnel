@@ -129,6 +129,8 @@ int qr_query(int nb, char **commands, int action)
 			clear_qr_list(&qr_list);
 			free(list_path);
 			break;
+		case QR_RM_ALL:
+		case QR_REST_ALL:
 		case KL_EXIT:
 			snprintf(query, len, "%d:0", action);
 			if (write(s_cl, query, len) < 0) {

@@ -1,4 +1,4 @@
-/*
+ /*
  * Files that require user actions are stored in quarantine
  * It is the last place before physical suppression of any file
  * 
@@ -66,7 +66,7 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 		write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Node to remove is empty!");
 		goto error;
 	}
-
+	// Try to free the deleted node?
 	if((node->data.o_ino.st_ino == (*list)->first->data.o_ino.st_ino) && (node->data.o_ino.st_ino == (*list)->last->data.o_ino.st_ino)) {
 		(*list)->first = NULL;
 		(*list)->last = NULL;
@@ -79,7 +79,7 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 	} else if (node->data.o_ino.st_ino == (*list)->last->data.o_ino.st_ino) {
 		(*list)->last = node->prev;
 		if((*list)->last == NULL)
-			write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Invalid list, somehow got a next that is NULL.");
+			write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Invalid list, somehow got a tmp_prev that is NULL.");
 		(*list)->last->next = NULL;
 	} else {
 		QrListNode *after = node->next;
@@ -168,7 +168,7 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	/* This will be changed when config implemented 
 	 * Choice will be between expire configured and not configured
 	 */
-	new_f.d_expire  = 0;
+	new_f.d_expire  = new_f.d_begin + EXP_DEF;
 
 	if (rename(filepath, new_path)) {
 		write_to_log(WARNING, "%s - %d - Adding aborted: Unable to move the file %s to %s", __func__, __LINE__, filepath, new_path);

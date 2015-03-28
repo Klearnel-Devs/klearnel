@@ -16,6 +16,10 @@
 #define QR_REST		3
 #define QR_LIST 	4
 #define QR_INFO		5
+#define QR_RM_ALL   6
+#define QR_REST_ALL 7
+
+#define EXP_DEF    2592000
 
 /* Structure of file into quarantine */
 struct qr_file {

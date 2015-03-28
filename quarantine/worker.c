@@ -12,16 +12,15 @@
  * Searches QR list and deletes a file who's date is older than todays date time
  * Calls to rm_file_from_qr to delete file physically, logically
  */
-void _search_expired(QrList **list, QrListNode *listNode, int *removed, time_t now)
+void _search_expired(QrList **list, QrListNode *listNode, time_t now)
 {
-	if (listNode == NULL)
-      		return;
-      	if (listNode->data.d_expire < now) {
-		rm_file_from_qr(list, listNode->data.f_name);
-		*removed += 1;
-	} else {
-		_search_expired(list, listNode->next, removed, now);
+	if (listNode == NULL) {
+		return;
 	}
+  	if (listNode->data.d_expire < now) {
+		rm_file_from_qr(list, listNode->data.f_name);
+	}
+	_search_expired(list, listNode->next, removed, now);
 	
 	return;
 }
@@ -39,13 +38,8 @@ void _expired_files(QrList **list)
 		write_to_log(NOTIFY, "%s - Quarantine List is empty", __func__);
 		return;
 	}
-	int removed;
-	time_t now;
-	do {
-		removed = 0;
-		now = time(NULL);
-		_search_expired(list, (*list)->first, &removed, now);
-	} while ( removed != 0 );
+	time_t now = time(NULL);
+	_search_expired(list, (*list)->first, now);
 	write_to_log(DEBUG, "%s successfully completed", __func__);
 	clear_qr_list(list);
 	return;
@@ -135,6 +129,14 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
+		case QR_RM_ALL:
+			if ((*list)->first != NULL) {
+				LIST_FOREACH(list, first, next, cur) {
+					rm_file_from_qr(list, cur);
+				}
+			} 
+			SOCK_ANS(s_cl, SOCK_ACK);
+			break;
 		case QR_REST:
 			if (restore_file(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
@@ -143,6 +145,14 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 				*list = save;
 				return;
 			}
+			SOCK_ANS(s_cl, SOCK_ACK);
+			break;
+		case QR_REST_ALL:
+			if ((*list)->first != NULL) {
+				LIST_FOREACH(list, first, next, cur) {
+					restore_file(list, cur);
+				}
+			}			
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case QR_LIST: ;
