@@ -16,10 +16,19 @@
 void execute_commands(int nb, char **commands)
 {
 	if (!strcmp(commands[1], "add-to-qr")) {
+		int i;
+		struct stat new_s;
 		if (nb < 3) {
 			fprintf(stderr, "Element to add missing\n"
 				 "Correct syntax is: klearnel add-to-qr <filename>\n");
 			exit(EXIT_FAILURE);
+		} else {
+			for (i = 2; i < nb; i++) {
+				if (stat(commands[i], &new_s) < 0) {
+					printf("File %s could not be found\n", commands[i]);
+					return;
+				}
+			}
 		}
 		qr_query(nb, commands, QR_ADD);
 	} else if (!strcmp(commands[1], "rm-from-qr")) {
@@ -31,7 +40,6 @@ void execute_commands(int nb, char **commands)
 		qr_query(nb, commands, QR_RM);
 	} else if (!strcmp(commands[1], "rm-all-from-qr")) {
 		qr_query(nb, commands, QR_RM_ALL);
-		printf("All files contained in the Quarantine have been definitively deleted");
 	} else if (!strcmp(commands[1], "get-qr-list")) {
 		qr_query(nb, commands, QR_LIST);
 	} else if (!strcmp(commands[1], "get-qr-info")) {
@@ -50,8 +58,7 @@ void execute_commands(int nb, char **commands)
 		qr_query(nb, commands, QR_REST);
 	} else if (!strcmp(commands[1], "restore-all-from-qr")) {
 		qr_query(nb, commands, QR_REST_ALL);
-		printf("All files restored");
-		} else if (!strcmp(commands[1], "view-rt-log")) {
+	} else if (!strcmp(commands[1], "view-rt-log")) {
 		char date[7];
 		time_t rawtime;
 	  	struct tm * timeinfo;

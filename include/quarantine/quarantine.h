@@ -11,13 +11,14 @@
 #define QR_DB 		BASE_DIR "/qr.db"
 #define QR_SOCK 	TMP_DIR "/kl-qr-sck"
 
-#define QR_ADD 		1
-#define QR_RM 		2
-#define QR_REST		3
-#define QR_LIST 	4
-#define QR_INFO		5
-#define QR_RM_ALL   6
-#define QR_REST_ALL 7
+#define QR_ADD 		    1
+#define QR_RM 		    2
+#define QR_REST		    3
+#define QR_LIST 	    4
+#define QR_INFO		    5
+#define QR_RM_ALL       6
+#define QR_REST_ALL     7
+#define QR_LIST_RECALL  8
 
 #define EXP_DEF    2592000
 

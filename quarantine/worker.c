@@ -20,7 +20,7 @@ void _search_expired(QrList **list, QrListNode *listNode, time_t now)
   	if (listNode->data.d_expire < now) {
 		rm_file_from_qr(list, listNode->data.f_name);
 	}
-	_search_expired(list, listNode->next, removed, now);
+	_search_expired(list, listNode->next, now);
 	
 	return;
 }
@@ -96,7 +96,6 @@ static int _get_data(const int sock, int *action, char **buf)
 			return -1;
 		}
 	}
-	LOG_DEBUG;
 	free(a_type);
 	return len;
 }
@@ -105,7 +104,7 @@ static int _get_data(const int sock, int *action, char **buf)
  * If action has been executed correctly return the new qr_list, 
  * if not return the unchanged list or NULL
  */
-void _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
+int _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
 {
 	QrList *save = *list;
 	switch (action) {
@@ -115,48 +114,40 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				clear_qr_list(list);
 				*list = save;
-				return;
+				return 0;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
-		case QR_RM:			
+		case QR_RM:
+		case QR_RM_ALL:
 			if (rm_file_from_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				clear_qr_list(list);
 				*list = save;
-				return;
+				return 0;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
-			break;
-		case QR_RM_ALL:
-			if ((*list)->first != NULL) {
-				LIST_FOREACH(list, first, next, cur) {
-					rm_file_from_qr(list, cur);
-				}
-			} 
-			SOCK_ANS(s_cl, SOCK_ACK);
+			if (action == QR_RM_ALL) {
+				return 1;
+			}
 			break;
 		case QR_REST:
+		case QR_REST_ALL:
 			if (restore_file(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				clear_qr_list(list);
 				*list = save;
-				return;
+				return 0;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
+			if (action == QR_REST_ALL) {
+				return 1;
+			}
 			break;
-		case QR_REST_ALL:
-			if ((*list)->first != NULL) {
-				LIST_FOREACH(list, first, next, cur) {
-					restore_file(list, cur);
-				}
-			}			
-			SOCK_ANS(s_cl, SOCK_ACK);
-			break;
-		case QR_LIST: ;
-			LOG_DEBUG;
+		case QR_LIST:
+		case QR_LIST_RECALL: ;
 			time_t timestamp = time(NULL);
 			int tmp_stock;
 			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));
@@ -166,7 +157,7 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				}
-				return;
+				return 0;
 			}
 			sprintf(path_to_list, "/tmp/.klearnel/%d", (int)timestamp);
 			if (access(path_to_list, F_OK) == -1) {
@@ -176,7 +167,7 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 						write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 					}
 					free(path_to_list);
-					return;
+					return 0;
 				}
 			}
 			sprintf(file, "%s/qr_stock", path_to_list);
@@ -188,13 +179,16 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 				}
 				free(path_to_list);
 				free(file);
-				return;
+				return 0;
 			}
 			save_qr_list(list, tmp_stock);
 			close(tmp_stock);
 			write(s_cl, file, PATH_MAX);
 			free(path_to_list);
 			free(file);
+			if (action == QR_LIST_RECALL) {
+				return 1;
+			}
 			break;
 		case QR_INFO:
 			NOT_YET_IMP;
@@ -206,7 +200,7 @@ void _call_related_action(QrList **list, const int action, char *buf, const int 
 			break;
 		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");
 	}
-	LOG_DEBUG;
+	return 0;
 }
 
 /* Get instructions via Unix domain sockets
@@ -250,7 +244,7 @@ void _get_instructions()
 		to_select.tv_sec 	= SEL_TO;
 		to_select.tv_usec = 0;
 		fd_set fds;
-		int res;
+		int res, recall = 0;
 
 		FD_ZERO (&fds);
 		FD_SET (s_srv, &fds);
@@ -271,14 +265,15 @@ void _get_instructions()
 
 				if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for sending operations");		
-
-				if (_get_data(s_cl, &action, &buf) < 0) {
-					free(buf);
-					close(s_cl);
-					write_to_log(NOTIFY, "%s - %d - %s", __func__, __LINE__, "_get_data FAILED");
-					continue;
-				}
-				_call_related_action(&list, action, buf, s_cl);
+				do {
+					if (_get_data(s_cl, &action, &buf) < 0) {
+						free(buf);
+						close(s_cl);
+						write_to_log(NOTIFY, "%s - %d - %s", __func__, __LINE__, "_get_data FAILED");
+						continue;
+					}
+					recall = _call_related_action(&list, action, buf, s_cl);
+				} while (recall != 0);
 				free(buf);
 				close(s_cl);
 			}
@@ -288,7 +283,6 @@ void _get_instructions()
 	} while (action != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
-	LOG_DEBUG;
 }
 
 /* Main function of qr-worker process */
