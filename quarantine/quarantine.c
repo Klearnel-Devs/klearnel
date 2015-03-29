@@ -1,4 +1,4 @@
-/*
+ /*
  * Files that require user actions are stored in quarantine
  * It is the last place before physical suppression of any file
  * 
@@ -61,12 +61,14 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 {
 	if(((*list)->first == NULL) && ((*list)->last == NULL)){
 		write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "List is empty!");
+		if (node != NULL)
+			free(node);
 		goto error;
 	} else if (node == NULL){
 		write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Node to remove is empty!");
 		goto error;
 	}
-
+	// Try to free the deleted node?
 	if((node->data.o_ino.st_ino == (*list)->first->data.o_ino.st_ino) && (node->data.o_ino.st_ino == (*list)->last->data.o_ino.st_ino)) {
 		(*list)->first = NULL;
 		(*list)->last = NULL;
@@ -79,7 +81,7 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 	} else if (node->data.o_ino.st_ino == (*list)->last->data.o_ino.st_ino) {
 		(*list)->last = node->prev;
 		if((*list)->last == NULL)
-			write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Invalid list, somehow got a next that is NULL.");
+			write_to_log(WARNING, "%s:%d - %s", __func__, __LINE__, "Invalid list, somehow got a tmp_prev that is NULL.");
 		(*list)->last->next = NULL;
 	} else {
 		QrListNode *after = node->next;
@@ -95,19 +97,22 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 		return -1;
 }
 
-/* Recursively write the data in the quarantine tree to QR_DB */
-void _write_node(QrListNode *listNode, int fd)
+/* Recursively write the data in the quarantine list to QR_DB */
+void _write_node(QrListNode *listNode, int fd, int custom)
 {
 	if (listNode==NULL) {
 		return;
 	}
 	if (write(fd, &listNode->data, sizeof(QrData)) < 0) {
-		write_to_log(URGENT, "%s - %d - %s", __func__, __LINE__, "Unable to write data from qr_node to QR_DB");
+		if (custom < 0) {
+			write_to_log(URGENT, "%s - %d - %s", __func__, __LINE__, "Unable to write data from qr_node to QR_DB");
+		} 
 		return;
 	}
-	_write_node(listNode->next, fd);
-
-	write_to_log(INFO, "%s - %s", "File written to QR_DB", listNode->data.f_name);
+	if (custom < 0) {
+		write_to_log(INFO, "%s - %s", "File written to QR_DB", listNode->data.f_name);
+	}
+	_write_node(listNode->next, fd, custom);
 }
 
 /* Move file to STOCK_QR */
@@ -168,7 +173,7 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	/* This will be changed when config implemented 
 	 * Choice will be between expire configured and not configured
 	 */
-	new_f.d_expire  = 0;
+	new_f.d_expire  = new_f.d_begin + EXP_DEF;
 
 	if (rename(filepath, new_path)) {
 		write_to_log(WARNING, "%s - %d - Adding aborted: Unable to move the file %s to %s", __func__, __LINE__, filepath, new_path);
@@ -305,13 +310,11 @@ int save_qr_list(QrList **list, int custom)
 			return -1;
 		}
 	}
-	_write_node((*list)->first, fd);
-	write_to_log(INFO, "%s", "QR List has been saved");
-	if (custom < 0) 
+	_write_node((*list)->first, fd, custom);
+	if (custom < 0) {
+		write_to_log(INFO, "%s", "QR List has been saved");
 		close(fd);
-	
-	write_to_log(INFO, "%s", "Quarantine list cleared");
-	
+	}
 	return 0;	
 }
 
@@ -337,6 +340,9 @@ QrListNode* search_in_qr(QrList *list, char *filename)
 	}
 	if ((tmpNode = _find_QRNode(list->first, tmp.st_ino)) == NULL) {
 		write_to_log(URGENT, "%s:%d - %s : %s", "File could not be found in list", filename);
+		if (unlink(base)) {
+			write_to_log(URGENT, "%s - %d - %s : %s", __func__, __LINE__, "Undetermined. File exists in QR_STOCK but NOT QR_LIST and cannot be unlinked", base);
+		}
 		goto out;
 	}
 out:
@@ -356,27 +362,26 @@ int rm_file_from_qr(QrList **list, char *filename)
 	}
 	if (snprintf(p_rm, (strlen(QR_STOCK)+strlen(filename)+3), "%s/%s", QR_STOCK, filename) < 0) {
 		write_to_log(WARNING, "%s - %d - %s : %s/%s", __func__, __LINE__, "Unable to create path to file to remove", QR_STOCK, filename);
-		goto rm_err;
+		goto err;
 	}
 	if ((rm_file = search_in_qr(*list, filename)) == NULL){
 		write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, "Unable to locate file to remove", filename);
-		goto rm_err;
+		goto err;
 	}
-	_rm_from_qr_list(list, rm_file);
+	if (_rm_from_qr_list(list, rm_file) != 0) {
+		goto err;
+	}
 	if (unlink(p_rm)) {
 		write_to_log(URGENT, "%s - %d - %s : %s", __func__, __LINE__, "Unable to remove file from stock, list will not be saved", p_rm);
 		goto err;
 	}
-	save_qr_list(list, -1);
-	write_to_log(INFO, "File %s removed from QR", p_rm);
+	if (save_qr_list(list, -1) == 0) {
+		write_to_log(INFO, "File %s removed from QR", p_rm);
+	}
 	free(p_rm);
 	return 0;
-rm_err:
-	free(p_rm);
-	return -1;
 err:
 	free(p_rm);
-	load_qr(list);
 	return -1;
 }
 
@@ -391,21 +396,30 @@ int restore_file(QrList **list, char *filename)
 	}
 	if (res_file == NULL) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to find file to restore");
-		return -1;
+		goto out;
 	}
 
-	_rm_from_qr_list(list, res_file);
+	if (_rm_from_qr_list(list, res_file) != 0) {
+		goto out;
+	}
 
 	if (snprintf(p_res, (strlen(QR_STOCK)+strlen(filename)+3), "%s/%s", QR_STOCK, filename) < 0) {
 		write_to_log(WARNING, "%s - %d - %s %s/%s", __func__, __LINE__, "Unable to create path to remove", QR_STOCK, filename);
-		free(p_res);
-		return -1;
+		goto out;
 	}
 
-	if (rename(p_res, res_file->data.o_path))
+	if (rename(p_res, res_file->data.o_path) != 0) {
 		write_to_log(URGENT, "%s - %d - %s - %s to %s", __func__, __LINE__, "Restore aborted: Unable to move the file ", filename, res_file->data.o_path);
-	save_qr_list(list, -1);
-	write_to_log(INFO, "File %s removed from QR and restored to %s", filename, res_file->data.o_path);
+		load_qr(list);
+		goto out;
+	}
+	if (save_qr_list(list, -1) == 0) {
+		write_to_log(INFO, "File %s removed from QR and restored to %s", filename, res_file->data.o_path);
+	}
+	
 	free(p_res);
 	return 0;
+out:
+	free(p_res);
+	return -1;
 }
