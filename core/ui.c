@@ -70,7 +70,12 @@ void execute_commands(int nb, char **commands)
 
 	  	sprintf(task, "tail -f %s", logs);
 	  	system(task);
-	} else if (!strcmp(commands[1], "add-scan-elem")) {
+	} else if (!strcmp(commands[1], "add-to-scan")) {
+		if (nb < 3) {
+			fprintf(stderr, "Element to restore missing\n"
+				 "Correct syntax is: klearnel add-to-scan <file/folder path>\n");
+			exit(EXIT_FAILURE);
+		}
 		scan_query(nb, commands, SCAN_ADD);
 	} else if (!strcmp(commands[1], "license")) {
 		NOT_YET_IMP;

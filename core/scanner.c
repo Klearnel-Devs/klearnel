@@ -19,6 +19,12 @@ int init_scanner()
 			return -1;
 		}
 	}
+	if (access(SCAN_TMP, F_OK) == -1) {
+		if (mkdir(SCAN_TMP, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+			write_to_log(FATAL, "%s:%d: %s", __func__, __LINE__, "Unable to create the SCAN_TMP folder");
+			return -1;
+		}
+	}
 	return 0;
 }
 
@@ -85,6 +91,7 @@ int load_watch_list()
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
+
 
 	while(read(fd, &tmp, sizeof(struct watchElement)) != 0) {
 		if (add_watch_elem(tmp) < 0) {
@@ -295,14 +302,25 @@ int perform_task(const int task, const char* buf, const int s_cl)
 				LOG(URGENT, "Buffer received is empty");
 				return -1;
 			}
+			
+			int fd = open(buf, O_RDONLY);
+			if (fd <= 0) {
+				write_to_log(URGENT,"%s:%d: Unable to open %s", 
+					__func__, __LINE__, buf);
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to send aborted");
+				return -1;				
+			}
 			TWatchElement new;
-			strcpy(new.path, buf);
-			/* TEMPORARY ASSIGNATION */
-			strcpy(new.options, "011001000");
-			new.isTemp = false;
-			new.del_limit_size = 0;
-			new.back_limit_size = 0;
-			new.max_age = 0;
+			if (read(fd, &new, sizeof(struct watchElement)) < 0) {
+				write_to_log(URGENT,"%s:%d: Unable to read data from %s", 
+					__func__, __LINE__, buf);
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to send aborted");
+				return -1;				
+			}
 			if (add_watch_elem(new) < 0) {
 				write_to_log(URGENT,"%s:%d: Unable to add %s to watch_list", 
 					__func__, __LINE__, new.path);
@@ -311,6 +329,8 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;
 			}
+			close(fd);
+			unlink(buf);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case SCAN_RM:

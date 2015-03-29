@@ -8,6 +8,7 @@
 
 #define SCAN_DB 	BASE_DIR "/scan.db"
 #define SCAN_SOCK	TMP_DIR	"/kl-scan-sck"
+#define SCAN_TMP 	TMP_DIR "/scan"
 
 #define SCAN_ADD	10
 #define SCAN_RM		11

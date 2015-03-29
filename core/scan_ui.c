@@ -8,22 +8,16 @@
 #include <logging/logging.h>
 #include <core/scanner.h>
 
-TWatchElement _new_elem_form()
+TWatchElement _new_elem_form(char *path)
 {
 	TWatchElement new_elem;
-	strcpy(new_elem.path, EMPTY_PATH);
+	strcpy(new_elem.path, path);
 	new_elem.back_limit_size = -1;
 	new_elem.del_limit_size = -1;
 	new_elem.max_age = -1;
 	int res = -1;
 	int isDir = -1;
 	struct stat s;
-	printf("Enter the path to folder/file to scan: ");
-	if (!scanf("%s", new_elem.path) == EOF) {
-		perror("UI: Unable to read the path");
-		return new_elem;
-	}
-	fflush(stdin);
 	if (stat(new_elem.path, &s) < 0) {
 		perror("SCAN-UI: Unable to find the specified file/folder");
 		return new_elem;
@@ -215,7 +209,30 @@ int scan_query(int nb, char **commands, int action)
 	}
 	switch (action) {
 		case SCAN_ADD: ;
-			TWatchElement new_elem = _new_elem_form();
+			TWatchElement new_elem = _new_elem_form(commands[2]);
+			time_t timestamp = time(NULL);
+			char *tmp_filename = malloc(sizeof(char)*(sizeof(timestamp)+5+strlen(SCAN_TMP)));
+			int fd;
+			if (!tmp_filename) {
+				perror("SCAN-UI: Unable to allocate memory");
+				return -1;
+			}
+			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, timestamp) < 0) {
+				perror("SCAN-UI: Unable to create the filename for temp scan file");
+				return -1;
+			}
+			fd = open(tmp_filename, O_WRONLY | O_TRUNC | O_CREAT);
+			if (fd < 0) {
+				fprintf(stderr, "SCAN-UI: Unable to create %s", tmp_filename);
+				return -1;
+			}
+
+			if (write(fd, &new_elem, sizeof(struct watchElement)) < 0) {
+				fprintf(stderr, "SCAN-UI: Unable to write the new item to %s", tmp_filename);
+				return -1;
+			}
+			close(fd);
+
 
 			break;
 		case SCAN_RM:
