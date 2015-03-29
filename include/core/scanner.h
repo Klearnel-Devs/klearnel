@@ -23,6 +23,7 @@
 #define SCAN_CL_TEMP	7
 #define SCAN_DEL_F_OLD	8
 #define SCAN_BACKUP_OLD 9
+#define SCAN_OPT_END 	10 /* Need to be set to last character in the option string for \0 */
 
 #define EMPTY_PATH	"empty"
 

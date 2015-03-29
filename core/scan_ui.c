@@ -15,7 +15,7 @@ TWatchElement _new_elem_form()
 	new_elem.back_limit_size = -1;
 	new_elem.del_limit_size = -1;
 	new_elem.max_age = -1;
-	char res = ' ';
+	int res = -1;
 	int isDir = -1;
 	struct stat s;
 	printf("Enter the path to folder/file to scan: ");
@@ -24,7 +24,6 @@ TWatchElement _new_elem_form()
 		return new_elem;
 	}
 	fflush(stdin);
-	printf("Path=%sother", new_elem.path);
 	if (stat(new_elem.path, &s) < 0) {
 		perror("SCAN-UI: Unable to find the specified file/folder");
 		return new_elem;
@@ -32,80 +31,73 @@ TWatchElement _new_elem_form()
 	if (s.st_mode & S_IFDIR) isDir = 1;
 	else isDir = 0;
 	if (isDir) {
-		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+		while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 			printf("\nScan for broken symlink ? (Y/N) : ");
-			res = getchar();
-			fflush(stdin);
+			if ((res = getchar()) == '\n') res = getchar();
 		}
-		if (toupper(res) == 'Y') 
+		if (toupper(res) == (int)'Y') 
 			new_elem.options[SCAN_BR_S] = '1';
 		else new_elem.options[SCAN_BR_S] = '0';
-		res = ' ';
+		res = -1;
 
-		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+		while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 			printf("\nScan for duplicate symlink ? (Y/N) : ");
-			res = getchar();
-			fflush(stdin);
+			if ((res = getchar()) == '\n') res = getchar();
 		}
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_DUP_S] = '1';
 		else new_elem.options[SCAN_DUP_S] = '0';
-		res = ' ';
+		res = -1;
 
-		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+		while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 			printf("\nDelete duplicate files ? (Y/N) : ");
-			res = getchar();
-			fflush(stdin);
+			if ((res = getchar()) == '\n') res = getchar();
 		}
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_DUP_F] = '1';
 		else new_elem.options[SCAN_DUP_F] = '0';
-		res = ' ';
+		res = -1;
 
-		if (!new_elem.options[SCAN_DUP_F]) {
-			while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+		if (new_elem.options[SCAN_DUP_F] == '0') {
+			while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 				printf("\nFuse duplicate files ? (Y/N) : ");
-				res = getchar();
-				fflush(stdin);
+				if ((res = getchar()) == '\n') res = getchar();
 			}
 			if (toupper(res) == 'Y') 
 				new_elem.options[SCAN_FUSE] = '1';
 			else new_elem.options[SCAN_FUSE] = '0';
-			res = ' ';
+			res = -1;
 		} else {
 			new_elem.options[SCAN_FUSE] = '0';
 		}
 
-		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+		while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 			printf("\nScan and fix file integrity ? (Y/N) : ");
-			res = getchar();
-			fflush(stdin);
+			if ((res = getchar()) == '\n') res = getchar();
 		}
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_INTEGRITY] = '1';
 		else new_elem.options[SCAN_INTEGRITY] = '0';
-		res = ' ';
+		res = -1;
 
-		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+		while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 			printf("\nIs this folder containing only temp files ? (Y/N) : ");
-			res = getchar();
-			fflush(stdin);
+			if ((res = getchar()) == '\n') res = getchar();
 		}
 		if (toupper(res) == 'Y') 
 			new_elem.isTemp = true;
 		else new_elem.isTemp = false;
-		res = ' ';
+		res = -1;
 
 		if (new_elem.isTemp) {
-			while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+			while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 				printf("\nClean this temp folder ? (Y/N) : ");
-				res = getchar();
-				fflush(stdin);
+				if ((res = getchar()) == '\n') res = getchar();
 			}
 			if (toupper(res) == 'Y') 
 				new_elem.options[SCAN_CL_TEMP] = '1';
 			else new_elem.options[SCAN_CL_TEMP] = '0';
-			res = ' ';					
+			res = -1;					
 		} else {
 			new_elem.options[SCAN_CL_TEMP] = '0';
 		}
@@ -120,84 +112,69 @@ TWatchElement _new_elem_form()
 		new_elem.isTemp 			= false;
 	}
 	/* WARNING BACKUP NEED TO BE IMPLEMENTED */
-	while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+	while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 		printf("\nBackup large file ? (Y/N) : ");
-		res = getchar();
-		fflush(stdin);
+		if ((res = getchar()) == '\n') res = getchar();
 	}
 	if (toupper(res) == 'Y') {
 		new_elem.options[SCAN_BACKUP] = '1';
-		char size[1024];
 		while (new_elem.back_limit_size <= 0) {
 			printf("\nEnter the limit size of file (in MB): ");
-			if (!fgets(size, 1024, stdin)) {
-				perror("SCAN-UI: Unable to read limit size");
-				return new_elem;
-			}
-			sscanf(size, "%lf", &new_elem.back_limit_size);
+			scanf("%lf", &new_elem.back_limit_size);
 			fflush(stdin);
 		}
 	} else {
 		new_elem.options[SCAN_BACKUP] = '0';
 	} 
-	res = ' ';
+	res = -1;
 
-	while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+	while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 		printf("\nDelete large file ? (Y/N) : ");
-		res = getchar();
-		fflush(stdin);
+		if ((res = getchar()) == '\n') res = getchar();
 	}
 	if (toupper(res) == 'Y') {
 		new_elem.options[SCAN_DEL_F_SIZE] = '1';
-		char size[1024];
 		while (new_elem.del_limit_size <= 0) {
 			printf("\nEnter the limit size of file (in MB): ");
-			if (!fgets(size, 1024, stdin)) {
-				perror("SCAN-UI: Unable to read limit size");
-				return new_elem;
-			}
-			sscanf(size, "%lf", &new_elem.del_limit_size);
+			scanf("%lf", &new_elem.del_limit_size);
 			fflush(stdin);
 		}
 	} else {
 		new_elem.options[SCAN_DEL_F_SIZE] = '0';
 	}
-	res = ' ';
+	res = -1;
 
-	while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+	while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 		printf("\nDelete old files ? (Y/N) : ");
-		res = getchar();
-		fflush(stdin);
+		if ((res = getchar()) == '\n') res = getchar();
 	}
-	if (toupper(res) == 'Y') 
+	if (toupper(res) == 'Y') {
 		new_elem.options[SCAN_DEL_F_OLD] = '1';
-	else new_elem.options[SCAN_DEL_F_OLD] = '0';
-	res = ' ';
+		new_elem.options[SCAN_BACKUP_OLD] = '0';
+	} else {
+		new_elem.options[SCAN_DEL_F_OLD] = '0';
+	} 
+	res = -1;
 
-	if (!new_elem.options[SCAN_DEL_F_OLD]) {
-		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+	if (new_elem.options[SCAN_DEL_F_OLD] == '0') {
+		while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 			printf("\nBackup old files ? (Y/N) : ");
-			res = getchar();
-			fflush(stdin);
+			if ((res = getchar()) == '\n') res = getchar();
 		}
 		if (toupper(res) == 'Y') 
 			new_elem.options[SCAN_BACKUP_OLD] = '1';
 		else new_elem.options[SCAN_BACKUP_OLD] = '0';
-		res = ' ';
+		res = -1;
 	}
 
-	if (new_elem.options[SCAN_DEL_F_OLD] || new_elem.options[SCAN_BACKUP_OLD]) {
-		char age[100];
-		while ((toupper(res) != 'Y') || (toupper(res) != 'N')) {
+	if ((new_elem.options[SCAN_DEL_F_OLD] == '1') || (new_elem.options[SCAN_BACKUP_OLD] == '1')) {
+		while (new_elem.max_age <= 0) {
 			printf("\nEnter the limit age of files (in days): ");
-			if (!fgets(age, 100, stdin)) {
-				perror("SCAN-UI: Unable to read limit age");
-				return new_elem;
-			}
-			sscanf(age, "%f", &new_elem.max_age);
+			scanf("%f", &new_elem.max_age);
 			fflush(stdin);
 		}				
 	}
+	new_elem.options[SCAN_OPT_END] = '\0';
 	return new_elem;
 }
 
@@ -239,7 +216,7 @@ int scan_query(int nb, char **commands, int action)
 	switch (action) {
 		case SCAN_ADD: ;
 			TWatchElement new_elem = _new_elem_form();
-
+			printf("New elem options registered: %s\n", new_elem.options);
 			break;
 		case SCAN_RM:
 			NOT_YET_IMP;
