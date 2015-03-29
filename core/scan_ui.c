@@ -216,7 +216,7 @@ int scan_query(int nb, char **commands, int action)
 	switch (action) {
 		case SCAN_ADD: ;
 			TWatchElement new_elem = _new_elem_form();
-			printf("New elem options registered: %s\n", new_elem.options);
+
 			break;
 		case SCAN_RM:
 			NOT_YET_IMP;
@@ -228,7 +228,7 @@ int scan_query(int nb, char **commands, int action)
 			NOT_YET_IMP;
 			break;
 		default:
-			printf("SCAN-UI: Unknow action. Nothing to do\n");
+			printf("SCAN-UI: Unknow action. Nothing to do.\n");
 	}
 	return 0;
 }
