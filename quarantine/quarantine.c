@@ -97,19 +97,22 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 		return -1;
 }
 
-/* Recursively write the data in the quarantine tree to QR_DB */
-void _write_node(QrListNode *listNode, int fd)
+/* Recursively write the data in the quarantine list to QR_DB */
+void _write_node(QrListNode *listNode, int fd, int custom)
 {
 	if (listNode==NULL) {
 		return;
 	}
 	if (write(fd, &listNode->data, sizeof(QrData)) < 0) {
-		write_to_log(URGENT, "%s - %d - %s", __func__, __LINE__, "Unable to write data from qr_node to QR_DB");
+		if (custom < 0) {
+			write_to_log(URGENT, "%s - %d - %s", __func__, __LINE__, "Unable to write data from qr_node to QR_DB");
+		} 
 		return;
 	}
-	_write_node(listNode->next, fd);
-
-	write_to_log(INFO, "%s - %s", "File written to QR_DB", listNode->data.f_name);
+	if (custom < 0) {
+		write_to_log(INFO, "%s - %s", "File written to QR_DB", listNode->data.f_name);
+	}
+	_write_node(listNode->next, fd, custom);
 }
 
 /* Move file to STOCK_QR */
@@ -307,13 +310,11 @@ int save_qr_list(QrList **list, int custom)
 			return -1;
 		}
 	}
-	_write_node((*list)->first, fd);
-	write_to_log(INFO, "%s", "QR List has been saved");
-	if (custom < 0) 
+	_write_node((*list)->first, fd, custom);
+	if (custom < 0) {
+		write_to_log(INFO, "%s", "QR List has been saved");
 		close(fd);
-	
-	write_to_log(INFO, "%s", "Quarantine list cleared");
-	
+	}
 	return 0;	
 }
 
