@@ -362,14 +362,14 @@ int rm_file_from_qr(QrList **list, char *filename)
 	}
 	if (snprintf(p_rm, (strlen(QR_STOCK)+strlen(filename)+3), "%s/%s", QR_STOCK, filename) < 0) {
 		write_to_log(WARNING, "%s - %d - %s : %s/%s", __func__, __LINE__, "Unable to create path to file to remove", QR_STOCK, filename);
-		goto rm_err;
+		goto err;
 	}
 	if ((rm_file = search_in_qr(*list, filename)) == NULL){
 		write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, "Unable to locate file to remove", filename);
-		goto rm_err;
+		goto err;
 	}
 	if (_rm_from_qr_list(list, rm_file) != 0) {
-		goto rm_err;
+		goto err;
 	}
 	if (unlink(p_rm)) {
 		write_to_log(URGENT, "%s - %d - %s : %s", __func__, __LINE__, "Unable to remove file from stock, list will not be saved", p_rm);
@@ -380,12 +380,8 @@ int rm_file_from_qr(QrList **list, char *filename)
 	}
 	free(p_rm);
 	return 0;
-rm_err:
-	free(p_rm);
-	return -1;
 err:
 	free(p_rm);
-	load_qr(list);
 	return -1;
 }
 
@@ -420,6 +416,7 @@ int restore_file(QrList **list, char *filename)
 	if (save_qr_list(list, -1) == 0) {
 		write_to_log(INFO, "File %s removed from QR and restored to %s", filename, res_file->data.o_path);
 	}
+	
 	free(p_res);
 	return 0;
 out:

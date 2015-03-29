@@ -106,14 +106,14 @@ static int _get_data(const int sock, int *action, char **buf)
  */
 int _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
 {
-	QrList *save = *list;
 	switch (action) {
 		case QR_ADD: 
 			if (add_file_to_qr(list, buf) < 0) {
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				clear_qr_list(list);
-				*list = save;
+				*list = calloc(1, sizeof(QrList));
+				load_qr(list);
 				return 0;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
@@ -124,9 +124,11 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				clear_qr_list(list);
-				*list = save;
+				*list = calloc(1, sizeof(QrList));
+				load_qr(list);
 				return 0;
 			}
+			LOG_DEBUG;
 			SOCK_ANS(s_cl, SOCK_ACK);
 			if (action == QR_RM_ALL) {
 				return 1;
@@ -138,7 +140,8 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				clear_qr_list(list);
-				*list = save;
+				*list = calloc(1, sizeof(QrList));
+				load_qr(list);
 				return 0;
 			}
 			SOCK_ANS(s_cl, SOCK_ACK);
@@ -159,10 +162,10 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				}
 				return 0;
 			}
-			sprintf(path_to_list, "/tmp/.klearnel/%d", (int)timestamp);
+			sprintf(path_to_list, "%s", QR_TMP);
 			if (access(path_to_list, F_OK) == -1) {
 				if (mkdir(path_to_list, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to create the tmp_stock folder");
+					write_to_log(WARNING, "%s - %d - %s:%s", __func__, __LINE__, "Unable to create the tmp_stock folder", path_to_list);
 					if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
 						write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 					}
@@ -170,7 +173,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 					return 0;
 				}
 			}
-			sprintf(file, "%s/qr_stock", path_to_list);
+			sprintf(file, "%s/%d", path_to_list, (int)timestamp);
 			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
 			if (tmp_stock < 0) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open tmp_stock");

@@ -9,6 +9,7 @@
 
 #define QR_STOCK 	WORK_DIR "/qr_stock"
 #define QR_DB 		BASE_DIR "/qr.db"
+#define QR_TMP      TMP_DIR "/quarantine"
 #define QR_SOCK 	TMP_DIR "/kl-qr-sck"
 
 #define QR_ADD 		    1

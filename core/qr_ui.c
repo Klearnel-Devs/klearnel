@@ -49,7 +49,7 @@ int qr_query(int nb, char **commands, int action)
 	}
 	i = 2;
 	switch (action) {
-		case QR_ADD: ;
+		case QR_ADD:
 		case QR_RM:
 		case QR_REST:
 			do {
@@ -78,19 +78,21 @@ int qr_query(int nb, char **commands, int action)
 				}
 				if (!strcmp(res, SOCK_ACK)) {
 					switch(action) {
-						case QR_ADD: printf("File %s successfully added to QR\n", commands[i]); break;
-						case QR_RM:  printf("File %s successfully deleted from QR\n", commands[i]); break;
-						case QR_REST:printf("File %s successfully restored\n", commands[i]); break;
+						case QR_ADD:  printf("File %s successfully added to QR\n", commands[i]); break;
+						case QR_RM:   printf("File %s successfully deleted from QR\n", commands[i]); break;
+						case QR_REST: printf("File %s successfully restored\n", commands[i]); break;
 					}
 					i++;
 				} else if (!strcmp(res, SOCK_ABORTED)) {
 					switch(action) {
-						case QR_ADD: printf("File %s could not be added to QR\n", commands[i]); break;
-						case QR_RM:  printf("File %s could not be deleted from QR\n", commands[i]); break;
-						case QR_REST:printf("File %s could not be restored\n", commands[i]); break;
+						case QR_ADD:  printf("File %s could not be added to QR\n", commands[i]); break;
+						case QR_RM:   printf("File %s could not be deleted from QR\n", commands[i]); break;
+						case QR_REST: printf("File %s could not be restored\n", commands[i]); break;
 					}
+					i++;
 				} else if (!strcmp(res, SOCK_UNK)) {
 					fprintf(stderr, "File not found in quarantine\n");
+					i++;
 				}
 			} while (commands[i]);
 			break;
@@ -144,7 +146,7 @@ int qr_query(int nb, char **commands, int action)
 			load_tmp_qr(&qr_list, fd);
 			close(fd);
 			if (unlink(list_path))
-					write_to_log(URGENT, "%s - %d - %s : %s", __func__, __LINE__, "Unable to remove temporary quarantine file", list_path);
+				write_to_log(URGENT, "%s - %d - %s : %s", __func__, __LINE__, "Unable to remove temporary quarantine file", list_path);
 			if (action == QR_LIST) {
 				print_qr(&qr_list);
 				goto out;
@@ -187,13 +189,13 @@ int qr_query(int nb, char **commands, int action)
 					}
 					if (!strcmp(res, SOCK_ACK)) {
 						switch (action) {
-							case QR_RM_ALL: printf("File %s successfully deleted from QR\n", cur->data.f_name);
-							case QR_REST_ALL: printf("File %s successfully restored\n", cur->data.f_name);
+							case QR_RM_ALL: printf("File %s successfully deleted from QR\n", cur->data.f_name); break;
+							case QR_REST_ALL: printf("File %s successfully restored\n", cur->data.f_name); break;
 						}
 					} else if (!strcmp(res, SOCK_ABORTED)) {
 						switch (action) {
-							case QR_RM_ALL: printf("File %s could not be deleted from QR\n", cur->data.f_name);
-							case QR_REST_ALL: printf("File %s could not be restored\n", cur->data.f_name);
+							case QR_RM_ALL: printf("File %s could not be deleted from QR\n", cur->data.f_name); break;
+							case QR_REST_ALL: printf("File %s could not be restored\n", cur->data.f_name); break;
 						}
 					} else if (!strcmp(res, SOCK_UNK)) {
 						fprintf(stderr, "File not found in quarantine\n");
