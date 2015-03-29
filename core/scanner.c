@@ -69,6 +69,7 @@ int remove_watch_elem(TWatchElement elem)
 			watch_list->count--;
 			return 0;
 		}
+		item = item->next;
 	}
 	write_to_log(FATAL, "%s:%d: Element \"%s\" to remove not found", 
 		__func__, __LINE__, elem.path);
@@ -199,7 +200,7 @@ void scanner_worker()
 		return;
 	}
 	server.sun_family = AF_UNIX;
-	strncpy(server.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
+	strncpy(server.sun_path, SCAN_SOCK, strlen(SCAN_SOCK) + 1);
 	unlink(server.sun_path);
 	len = strlen(server.sun_path) + sizeof(server.sun_family);
 	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
@@ -225,8 +226,7 @@ void scanner_worker()
 		char *buf = NULL;
 
 		res = select (s_srv + 1, &fds, NULL, NULL, &to_select);
-
-		if (res < 0) {
+		if (res > 0) {
 			if (FD_ISSET(s_srv, &fds)) {
 				len = sizeof(remote);
 				if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
@@ -300,7 +300,8 @@ int perform_task(const int task, const char* buf, const int s_cl)
 			/* TEMPORARY ASSIGNATION */
 			strcpy(new.options, "011001000");
 			new.isTemp = false;
-			new.limit_size = 0;
+			new.del_limit_size = 0;
+			new.back_limit_size = 0;
 			new.max_age = 0;
 			if (add_watch_elem(new) < 0) {
 				write_to_log(URGENT,"%s:%d: Unable to add %s to watch_list", 
@@ -337,6 +338,9 @@ int perform_task(const int task, const char* buf, const int s_cl)
 			break;
 		case SCAN_LIST:
 			NOT_YET_IMP;
+			break;
+		case KL_EXIT:
+			watch_list = NULL;
 			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");
