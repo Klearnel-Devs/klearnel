@@ -5,7 +5,6 @@
  */
 #include <global.h>
 #include <core/ui.h>
-#include <logging/logging.h>
 #include <core/scanner.h>
 
 TWatchElement _new_elem_form(char *path)
@@ -217,7 +216,7 @@ int scan_query(int nb, char **commands, int action)
 				perror("SCAN-UI: Unable to allocate memory");
 				return -1;
 			}
-			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, timestamp) < 0) {
+			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, (int)timestamp) < 0) {
 				perror("SCAN-UI: Unable to create the filename for temp scan file");
 				return -1;
 			}
