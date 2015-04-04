@@ -200,7 +200,7 @@ int scan_query(int nb, char **commands, int action)
 	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
 		perror("[UI] Unable to set timeout for sending operations");
 
-	len = 20;
+	len = PATH_MAX + 10;
 	res = malloc(2);
 	query = malloc(len);
 	if ((query == NULL) || (res == NULL)) {
@@ -217,7 +217,7 @@ int scan_query(int nb, char **commands, int action)
 				perror("SCAN-UI: Unable to allocate memory");
 				return -1;
 			}
-			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, timestamp) < 0) {
+			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, (int)timestamp) < 0) {
 				perror("SCAN-UI: Unable to create the filename for temp scan file");
 				return -1;
 			}
@@ -233,7 +233,35 @@ int scan_query(int nb, char **commands, int action)
 			}
 			close(fd);
 
-
+			int c_len = strlen(tmp_filename) + 1;
+			snprintf(query, len, "%d:%d", action, c_len);
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			
+			if (write(s_cl, tmp_filename, c_len) < 0) {
+				perror("[UI] Unable to send args of the query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;					
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (!strcmp(res, SOCK_ACK)) {
+				printf("%s has been successfully added to Scanner\n", commands[2]);
+			} else if (!strcmp(res, SOCK_ABORTED)) {
+				printf("An error occured while adding %s to Scanner\n", commands[2]);
+			}
+			free(tmp_filename);
 			break;
 		case SCAN_RM:
 			NOT_YET_IMP;
@@ -247,5 +275,13 @@ int scan_query(int nb, char **commands, int action)
 		default:
 			printf("SCAN-UI: Unknow action. Nothing to do.\n");
 	}
+	free(query);
+	free(res);
+	close(s_cl);
 	return 0;
+error:
+	free(query);
+	free(res);
+	close(s_cl);
+	return -1;
 }
