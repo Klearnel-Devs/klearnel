@@ -16,10 +16,19 @@
 void execute_commands(int nb, char **commands)
 {
 	if (!strcmp(commands[1], "add-to-qr")) {
+		int i;
+		struct stat new_s;
 		if (nb < 3) {
 			fprintf(stderr, "Element to add missing\n"
 				 "Correct syntax is: klearnel add-to-qr <filename>\n");
 			exit(EXIT_FAILURE);
+		} else {
+			for (i = 2; i < nb; i++) {
+				if (stat(commands[i], &new_s) < 0) {
+					printf("File %s could not be found\n", commands[i]);
+					return;
+				}
+			}
 		}
 		qr_query(nb, commands, QR_ADD);
 	} else if (!strcmp(commands[1], "rm-from-qr")) {
@@ -29,6 +38,8 @@ void execute_commands(int nb, char **commands)
 			exit(EXIT_FAILURE);
 		}
 		qr_query(nb, commands, QR_RM);
+	} else if (!strcmp(commands[1], "rm-all-from-qr")) {
+		qr_query(nb, commands, QR_RM_ALL);
 	} else if (!strcmp(commands[1], "get-qr-list")) {
 		qr_query(nb, commands, QR_LIST);
 	} else if (!strcmp(commands[1], "get-qr-info")) {
@@ -45,6 +56,8 @@ void execute_commands(int nb, char **commands)
 			exit(EXIT_FAILURE);
 		}
 		qr_query(nb, commands, QR_REST);
+	} else if (!strcmp(commands[1], "restore-all-from-qr")) {
+		qr_query(nb, commands, QR_REST_ALL);
 	} else if (!strcmp(commands[1], "view-rt-log")) {
 		char date[7];
 		time_t rawtime;
@@ -93,9 +106,12 @@ void execute_commands(int nb, char **commands)
 		printf(" - \e[1madd-to-qr <path-to-file>\e[21m:\n\t Add a new file to the quarantine\n");
 		printf(" - \e[1mrm-from-qr <filename>\e[21m:\n\t Remove the specified file from the quarantine"
 			"\n\tWARNING: this command will definitively remove the file!\n");
+		printf(" - \e[1mrm-all-from-qr\e[21m:\n\t Remove all files from the quarantine"
+			"\n\tWARNING: this command will definitively remove the files!\n");
 		printf(" - \e[1mget-qr-list\e[21m:\n\t Display the file currently stored in quarantine\n");
 		printf(" - \e[1mget-qr-info <filename>\e[21m:\n\t NOT YET IMPLEMENTED\n");
 		printf(" - \e[1mrestore-from-qr <filename>\e[21m:\n\t Restore the specified file to its original location\n");
+		printf(" - \e[1mrestore-all-from-qr\e[21m:\n\t Restore all files to their original locations\n");
 		printf(" - \e[1mview-rt-log\e[21m:\n\t Display the current klearnel's log in real time\n");
 		printf(" - \e[1mlicense\e[21m:\n\t Display the klearnel license terms\n");
 		printf(" - \e[1mexit\e[21m:\n\t Kill all Klearnel processes\n");
