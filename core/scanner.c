@@ -133,72 +133,11 @@ int save_watch_list()
 	return 0;
 }
 
-/* Get data from socket "sock" and put it in buffer "buf"
- * Return number of char read if >= 0, else -1
- */
-static int _get_data(const int sock, int *task, char **buf)
-{
-	int c_len = 20;
-	char *a_type = malloc(c_len);
-	int len;
-	if (a_type == NULL) {
-		write_to_log(FATAL, "%s:%d: %s", 
-			__func__, __LINE__, "Unable to allocate memory");
-		return -1;
-	}
-
-	if (read(sock, a_type, c_len) < 0) {
-		write_to_log(WARNING, "%s:%d: %s", 
-			__func__, __LINE__, "Error while receiving data through socket");
-		return -1;
-	}
-
-	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
-		write_to_log(WARNING, "%s:%d: %s", 
-			__func__, __LINE__, "Unable to send ack in socket");
-		free(a_type);
-		return -1;
-	}
-
-	*task = atoi(strtok(a_type, ":"));
-	len = atoi(strtok(NULL, ":"));
-	
-	if (len > 0) {
-		*buf = malloc(sizeof(char)*len);
-		if (*buf == NULL) {
-			if (SOCK_ANS(sock, SOCK_RETRY) < 0)
-				write_to_log(WARNING,"%s:%d: %s", 
-					__func__, __LINE__, "Unable to send retry");
-			write_to_log(FATAL,"%s:%d: %s", 
-				__func__, __LINE__, "Unable to allocate memory");
-			free(a_type);
-			return -1;
-		}
-
-		if (read(sock, *buf, len) < 0) {
-			if (SOCK_ANS(sock, SOCK_NACK) < 0)
-				write_to_log(WARNING,"%s:%d: %s", 
-					__func__, __LINE__, "Unable to send nack");
-			write_to_log(FATAL,"%s:%d: %s", 
-				__func__, __LINE__, "Unable to allocate memory");
-			free(a_type);
-			return -1;			
-		}
-
-		if(SOCK_ANS(sock, SOCK_ACK) < 0) {
-			write_to_log(WARNING,"%s:%d: %s", 
-				__func__, __LINE__, "Unable to send ack");
-			free(a_type);
-			return -1;
-		}
-	}
-	free(a_type);
-	return len;
-}
-
 void scanner_worker()
 {
 	int len, s_srv, s_cl;
+	// CHECK WITH ANTOINE
+	int c_len = MAX_PATH + 1;
 	int task = 0;
 	struct sockaddr_un server;
 
@@ -249,7 +188,7 @@ void scanner_worker()
 					write_to_log(WARNING, "%s:%d: %s", 
 						__func__, __LINE__, "Unable to set timeout for sending operations");		
 
-				if (_get_data(s_cl, &task, &buf) < 0) {
+				if (get_data(s_cl, &task, &buf, c_len) < 0) {
 					free(buf);
 					close(s_cl);
 					write_to_log(NOTIFY, "%s:%d: %s", 
