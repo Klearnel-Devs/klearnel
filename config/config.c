@@ -13,6 +13,10 @@ int _cfg_task(const int action, char *buf, const int s_cl)
 	return 0;
 }
 
+void _do_something() {
+	NOT_YET_IMP;
+}
+
 void init_config()
 {
 	if (access(PROFILES, F_OK) == -1) {
@@ -43,7 +47,7 @@ void cfg_worker()
 		return;
 	}
 	server.sun_family = AF_UNIX;
-	strncpy(server.sun_path, SCAN_SOCK, strlen(SCAN_SOCK) + 1);
+	strncpy(server.sun_path, CFG_SOCK, strlen(CFG_SOCK) + 1);
 	unlink(server.sun_path);
 	len = strlen(server.sun_path) + sizeof(server.sun_family);
 	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
@@ -97,10 +101,9 @@ void cfg_worker()
 				close(s_cl);
 			}
 		} else {
-			perform_event();
+			_do_something();
 		}
 	} while (task != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
-	exit_scanner();
 }

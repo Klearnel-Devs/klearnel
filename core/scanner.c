@@ -137,7 +137,7 @@ void scanner_worker()
 {
 	int len, s_srv, s_cl;
 	// CHECK WITH ANTOINE
-	int c_len = MAX_PATH + 1;
+	int c_len = 20;
 	int task = 0;
 	struct sockaddr_un server;
 

@@ -62,7 +62,7 @@
 /* Get data from socket "sock" and put it in buffer "buf"
  * Return number of char read if >= 0, else -1
  */
-static int get_data(const int sock, int *action, char **buf, int c_len);
+int get_data(const int sock, int *action, char **buf, int c_len);
 
 
 /* Signal critical area linked to sema is now used */

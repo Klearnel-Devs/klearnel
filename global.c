@@ -4,8 +4,9 @@
  * Copyright (C) 2014, 2015 Klearnel-Devs
  */
 #include <global.h>
+#include <logging/logging.h>
 
-static int get_data(const int sock, int *action, char **buf, int c_len)
+int get_data(const int sock, int *action, char **buf, int c_len)
 {
 	char *a_type = malloc(c_len);
 	int len;
