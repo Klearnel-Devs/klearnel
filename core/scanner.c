@@ -112,6 +112,18 @@ int get_watch_list()
 	return 0;
 }
 
+void clear_watch_list()
+{
+	if (watch_list->first != NULL) {
+		SCAN_LIST_FOREACH(watch_list, first, next, cur) {
+			if (cur->prev) {
+			    	free(cur->prev);
+			}
+		}
+	}
+	free(watch_list);
+}
+
 int save_watch_list()
 {
 	int fd, i;
@@ -128,7 +140,7 @@ int save_watch_list()
 			return -1;
 		}
 	}
-	free(watch_list);
+	clear_watch_list();
 	close(fd);
 	return 0;
 }
@@ -138,7 +150,7 @@ int save_watch_list()
  */
 static int _get_data(const int sock, int *task, char **buf)
 {
-	int c_len = 20;
+	int c_len = PATH_MAX + 10;
 	char *a_type = malloc(c_len);
 	int len;
 	if (a_type == NULL) {
@@ -302,7 +314,7 @@ int perform_task(const int task, const char* buf, const int s_cl)
 				LOG(URGENT, "Buffer received is empty");
 				return -1;
 			}
-			
+			write_to_log(DEBUG, "Buffer received: %s", buf);
 			int fd = open(buf, O_RDONLY);
 			if (fd <= 0) {
 				write_to_log(URGENT,"%s:%d: Unable to open %s", 
@@ -331,6 +343,7 @@ int perform_task(const int task, const char* buf, const int s_cl)
 			}
 			close(fd);
 			unlink(buf);
+			save_watch_list();
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case SCAN_RM:

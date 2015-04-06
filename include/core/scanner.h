@@ -68,6 +68,10 @@ typedef struct watchElementList {
 
 /* List of prototypes */
 
+#define SCAN_LIST_FOREACH(L, S, M, V) TWatchElementNode *_node = NULL;\
+    TWatchElementNode *V = NULL;\
+    for(V = _node = L->S; _node != NULL; V = _node = _node->M)
+
 /* Create the SCAN_DB if it doesn't exist
  * Return 0 on success and -1 on error
  */
@@ -90,6 +94,8 @@ int remove_watch_elem(TWatchElement elem);
  * Return 0 on success and -1 on error
  */
 int get_watch_list();
+/* Clear the watch list */
+void clear_watch_list();
 /* Write the scan list to SCAN_DB
  * Return 0 on success and -1 on error
  */

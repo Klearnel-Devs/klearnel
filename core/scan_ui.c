@@ -180,7 +180,8 @@ int scan_query(int nb, char **commands, int action)
 	struct timeval timeout;
 	timeout.tv_sec 	= SOCK_TO;
 	timeout.tv_usec	= 0;
-
+	TWatchElement new_elem;
+	if (action == SCAN_ADD) new_elem = _new_elem_form(commands[2]);
 	if ((s_cl = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("[UI] Unable to create socket");
 		return -1;
@@ -209,7 +210,6 @@ int scan_query(int nb, char **commands, int action)
 	}
 	switch (action) {
 		case SCAN_ADD: ;
-			TWatchElement new_elem = _new_elem_form(commands[2]);
 			time_t timestamp = time(NULL);
 			char *tmp_filename = malloc(sizeof(char)*(sizeof(timestamp)+5+strlen(SCAN_TMP)));
 			int fd;
@@ -219,41 +219,51 @@ int scan_query(int nb, char **commands, int action)
 			}
 			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, (int)timestamp) < 0) {
 				perror("SCAN-UI: Unable to create the filename for temp scan file");
+				free(tmp_filename);
 				return -1;
 			}
 			fd = open(tmp_filename, O_WRONLY | O_TRUNC | O_CREAT);
 			if (fd < 0) {
 				fprintf(stderr, "SCAN-UI: Unable to create %s", tmp_filename);
+				free(tmp_filename);
 				return -1;
 			}
 
 			if (write(fd, &new_elem, sizeof(struct watchElement)) < 0) {
 				fprintf(stderr, "SCAN-UI: Unable to write the new item to %s", tmp_filename);
+				free(tmp_filename);
 				return -1;
 			}
 			close(fd);
 
 			int c_len = strlen(tmp_filename) + 1;
 			snprintf(query, len, "%d:%d", action, c_len);
+			printf("C-len: %d\n", c_len);
+			printf("tmp-filename: %s\n", tmp_filename);
 			if (write(s_cl, query, len) < 0) {
 				perror("[UI] Unable to send query");
+				free(tmp_filename);
 				goto error;
 			}
 			if (read(s_cl, res, 2) < 0) {
 				perror("[UI] Unable to get query result");
+				free(tmp_filename);
 				goto error;
 			}
 			
 			if (write(s_cl, tmp_filename, c_len) < 0) {
 				perror("[UI] Unable to send args of the query");
+				free(tmp_filename);
 				goto error;
 			}
 			if (read(s_cl, res, 2) < 0) {
 				perror("[UI] Unable to get query result");
+				free(tmp_filename);
 				goto error;					
 			}
 			if (read(s_cl, res, 2) < 0) {
 				perror("[UI] Unable to get query result");
+				free(tmp_filename);
 				goto error;
 			}
 			if (!strcmp(res, SOCK_ACK)) {
