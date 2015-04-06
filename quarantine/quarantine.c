@@ -234,6 +234,7 @@ void clear_qr_list(QrList **list)
 		}
 	}
 	free(*list);
+	*list = NULL;
 }
 
 /*

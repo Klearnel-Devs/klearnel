@@ -200,7 +200,7 @@ int scan_query(int nb, char **commands, int action)
 	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
 		perror("[UI] Unable to set timeout for sending operations");
 
-	len = PATH_MAX + 10;
+	len = 20;
 	res = malloc(2);
 	query = malloc(len);
 	if ((query == NULL) || (res == NULL)) {

@@ -35,14 +35,17 @@ int add_watch_elem(TWatchElement elem)
 		LOG(FATAL, "Unable to allocate memory");
 		return -1;
 	}
+	LOG_DEBUG;
 	node->element = elem;
 	node->next = NULL;
 	if (!watch_list) {
+		LOG_DEBUG;
 		watch_list = malloc(sizeof(struct watchElementList));
 		if (!watch_list) {
 			LOG(FATAL, "Unable to allocate memory");
 			return -1;
 		}
+		LOG_DEBUG;
 		node->prev = NULL;
 		watch_list->first = node;
 		watch_list->last = node;
@@ -54,6 +57,7 @@ int add_watch_elem(TWatchElement elem)
 	watch_list->last->next = node;
 	watch_list->last = node;
 	watch_list->count++;
+	LOG_DEBUG;
 	return 0;
 }
 
@@ -86,20 +90,22 @@ int load_watch_list()
 {
 	int fd = 0;
 	TWatchElement tmp;
-
+	LOG_DEBUG;
 	if ((fd = open(SCAN_DB, O_RDONLY)) < 0) {
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
-
+	LOG_DEBUG;
 
 	while(read(fd, &tmp, sizeof(struct watchElement)) != 0) {
+		LOG_DEBUG;
 		if (add_watch_elem(tmp) < 0) {
 			write_to_log(URGENT, "%s:%d: Unable to add \"%s\" to the watch list", 
 				__func__, __LINE__, tmp.path);
 			close(fd);
 			return -1;
 		}
+		LOG_DEBUG;
 	}
 
 	close(fd);
@@ -122,6 +128,7 @@ void clear_watch_list()
 		}
 	}
 	free(watch_list);
+	watch_list = NULL;
 }
 
 int save_watch_list()
@@ -217,7 +224,6 @@ void scanner_worker()
 	} while (task != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
-	exit_scanner();
 }
 
 TWatchElement get_watch_elem(const char* path) 
@@ -240,13 +246,14 @@ TWatchElement get_watch_elem(const char* path)
 	return tmp;
 }
 
-int perform_task(const int task, const char* buf, const int s_cl) 
+int perform_task(const int task, const char *buf, const int s_cl) 
 {
+	LOG_DEBUG;
 	if (load_watch_list() < 0) {
 		LOG(WARNING, "Unable to load the watch list");
 		return -1;
 	}
-
+	LOG_DEBUG;
 	switch (task) {
 		case SCAN_ADD:
 			if (buf == NULL) {
@@ -272,6 +279,7 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;				
 			}
+			close(fd);
 			if (add_watch_elem(new) < 0) {
 				write_to_log(URGENT,"%s:%d: Unable to add %s to watch_list", 
 					__func__, __LINE__, new.path);
@@ -280,7 +288,6 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;
 			}
-			close(fd);
 			unlink(buf);
 			save_watch_list();
 			SOCK_ANS(s_cl, SOCK_ACK);
@@ -312,7 +319,7 @@ int perform_task(const int task, const char* buf, const int s_cl)
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
-			watch_list = NULL;
+			exit_scanner();
 			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");
