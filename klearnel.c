@@ -23,6 +23,7 @@
 #include <core/scanner.h>
 #include <core/ui.h>
 #include <logging/logging.h>
+#include <config/config.h>
 
 /* Initialize all components required by the module */
 void _init_env()
@@ -52,6 +53,7 @@ void _init_env()
 	init_logging();
 	init_qr();
 	init_scanner();
+	init_config();
 }
 
 /* Daemonize the module */
@@ -119,14 +121,25 @@ int main(int argc, char **argv)
 	}
 	
 	pid = fork();
+
 	if (pid == 0) {
-		qr_worker();
+		pid = fork();
+		if (pid == 0) {
+			qr_worker();
+		} else if (pid > 0) {
+			scanner_worker();
+		} else {
+			perror("KL: Unable to fork for Quarantine & Scanner processes");
+			return EXIT_FAILURE;
+		}
 	} else if (pid > 0) {
-		scanner_worker();
+		cfg_worker();
 	} else {
-		perror("KL: Unable to fork first processes");
+		perror("KL: Unable to fork Klearnel processes");
 		return EXIT_FAILURE;
-	} 
+	}
+
+	 
 
 	/* will be deamonized later */
 	return EXIT_SUCCESS;

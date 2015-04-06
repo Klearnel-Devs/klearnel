@@ -86,12 +86,10 @@ int load_watch_list()
 {
 	int fd = 0;
 	TWatchElement tmp;
-
 	if ((fd = open(SCAN_DB, O_RDONLY)) < 0) {
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
-
 
 	while(read(fd, &tmp, sizeof(struct watchElement)) != 0) {
 		if (add_watch_elem(tmp) < 0) {
@@ -112,6 +110,19 @@ int get_watch_list()
 	return 0;
 }
 
+void clear_watch_list()
+{
+	if (watch_list->first != NULL) {
+		SCAN_LIST_FOREACH(watch_list, first, next, cur) {
+			if (cur->prev) {
+			    	free(cur->prev);
+			}
+		}
+	}
+	free(watch_list);
+	watch_list = NULL;
+}
+
 int save_watch_list()
 {
 	int fd, i;
@@ -128,77 +139,16 @@ int save_watch_list()
 			return -1;
 		}
 	}
-	free(watch_list);
+	clear_watch_list();
 	close(fd);
 	return 0;
-}
-
-/* Get data from socket "sock" and put it in buffer "buf"
- * Return number of char read if >= 0, else -1
- */
-static int _get_data(const int sock, int *task, char **buf)
-{
-	int c_len = 20;
-	char *a_type = malloc(c_len);
-	int len;
-	if (a_type == NULL) {
-		write_to_log(FATAL, "%s:%d: %s", 
-			__func__, __LINE__, "Unable to allocate memory");
-		return -1;
-	}
-
-	if (read(sock, a_type, c_len) < 0) {
-		write_to_log(WARNING, "%s:%d: %s", 
-			__func__, __LINE__, "Error while receiving data through socket");
-		return -1;
-	}
-
-	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
-		write_to_log(WARNING, "%s:%d: %s", 
-			__func__, __LINE__, "Unable to send ack in socket");
-		free(a_type);
-		return -1;
-	}
-
-	*task = atoi(strtok(a_type, ":"));
-	len = atoi(strtok(NULL, ":"));
-	
-	if (len > 0) {
-		*buf = malloc(sizeof(char)*len);
-		if (*buf == NULL) {
-			if (SOCK_ANS(sock, SOCK_RETRY) < 0)
-				write_to_log(WARNING,"%s:%d: %s", 
-					__func__, __LINE__, "Unable to send retry");
-			write_to_log(FATAL,"%s:%d: %s", 
-				__func__, __LINE__, "Unable to allocate memory");
-			free(a_type);
-			return -1;
-		}
-
-		if (read(sock, *buf, len) < 0) {
-			if (SOCK_ANS(sock, SOCK_NACK) < 0)
-				write_to_log(WARNING,"%s:%d: %s", 
-					__func__, __LINE__, "Unable to send nack");
-			write_to_log(FATAL,"%s:%d: %s", 
-				__func__, __LINE__, "Unable to allocate memory");
-			free(a_type);
-			return -1;			
-		}
-
-		if(SOCK_ANS(sock, SOCK_ACK) < 0) {
-			write_to_log(WARNING,"%s:%d: %s", 
-				__func__, __LINE__, "Unable to send ack");
-			free(a_type);
-			return -1;
-		}
-	}
-	free(a_type);
-	return len;
 }
 
 void scanner_worker()
 {
 	int len, s_srv, s_cl;
+	// CHECK WITH ANTOINE
+	int c_len = 20;
 	int task = 0;
 	struct sockaddr_un server;
 
@@ -249,7 +199,7 @@ void scanner_worker()
 					write_to_log(WARNING, "%s:%d: %s", 
 						__func__, __LINE__, "Unable to set timeout for sending operations");		
 
-				if (_get_data(s_cl, &task, &buf) < 0) {
+				if (get_data(s_cl, &task, &buf, c_len) < 0) {
 					free(buf);
 					close(s_cl);
 					write_to_log(NOTIFY, "%s:%d: %s", 
@@ -266,7 +216,7 @@ void scanner_worker()
 	} while (task != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
-	exit_scanner();
+	exit(EXIT_SUCCESS);
 }
 
 TWatchElement get_watch_elem(const char* path) 
@@ -289,20 +239,18 @@ TWatchElement get_watch_elem(const char* path)
 	return tmp;
 }
 
-int perform_task(const int task, const char* buf, const int s_cl) 
+int perform_task(const int task, const char *buf, const int s_cl) 
 {
 	if (load_watch_list() < 0) {
 		LOG(WARNING, "Unable to load the watch list");
 		return -1;
 	}
-
 	switch (task) {
 		case SCAN_ADD:
 			if (buf == NULL) {
 				LOG(URGENT, "Buffer received is empty");
 				return -1;
 			}
-			
 			int fd = open(buf, O_RDONLY);
 			if (fd <= 0) {
 				write_to_log(URGENT,"%s:%d: Unable to open %s", 
@@ -321,6 +269,7 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;				
 			}
+			close(fd);
 			if (add_watch_elem(new) < 0) {
 				write_to_log(URGENT,"%s:%d: Unable to add %s to watch_list", 
 					__func__, __LINE__, new.path);
@@ -329,8 +278,8 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;
 			}
-			close(fd);
 			unlink(buf);
+			save_watch_list();
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case SCAN_RM:
@@ -354,13 +303,16 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;				
 			}
+			save_watch_list();
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case SCAN_LIST:
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
-			watch_list = NULL;
+			LOG(INFO, "Received KL_EXIT command");
+			exit_scanner();
+			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");

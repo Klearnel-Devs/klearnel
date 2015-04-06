@@ -28,6 +28,7 @@ subdirs: build
 	@cd quarantine; $(MAKE)
 	@cd core; 	$(MAKE)
 	@cd logging;	$(MAKE)
+	@cd config;	$(MAKE)
 
 build:
 	@mkdir -p build
@@ -46,4 +47,5 @@ clean-sub:
 	@cd quarantine; $(MAKE) clean
 	@cd core;	$(MAKE) clean
 	@cd logging;	$(MAKE) clean
+	@cd config;	$(MAKE) clean
 	

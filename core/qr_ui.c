@@ -6,7 +6,6 @@
 #include <global.h>
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
-#include <logging/logging.h>
 
 /*
  * Allow to send a query to the quarantine and execute the related action
@@ -146,7 +145,7 @@ int qr_query(int nb, char **commands, int action)
 			load_tmp_qr(&qr_list, fd);
 			close(fd);
 			if (unlink(list_path))
-				write_to_log(URGENT, "%s - %d - %s : %s", __func__, __LINE__, "Unable to remove temporary quarantine file", list_path);
+				printf("Unable to remove temporary quarantine file: %s", list_path);
 			if (action == QR_LIST) {
 				print_qr(&qr_list);
 				goto out;
