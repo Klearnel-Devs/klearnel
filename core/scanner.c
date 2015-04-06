@@ -303,6 +303,7 @@ int perform_task(const int task, const char *buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;				
 			}
+			save_watch_list();
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case SCAN_LIST:

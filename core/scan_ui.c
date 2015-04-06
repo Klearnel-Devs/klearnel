@@ -174,6 +174,7 @@ TWatchElement _new_elem_form(char *path)
 int scan_query(int nb, char **commands, int action)
 {
 	int len, s_cl;
+	int c_len = 0;
 	char *query, *res;
 	struct sockaddr_un remote;
 	struct timeval timeout;
@@ -235,7 +236,7 @@ int scan_query(int nb, char **commands, int action)
 			}
 			close(fd);
 
-			int c_len = strlen(tmp_filename) + 1;
+			c_len = strlen(tmp_filename) + 1;
 			snprintf(query, len, "%d:%d", action, c_len);
 			if (write(s_cl, query, len) < 0) {
 				perror("[UI] Unable to send query");
@@ -270,8 +271,35 @@ int scan_query(int nb, char **commands, int action)
 			}
 			free(tmp_filename);
 			break;
-		case SCAN_RM:
-			NOT_YET_IMP;
+		case SCAN_RM: ;
+			c_len = strlen(commands[2]) + 1;
+			snprintf(query, len, "%d:%d", action, c_len);
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			
+			if (write(s_cl, commands[2], c_len) < 0) {
+				perror("[UI] Unable to send args of the query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;					
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (!strcmp(res, SOCK_ACK)) {
+				printf("%s has been successfully removed from Scanner\n", commands[2]);
+			} else if (!strcmp(res, SOCK_ABORTED)) {
+				printf("An error occured while removing %s to Scanner\n", commands[2]);
+			}
 			break;
 		case SCAN_LIST:
 			NOT_YET_IMP;
