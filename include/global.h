@@ -18,6 +18,7 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/stat.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -25,6 +26,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <libgen.h>
+#include <ctype.h>
 
 /* ------ CONSTANTS ------ */
 
@@ -47,13 +49,13 @@
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
 
+#define KL_EXIT 	-1
+
 #define SOCK_TO 	15 /* Define the timeout applied to sockets */
+#define SEL_TO 		600 /* Define the timeout waiting on sockets */
 
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))
-
-#define LOG_DEBUG \
- 	printf("[DEBUG] Function: %s\n", __func__);
 
 /* ------ PROTOTYPES ----- */
 

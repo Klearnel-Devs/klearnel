@@ -20,8 +20,10 @@
  */
 #include <global.h>
 #include <quarantine/quarantine.h>
+#include <core/scanner.h>
 #include <core/ui.h>
 #include <logging/logging.h>
+#include <config/config.h>
 
 /* Initialize all components required by the module */
 void _init_env()
@@ -36,7 +38,6 @@ void _init_env()
 			exit(EXIT_FAILURE);
 		}		
 	}
-	LOG_DEBUG;
 	if (access(WORK_DIR, F_OK) == -1) {
 		if (mkdir(WORK_DIR, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 			perror("KL: Unable to create the configuration directory");
@@ -51,6 +52,8 @@ void _init_env()
 	}
 	init_logging();
 	init_qr();
+	init_scanner();
+	init_config();
 }
 
 /* Daemonize the module */
@@ -107,7 +110,6 @@ error:
 int main(int argc, char **argv)
 {
 	int pid;
-	
 	if (argc > 1) {
 		execute_commands(argc, argv);
 		return EXIT_SUCCESS;
@@ -117,17 +119,27 @@ int main(int argc, char **argv)
 		perror("KL: Unable to save the module pid");
 		return EXIT_FAILURE;
 	}
-	qr_worker();
-	/*pid = fork();
+	
+	pid = fork();
+
 	if (pid == 0) {
-		
+		pid = fork();
+		if (pid == 0) {
+			qr_worker();
+		} else if (pid > 0) {
+			scanner_worker();
+		} else {
+			perror("KL: Unable to fork for Quarantine & Scanner processes");
+			return EXIT_FAILURE;
+		}
 	} else if (pid > 0) {
-		
+		cfg_worker();
 	} else {
-		perror("KL: Unable to fork first processes");
+		perror("KL: Unable to fork Klearnel processes");
 		return EXIT_FAILURE;
-	} 
-	*/
+	}
+
+	 
 
 	/* will be deamonized later */
 	return EXIT_SUCCESS;

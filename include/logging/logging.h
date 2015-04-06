@@ -22,11 +22,18 @@
 #define OLD		2592000
 
 /* Logging Semaphore */
- #define IPC_LOG 48
+#define IPC_LOG 48
 
 /*----- PROTOYPE ------ */
 
 int write_to_log(int level, char const *format, ...);
+
+#define LOG_DEBUG \
+ 	write_to_log(DEBUG," Function: %s:%d", __func__,__LINE__)
+
+#define LOG(level, msg) \
+	write_to_log(level, "%s:%d: %s", __func__, __LINE__, msg)
+
 void init_logging();
 
 #endif /* _KLEARNEL_LOGGING_H */
