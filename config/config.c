@@ -106,4 +106,5 @@ void cfg_worker()
 	} while (task != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
+	exit(EXIT_SUCCESS);
 }

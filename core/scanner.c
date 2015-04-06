@@ -35,17 +35,14 @@ int add_watch_elem(TWatchElement elem)
 		LOG(FATAL, "Unable to allocate memory");
 		return -1;
 	}
-	LOG_DEBUG;
 	node->element = elem;
 	node->next = NULL;
 	if (!watch_list) {
-		LOG_DEBUG;
 		watch_list = malloc(sizeof(struct watchElementList));
 		if (!watch_list) {
 			LOG(FATAL, "Unable to allocate memory");
 			return -1;
 		}
-		LOG_DEBUG;
 		node->prev = NULL;
 		watch_list->first = node;
 		watch_list->last = node;
@@ -57,7 +54,6 @@ int add_watch_elem(TWatchElement elem)
 	watch_list->last->next = node;
 	watch_list->last = node;
 	watch_list->count++;
-	LOG_DEBUG;
 	return 0;
 }
 
@@ -90,22 +86,18 @@ int load_watch_list()
 {
 	int fd = 0;
 	TWatchElement tmp;
-	LOG_DEBUG;
 	if ((fd = open(SCAN_DB, O_RDONLY)) < 0) {
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
-	LOG_DEBUG;
 
 	while(read(fd, &tmp, sizeof(struct watchElement)) != 0) {
-		LOG_DEBUG;
 		if (add_watch_elem(tmp) < 0) {
 			write_to_log(URGENT, "%s:%d: Unable to add \"%s\" to the watch list", 
 				__func__, __LINE__, tmp.path);
 			close(fd);
 			return -1;
 		}
-		LOG_DEBUG;
 	}
 
 	close(fd);
@@ -224,6 +216,7 @@ void scanner_worker()
 	} while (task != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
+	exit(EXIT_SUCCESS);
 }
 
 TWatchElement get_watch_elem(const char* path) 
@@ -248,19 +241,16 @@ TWatchElement get_watch_elem(const char* path)
 
 int perform_task(const int task, const char *buf, const int s_cl) 
 {
-	LOG_DEBUG;
 	if (load_watch_list() < 0) {
 		LOG(WARNING, "Unable to load the watch list");
 		return -1;
 	}
-	LOG_DEBUG;
 	switch (task) {
 		case SCAN_ADD:
 			if (buf == NULL) {
 				LOG(URGENT, "Buffer received is empty");
 				return -1;
 			}
-			write_to_log(DEBUG, "Buffer received: %s", buf);
 			int fd = open(buf, O_RDONLY);
 			if (fd <= 0) {
 				write_to_log(URGENT,"%s:%d: Unable to open %s", 
@@ -319,7 +309,9 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
+			LOG(INFO, "Received KL_EXIT command");
 			exit_scanner();
+			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");

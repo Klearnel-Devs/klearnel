@@ -238,4 +238,5 @@ void _get_instructions()
 void qr_worker()
 {
 	_get_instructions();
+	exit(EXIT_SUCCESS);
 }

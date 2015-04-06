@@ -94,13 +94,18 @@ void execute_commands(int nb, char **commands)
 		NOT_YET_IMP;
 		printf("See the LICENSE file located in /etc/klearnel\n");
 	} else if (!strcmp(commands[1], "exit")) {
-		printf("Killing Klearnel processes\n");
+		printf("Stopping Klearnel services\n\n");
 		if (qr_query(nb, commands, KL_EXIT) != 0) {
-			printf("Check Klearnel logs, Qr-Worker did not terminate correctly");
+			printf("Check Klearnel logs, Qr-Worker did not terminate correctly\n");
+		} else {
+			printf("Qr-Worker successfully stopped\n");
 		}
 		if (scan_query(nb, commands, KL_EXIT) != 0) {
-			printf("Check Klearnel logs, Scanner did not terminate correctly");
+			printf("Check Klearnel logs, Scanner did not terminate correctly\n");
+		} else {
+			printf("Scanner process successfully stopped\n");
 		}
+		printf("\nKlearnel services are stopped and the module will now be shutted down\n");
 	} else if (!strcmp(commands[1], "help")) {
 		printf("\n\e[4mKlearnel commands:\e[24m\n\n");
 		printf(" - \e[1madd-to-qr <path-to-file>\e[21m:\n\t Add a new file to the quarantine\n");

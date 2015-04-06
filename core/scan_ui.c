@@ -237,8 +237,6 @@ int scan_query(int nb, char **commands, int action)
 
 			int c_len = strlen(tmp_filename) + 1;
 			snprintf(query, len, "%d:%d", action, c_len);
-			printf("C-len: %d\n", c_len);
-			printf("tmp-filename: %s\n", tmp_filename);
 			if (write(s_cl, query, len) < 0) {
 				perror("[UI] Unable to send query");
 				free(tmp_filename);
@@ -279,7 +277,19 @@ int scan_query(int nb, char **commands, int action)
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
-			NOT_YET_IMP;
+			snprintf(query, len, "%d:0", action);
+			if (write(s_cl, query, len) < 0) {
+				perror("SCAN-UI: Unable to send query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("SCAN-UI: Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("SCAN-UI: Unable to get query result");
+				goto error;
+			}
 			break;
 		default:
 			printf("SCAN-UI: Unknow action. Nothing to do.\n");
