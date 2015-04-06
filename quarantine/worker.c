@@ -45,61 +45,6 @@ void _expired_files(QrList **list)
 	return;
 }
 
-/* Get data from socket "sock" and put it in buffer "buf"
- * Return number of char read if >= 0, else -1
- */
-static int _get_data(const int sock, int *action, char **buf)
-{
-	int c_len = 20;
-	char *a_type = malloc(c_len);
-	int len;
-	if (a_type == NULL) {
-		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
-		return -1;
-	}
-
-	if (read(sock, a_type, c_len) < 0) {
-		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Error while receiving data through socket");
-		return -1;
-	}
-
-	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
-		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send ack in socket");
-		free(a_type);
-		return -1;
-	}
-
-	*action = atoi(strtok(a_type, ":"));
-	len = atoi(strtok(NULL, ":"));
-	
-	if (len > 0) {
-		*buf = malloc(sizeof(char)*len);
-		if (*buf == NULL) {
-			if (SOCK_ANS(sock, SOCK_RETRY) < 0)
-				write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send retry");
-			write_to_log(FATAL,"%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
-			free(a_type);
-			return -1;
-		}
-
-		if (read(sock, *buf, len) < 0) {
-			if (SOCK_ANS(sock, SOCK_NACK) < 0)
-				write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send nack");
-			write_to_log(FATAL,"%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
-			free(a_type);
-			return -1;			
-		}
-
-		if(SOCK_ANS(sock, SOCK_ACK) < 0) {
-			write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send ack");
-			free(a_type);
-			return -1;
-		}
-	}
-	free(a_type);
-	return len;
-}
-
 /* Call the action related to the "action" arg 
  * If action has been executed correctly return the new qr_list, 
  * if not return the unchanged list or NULL
@@ -220,6 +165,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 void _get_instructions()
 {
 	int len, s_srv, s_cl;
+	int c_len = 20;
 	int action = 0;
 	struct sockaddr_un server;
 	QrList *list = calloc(1, sizeof(QrList));
@@ -269,7 +215,7 @@ void _get_instructions()
 				if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for sending operations");		
 				do {
-					if (_get_data(s_cl, &action, &buf) < 0) {
+					if (get_data(s_cl, &action, &buf, c_len) < 0) {
 						free(buf);
 						close(s_cl);
 						write_to_log(NOTIFY, "%s - %d - %s", __func__, __LINE__, "_get_data FAILED");

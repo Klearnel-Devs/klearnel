@@ -213,7 +213,7 @@ void init_qr()
 		}
 	}
 	if (access(QR_DB, F_OK) == -1) {
-		if (creat(QR_DB, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
+		if (creat(QR_DB, S_IRWXU | S_IRGRP | S_IROTH) < 0) {
 			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the database file", QR_DB);
 			return;
 		}

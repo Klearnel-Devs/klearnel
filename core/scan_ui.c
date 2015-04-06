@@ -5,7 +5,6 @@
  */
 #include <global.h>
 #include <core/ui.h>
-#include <logging/logging.h>
 #include <core/scanner.h>
 
 TWatchElement _new_elem_form(char *path)
