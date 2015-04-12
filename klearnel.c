@@ -45,10 +45,12 @@ void _init_env()
 		}		
 	}
 	if (access(TMP_DIR, F_OK) == -1) {
-		if (mkdir(TMP_DIR, S_IRWXU | S_IRWXG | S_IRWXO)) {
+		int oldmask = umask(0);
+		if (mkdir(TMP_DIR, 0777)) {
 			perror("KL: Unable to create the temp directory");
 			exit(EXIT_FAILURE);
-		}		
+		}	
+		umask(oldmask);	
 	}
 	init_logging();
 	init_qr();
