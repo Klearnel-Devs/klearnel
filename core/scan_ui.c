@@ -173,7 +173,7 @@ TWatchElement _new_elem_form(char *path)
 
 int scan_query(int nb, char **commands, int action)
 {
-	int len, s_cl;
+	int len, s_cl, fd;
 	int c_len = 0;
 	char *query, *res;
 	struct sockaddr_un remote;
@@ -212,7 +212,6 @@ int scan_query(int nb, char **commands, int action)
 		case SCAN_ADD: ;
 			time_t timestamp = time(NULL);
 			char *tmp_filename = malloc(sizeof(char)*(sizeof(timestamp)+5+strlen(SCAN_TMP)));
-			int fd;
 			if (!tmp_filename) {
 				perror("SCAN-UI: Unable to allocate memory");
 				return -1;
@@ -302,7 +301,44 @@ int scan_query(int nb, char **commands, int action)
 			}
 			break;
 		case SCAN_LIST:
-			NOT_YET_IMP;
+			snprintf(query, len, "%d:0", action);			
+			char *list_path = malloc(PATH_MAX);
+			TWatchElementList *scan_list = NULL;
+			if (!list_path) {
+				perror("[UI] Unable to allocate memory");
+				goto error;
+			}
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(list_path);
+				goto error;
+			} 
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, list_path, PATH_MAX) < 0) {
+				perror("[UI] Unable to get query result");
+				free(list_path);
+				goto error;	
+			} 
+			if (strcmp(list_path, SOCK_ABORTED) == 0) {
+				perror("[UI] Action get-scan-list couldn't be executed");
+				free(list_path);
+				goto error;
+			} 
+
+			fd = open(list_path, O_RDONLY, S_IRUSR);
+			if (fd < 0) {
+				perror("[UI] Unable to open scan list file");
+				free(list_path);
+				goto error;
+			}
+			load_tmp_scan(&scan_list, fd);
+			close(fd);
+			if (unlink(list_path))
+				printf("Unable to remove temporary scan list file: %s", list_path);
+			print_scan(&scan_list);
 			break;
 		case KL_EXIT:
 			snprintf(query, len, "%d:0", action);
