@@ -60,8 +60,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case QR_RM:
 		case QR_RM_ALL:
@@ -72,9 +73,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			LOG_DEBUG;
-			SOCK_ANS(s_cl, SOCK_ACK);
 			if (action == QR_RM_ALL) {
 				return 1;
 			}
@@ -88,8 +89,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			SOCK_ANS(s_cl, SOCK_ACK);
 			if (action == QR_REST_ALL) {
 				return 1;
 			}
