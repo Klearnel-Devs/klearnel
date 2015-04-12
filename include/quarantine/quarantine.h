@@ -11,6 +11,7 @@
 #define QR_DB 		BASE_DIR "/qr.db"
 #define QR_TMP      TMP_DIR "/quarantine"
 #define QR_SOCK 	TMP_DIR "/kl-qr-sck"
+#define RES_DEF     "/tmp/klearnel"
 
 #define QR_ADD 		    1
 #define QR_RM 		    2

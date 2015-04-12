@@ -218,6 +218,14 @@ void init_qr()
 			return;
 		}
 	}
+	if (access(RES_DEF, F_OK) == -1) {
+		int oldmask = umask(0);
+		if (mkdir(RES_DEF, S_IRWXU | S_IRWXG | S_IRWXO)) {
+			perror("KL: Unable to create the temp directory");
+			exit(EXIT_FAILURE);
+		}
+		umask(oldmask);		
+	}
 	write_to_log(INFO, "%s", "QR Initialized without error");
 }
 
@@ -391,6 +399,7 @@ int restore_file(QrList **list, char *filename)
 {
 	QrListNode *res_file = search_in_qr(*list, filename);
 	char *p_res = malloc(strlen(QR_STOCK)+strlen(filename)+3);
+	char *x_res = calloc(1, strlen(RES_DEF)+strlen(filename)+2);
 	if (!p_res) {
 		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
 		return -1;
@@ -405,22 +414,29 @@ int restore_file(QrList **list, char *filename)
 	}
 
 	if (snprintf(p_res, (strlen(QR_STOCK)+strlen(filename)+3), "%s/%s", QR_STOCK, filename) < 0) {
-		write_to_log(WARNING, "%s - %d - %s %s/%s", __func__, __LINE__, "Unable to create path to remove", QR_STOCK, filename);
+		write_to_log(WARNING, "%s - %d - %s %s/%s", __func__, __LINE__, "Unable to create path to restore", QR_STOCK, filename);
 		goto out;
 	}
 
 	if (rename(p_res, res_file->data.o_path) != 0) {
 		write_to_log(URGENT, "%s - %d - %s - %s to %s", __func__, __LINE__, "Restore aborted: Unable to move the file ", filename, res_file->data.o_path);
-		load_qr(list);
-		goto out;
+		if (snprintf(x_res, (strlen(RES_DEF)+strlen(filename)+2), "%s/%s", RES_DEF, filename) < 0) {
+			write_to_log(WARNING, "%s - %d - %s %s/%s", __func__, __LINE__, "Unable to create path to restore", RES_DEF, filename);
+			goto out;
+		}
+		if(rename(p_res, x_res) != 0){
+			write_to_log(URGENT, "%s - %d - %s", __func__, __LINE__, "Restore aborted: Unable to move the file to default directory");
+			goto out;
+		}
 	}
 	if (save_qr_list(list, -1) == 0) {
 		write_to_log(INFO, "File %s removed from QR and restored to %s", filename, res_file->data.o_path);
 	}
-	
+	free(x_res);
 	free(p_res);
 	return 0;
 out:
+	free(x_res);
 	free(p_res);
 	return -1;
 }
