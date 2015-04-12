@@ -123,6 +123,27 @@ void clear_watch_list()
 	watch_list = NULL;
 }
 
+TWatchElement get_watch_elem(const char* path) 
+{
+	TWatchElement tmp;
+	strcpy(tmp.path, EMPTY_PATH);
+	if (!watch_list) {
+		if (load_watch_list() < 0) {
+			LOG(WARNING, "Unable to load the watch list");
+			return tmp;			
+		}
+	}
+	int i;
+	TWatchElementNode* item = watch_list->first;
+	for (i = 0; i < watch_list->count; i++) {
+		if (!strcmp(item->element.path, path)) {
+			return item->element;
+		}
+		item = item->next;
+	}
+	return tmp;
+}
+
 int save_watch_list()
 {
 	int fd, i;
@@ -138,6 +159,7 @@ int save_watch_list()
 				__func__, __LINE__, item->element.path);
 			return -1;
 		}
+		item = item->next;
 	}
 	clear_watch_list();
 	close(fd);
@@ -217,26 +239,6 @@ void scanner_worker()
 	close(s_srv);
 	unlink(server.sun_path);
 	exit(EXIT_SUCCESS);
-}
-
-TWatchElement get_watch_elem(const char* path) 
-{
-	TWatchElement tmp;
-	strcpy(tmp.path, EMPTY_PATH);
-	if (!watch_list) {
-		if (load_watch_list() < 0) {
-			LOG(WARNING, "Unable to load the watch list");
-			return tmp;			
-		}
-	}
-	int i;
-	TWatchElementNode* item = watch_list->first;
-	for (i = 0; i < watch_list->count; i++) {
-		if (!strcmp(item->element.path, path)) {
-			return item->element;
-		}
-	}
-	return tmp;
 }
 
 int perform_task(const int task, const char *buf, const int s_cl) 
