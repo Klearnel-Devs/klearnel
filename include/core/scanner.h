@@ -83,6 +83,8 @@ void scanner_worker();
  */
 int load_watch_list();
 /* Add a new folder/file to supervise to the scan list
+ * - list: Can be used to specify another list than default
+ * Must be set to NULL if not used
  * Return 0 on success and -1 on error
  */
 int add_watch_elem(TWatchElement new);
@@ -90,6 +92,10 @@ int add_watch_elem(TWatchElement new);
  * Return 0 on success and -1 on error
  */
 int remove_watch_elem(TWatchElement elem);
+/*
+ * Load temporary Scanner file (used by user to list files in scanner)
+ */
+void load_tmp_scan(TWatchElementList **list, int fd);
 /* Send the scan list to user by socket 
  * Return 0 on success and -1 on error
  */
@@ -97,9 +103,13 @@ int get_watch_list();
 /* Clear the watch list */
 void clear_watch_list();
 /* Write the scan list to SCAN_DB
+ * - custom: must be set to -1 if not used 
+ * can be used to save the list into another file than default db
  * Return 0 on success and -1 on error
  */
-int save_watch_list();
+int save_watch_list(int custom);
+/* Print all elements in the scanner watch list */
+void print_scan(TWatchElementList **list);
 /* Execute the task ordered by the user
  * Return 0 on success and -1 on error
  */

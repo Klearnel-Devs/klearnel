@@ -97,6 +97,8 @@ void execute_commands(int nb, char **commands)
 			exit(EXIT_FAILURE);
 		}
 		scan_query(nb, commands, SCAN_RM);
+	} else if (!strcmp(commands[1], "get-scan-list")) {
+		scan_query(nb, commands, SCAN_LIST);
 	} else if (!strcmp(commands[1], "license")) {
 		NOT_YET_IMP;
 		printf("See the LICENSE file located in /etc/klearnel\n");
