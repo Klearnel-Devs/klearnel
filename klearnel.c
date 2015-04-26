@@ -23,6 +23,7 @@
 #include <core/scanner.h>
 #include <core/ui.h>
 #include <logging/logging.h>
+#include <config/config.h>
 
 /* Initialize all components required by the module */
 void _init_env()
@@ -44,14 +45,17 @@ void _init_env()
 		}		
 	}
 	if (access(TMP_DIR, F_OK) == -1) {
-		if (mkdir(TMP_DIR, S_IRWXU | S_IRWXG | S_IRWXO)) {
+		int oldmask = umask(0);
+		if (mkdir(TMP_DIR, 0777)) {
 			perror("KL: Unable to create the temp directory");
 			exit(EXIT_FAILURE);
-		}		
+		}	
+		umask(oldmask);	
 	}
 	init_logging();
 	init_qr();
 	init_scanner();
+	init_config();
 }
 
 /* Daemonize the module */
@@ -108,10 +112,18 @@ error:
 int main(int argc, char **argv)
 {
 	int pid;
-	if (argc > 1) {
-		execute_commands(argc, argv);
+	if (argc <= 1) {
+		printf("Klearnel: missing parameter(s)\n"
+		       "Enter \"klearnel help\" for further information\n");
 		return EXIT_SUCCESS;
 	}
+	if (!strcmp(argv[1], "start")) {
+		goto service;
+	} 
+	execute_commands(argc, argv);
+	return EXIT_SUCCESS;
+
+service:
 	_init_env();
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");
@@ -119,14 +131,25 @@ int main(int argc, char **argv)
 	}
 	
 	pid = fork();
+
 	if (pid == 0) {
-		qr_worker();
+		pid = fork();
+		if (pid == 0) {
+			qr_worker();
+		} else if (pid > 0) {
+			scanner_worker();
+		} else {
+			perror("KL: Unable to fork for Quarantine & Scanner processes");
+			return EXIT_FAILURE;
+		}
 	} else if (pid > 0) {
-		scanner_worker();
+		cfg_worker();
 	} else {
-		perror("KL: Unable to fork first processes");
+		perror("KL: Unable to fork Klearnel processes");
 		return EXIT_FAILURE;
-	} 
+	}
+
+	 
 
 	/* will be deamonized later */
 	return EXIT_SUCCESS;
