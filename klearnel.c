@@ -110,10 +110,18 @@ error:
 int main(int argc, char **argv)
 {
 	int pid;
-	if (argc > 1) {
-		execute_commands(argc, argv);
+	if (argc <= 1) {
+		printf("Klearnel: missing parameter(s)\n"
+		       "Enter \"klearnel help\" for further information\n");
 		return EXIT_SUCCESS;
 	}
+	if (!strcmp(argv[1], "start")) {
+		goto service;
+	} 
+	execute_commands(argc, argv);
+	return EXIT_SUCCESS;
+
+service:
 	_init_env();
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");
