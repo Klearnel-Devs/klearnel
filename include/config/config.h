@@ -11,7 +11,7 @@
  #define DEF_CFG	CONFIG "/klearnel.conf"
  #define CFG_TMP	TMP_DIR "/config"
 
- #define EXP_DEF	2592000
+ #define MAX	100	
 
 /*----- PROTOYPE ------ */
 

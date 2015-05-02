@@ -14,7 +14,7 @@
 
 int _create_cfg()
 {
-	FILE    *   ini ;
+	FILE *ini;
 
 	if ((ini = fopen(DEF_CFG, "w")) == NULL)
 		goto err;
@@ -33,17 +33,17 @@ int _create_cfg()
 	"\n"
 	"[SMALL]\n"
 	"EXP_DEF	= 2592000 ;\n"
-	"BACKUP		= FALSE ;\n"
+	"BACKUP		= 0 ;\n"
 	"LOCATION	= No Location Specified ;\n"
 	"\n"
 	"[MEDIUM]\n"
 	"EXP_DEF	= 2592000 ;\n"
-	"BACKUP		= FALSE ;\n"
+	"BACKUP		= 0 ;\n"
 	"LOCATION	= No Location Specified ;\n"
 	"\n"
 	"[LARGE]\n"
 	"EXP_DEF	= 2592000 ;\n"
-	"BACKUP		= FALSE ;\n"
+	"BACKUP		= 0 ;\n"
 	"LOCATION	= No Location Specified ;\n"
 	"\n");
 
@@ -66,10 +66,12 @@ void init_config()
 			goto err;
 	}
 	if (access(CFG_TMP, F_OK) == -1) {
-		if (mkdir(CFG_TMP, S_IRWXU | S_IRGRP | S_IROTH) < 0) {
+		int oldmask = umask(0);
+		if (mkdir(CFG_TMP, S_IRWXU | S_IRWXG | S_IRWXO) < 0) {
 			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the temp config folder", CFG_TMP);
 			return;
 		}
+		umask(oldmask);	
 	}
 	if (access(DEF_CFG, F_OK) == -1) {
 		if (_create_cfg() == -1)
@@ -84,5 +86,78 @@ void init_config()
 	return;
 	err:
 		write_to_log(FATAL, "%s", "Default configuration file is missing and could not be created");
+}
 
+const char * get_cfg(char *section, char *key) {
+	char *value;
+	char *query = malloc(strlen(section) + strlen(key) + strlen(":") + 1);
+	if (!snprintf(query, (strlen(section) + strlen(key) + strlen(":") + 1), "%s:%s", section, key)) {
+		write_to_log(WARNING, "%s - %d - %s - %s:%s", __LINE__, __func__, "Unable to set config query for", section, key);
+		goto err;
+	}
+
+	if ((value = iniparser_getstring(ini, query, NULL)) == NULL) {
+		write_to_log(WARNING, "%s - %d - %s - %s:%s", __LINE__, __func__, "Unable to get config value for", section, key);
+	}
+	free(query);
+	return value;
+err:
+	free(query);
+	return NULL;
+}
+
+int modify_cfg(char *section, char *key, char *value)
+{
+	char *query = malloc(strlen(section) + strlen(key) + strlen(":") + 1);
+	if (section == NULL) {
+		write_to_log(WARNING, "Unable to modify config, parameter is NULL - Section");
+		goto err;
+	} else if (key == NULL) {
+		write_to_log(WARNING, "Unable to modify config, parameter is NULL - Key");
+		goto err;
+	} else if (value == NULL) {
+		write_to_log(WARNING, "Unable to modify config, parameter is NULL - Value");
+		goto err;
+	}
+	if (!snprintf(query, (strlen(section) + strlen(key) + strlen(":") + 1), "%s:%s", section, key)) {
+		write_to_log(WARNING, "%s - %d - %s - %s:%s", __LINE__, __func__, "Unable to set config query for", section, key);
+		goto err;
+	}
+	if (iniparser_set(ini, query, value) != 0) {
+		write_to_log(WARNING, "Unable to modify config");
+		goto err;
+	}
+	free(query);
+	return 0;
+err:
+	free(query);
+	return -1;
+}
+
+int dump_cfg(char* filepath) {
+	FILE *tmp_cfg;
+	int oldmask = umask(0);
+	if (filepath == NULL) {
+		if ((tmp_cfg = fopen(CFG_TMP, "w")) == NULL) {
+			umask(oldmask);
+			goto err;
+		}
+	} else {
+		if ((tmp_cfg = fopen(filepath, "w")) == NULL) {
+			umask(oldmask);
+			goto err;
+		}
+	
+	}
+	umask(oldmask);
+	iniparser_dump(ini, tmp_cfg);
+	fclose(tmp_cfg);
+	return 0;
+err:
+	return -1;
+}
+
+void free_cfg()
+{
+	iniparser_freedict(ini);
 }
