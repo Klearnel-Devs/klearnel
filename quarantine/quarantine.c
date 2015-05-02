@@ -120,35 +120,34 @@ int  add_file_to_qr(QrList **list, char *filepath)
 {
 	QrData new_f;
 	struct stat new_s;
-	char *cp_path = malloc(strlen(filepath)+1);
-	strncpy(cp_path, filepath, strlen(filepath)+1);
-	char *fn = basename(cp_path);
+	char *fn = basename(filepath);
 	char *new_path = malloc(strlen(QR_STOCK)+strlen(fn)+10);
-	char *tmp = malloc(strlen(fn)+4);
+	char *tmp = NULL;
+	char *tmp_fn = NULL;
 	int i = 1;
 	
-	if ((!new_path) || (!tmp) || (!cp_path)) {
+	if (!new_path) {
 		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Couldn't allocate memory");
-        goto error;
-	}
-
-	if (access(fn, F_OK) != -1) {		
-		do {
-			if (snprintf(tmp, strlen(fn) + sizeof(i) +1, "%s%d", fn, i) < 0) {
-				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to increment filename");
-        		goto error;
-			}
-			i++;
-		} while(access(tmp, F_OK) != -1);
-		if (!strncpy(fn, tmp, strlen(tmp) + 1)) {
-			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to modify filename");
-        	goto error;
-		}
+        	return -1;
 	}
 
 	if (!snprintf(new_path, (strlen(QR_STOCK)+strlen(fn)+10), "%s/%s", QR_STOCK, fn) < 0) {
 		write_to_log(WARNING, "%s - %d - %s - %s/%s", __func__, __LINE__, "Unable to create the new path for file added", QR_STOCK, fn);
 		goto error;
+	}
+
+
+	if (access(new_path, F_OK) != -1) {
+		tmp =  malloc(strlen(new_path)+4);		
+		do {
+			if (snprintf(tmp, strlen(new_path)+4, "%s%d", new_path, i) < 0) {
+				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to increment filename");
+        			goto error;
+			}
+			i++;
+		} while(access(tmp, F_OK) != -1);
+
+		tmp_fn = basename(tmp);
 	}
 
 	if (stat(filepath, &new_s) < 0) {
@@ -159,26 +158,40 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	new_f.o_ino = new_s;
 	if (!strncpy(new_f.o_path, filepath, strlen(filepath)+1)) {
 		write_to_log(WARNING, "%s - %d - Unable to put current path - %s - to old path - %s", __func__, __LINE__, new_f.o_path, filepath);
-        goto error;
+        	goto error;
 	}
-	if (!strncpy(new_f.f_name, fn, strlen(fn)+1)) {
-		write_to_log(WARNING, "%s - %d - Unable to put new filename - %s - to qr_file struct - %s", __func__, __LINE__, fn, new_f.f_name);
-        goto error;
+	if (tmp_fn == NULL) {
+		if (!strncpy(new_f.f_name, fn, strlen(fn)+1)) {
+			write_to_log(WARNING, "%s - %d - Unable to put new filename - %s - to qr_file struct - %s", __func__, __LINE__, fn, new_f.f_name);
+	        	goto error;
+		}
+	} else {
+		if (!strncpy(new_f.f_name, tmp_fn, strlen(tmp_fn)+1)) {
+			write_to_log(WARNING, "%s - %d - Unable to put new filename - %s - to qr_file struct - %s", __func__, __LINE__, fn, new_f.f_name);
+	        	goto error;
+		}
 	}
 
 	if (new_f.f_name == NULL)
-        goto error;
+        	goto error;
 
 	new_f.d_begin   = time(NULL);
 	/* This will be changed when config implemented 
 	 * Choice will be between expire configured and not configured
 	 */
 	new_f.d_expire  = new_f.d_begin + EXP_DEF;
-
-	if (rename(filepath, new_path)) {
-		write_to_log(WARNING, "%s - %d - Adding aborted: Unable to move the file %s to %s", __func__, __LINE__, filepath, new_path);
-		goto error;
+	if (tmp == NULL) {
+		if (rename(filepath, new_path)) {
+			write_to_log(WARNING, "%s - %d - Adding aborted: Unable to move the file %s to %s", __func__, __LINE__, filepath, new_path);
+			goto error;
+		}		
+	} else {
+		if (rename(filepath, tmp)) {
+			write_to_log(WARNING, "%s - %d - Adding aborted: Unable to move the file %s to %s", __func__, __LINE__, filepath, tmp);
+			goto error;
+		}		
 	}
+
 
 	if (_add_to_qr_list(list, new_f) != 0){
 		write_to_log(FATAL, "%s - %s - %s", __func__, __LINE__, "Unable to allocate memory");
@@ -192,14 +205,18 @@ int  add_file_to_qr(QrList **list, char *filepath)
 		goto error;
 	}
 	write_to_log(INFO, "File successfully moved from %s to %s in QR Stock", filepath, new_path);
-	free(tmp);
+	LOG_DEBUG;
 	free(new_path);
-	free(cp_path);
+	LOG_DEBUG;
+	free(tmp);
+	LOG_DEBUG;
 	return 0;
 error:
-	free(tmp);
+	LOG_DEBUG;
 	free(new_path);
-	free(cp_path);
+	LOG_DEBUG;
+	free(tmp);
+	LOG_DEBUG;
 	return -1;
 }
 

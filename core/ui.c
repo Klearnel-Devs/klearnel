@@ -102,7 +102,7 @@ void execute_commands(int nb, char **commands)
 	} else if (!strcmp(commands[1], "license")) {
 		NOT_YET_IMP;
 		printf("See the LICENSE file located in /etc/klearnel\n");
-	} else if (!strcmp(commands[1], "exit")) {
+	} else if (!strcmp(commands[1], "stop")) {
 		printf("Stopping Klearnel services\n\n");
 		if (qr_query(nb, commands, KL_EXIT) != 0) {
 			printf("Check Klearnel logs, Qr-Worker did not terminate correctly\n");
@@ -131,7 +131,8 @@ void execute_commands(int nb, char **commands)
 		printf(" - \e[1mrm-from-scan <file/folder path>\e[21m: \n\t Remove the specified file/folder from the scanner watch list\n");	
 		printf(" - \e[1mview-rt-log\e[21m:\n\t Display the current klearnel's log in real time\n");
 		printf(" - \e[1mlicense\e[21m:\n\t Display the klearnel license terms\n");
-		printf(" - \e[1mexit\e[21m:\n\t Kill all Klearnel processes\n");
+		printf(" - \e[1mstart\e[21m:\n\t Start Klearnel service\n");
+		printf(" - \e[1mstop\e[21m:\n\t Stop Klearnel service\n");
 		printf(" - \e[1mhelp\e[21m:\n\t Display this help message\n");
 		printf("\nCopyright (C) 2014, 2015 Klearnel-Devs\n\n");
 	} else {

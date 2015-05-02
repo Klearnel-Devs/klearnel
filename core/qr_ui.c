@@ -49,6 +49,15 @@ int qr_query(int nb, char **commands, int action)
 	i = 2;
 	switch (action) {
 		case QR_ADD:
+			do {
+				if (access(commands[i], F_OK) == -1) {
+					printf("%s: Unable to find %s.\n"
+						"Please check if the path is correct.\n", __func__, commands[i]);
+					goto error;
+				}
+				i++;
+			} while (commands[i]);
+			i = 2;
 		case QR_RM:
 		case QR_REST:
 			do {

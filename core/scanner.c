@@ -230,7 +230,7 @@ void scanner_worker()
 	int c_len = 20;
 	int task = 0;
 	struct sockaddr_un server;
-
+	int oldmask = umask(0);
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to open the socket");
 		return;
@@ -243,6 +243,7 @@ void scanner_worker()
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to bind the socket");
 		return;
 	}
+	umask(oldmask);
 	listen(s_srv, 10);
 
 	do {
@@ -378,8 +379,9 @@ int perform_task(const int task, const char *buf, const int s_cl)
 				return 0;
 			}
 			sprintf(path_to_list, "%s", SCAN_TMP);
+			int oldmask = umask(0);
 			if (access(path_to_list, F_OK) == -1) {
-				if (mkdir(path_to_list, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+				if (mkdir(path_to_list, ALL_RWX)) {
 					write_to_log(WARNING, "%s - %d - %s:%s", __func__, __LINE__, "Unable to create the tmp_stock folder", path_to_list);
 					if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
 						write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
@@ -389,7 +391,7 @@ int perform_task(const int task, const char *buf, const int s_cl)
 				}
 			}
 			sprintf(file, "%s/%d", path_to_list, (int)timestamp);
-			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
+			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, ALL_RWX);
 			if (tmp_stock < 0) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open tmp_stock");
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
@@ -401,6 +403,7 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			}
 			save_watch_list(tmp_stock);
 			close(tmp_stock);
+			umask(oldmask);
 			write(s_cl, file, PATH_MAX);
 			free(path_to_list);
 			free(file);
