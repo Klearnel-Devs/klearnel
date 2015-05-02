@@ -41,7 +41,7 @@ void cfg_worker()
 	int c_len = 20;
 	int task = 0;
 	struct sockaddr_un server;
-
+	int oldmask = umask(0);
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to open the socket");
 		return;
@@ -54,6 +54,7 @@ void cfg_worker()
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to bind the socket");
 		return;
 	}
+	umask(oldmask);
 	listen(s_srv, 10);
 
 	do {
@@ -106,4 +107,5 @@ void cfg_worker()
 	} while (task != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
+	exit(EXIT_SUCCESS);
 }

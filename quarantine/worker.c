@@ -60,8 +60,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case QR_RM:
 		case QR_RM_ALL:
@@ -72,9 +73,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			LOG_DEBUG;
-			SOCK_ANS(s_cl, SOCK_ACK);
 			if (action == QR_RM_ALL) {
 				return 1;
 			}
@@ -88,8 +89,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			SOCK_ANS(s_cl, SOCK_ACK);
 			if (action == QR_REST_ALL) {
 				return 1;
 			}
@@ -108,8 +110,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				return 0;
 			}
 			sprintf(path_to_list, "%s", QR_TMP);
+			int oldmask = umask(0);
 			if (access(path_to_list, F_OK) == -1) {
-				if (mkdir(path_to_list, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+				if (mkdir(path_to_list, ALL_RWX)) {
 					write_to_log(WARNING, "%s - %d - %s:%s", __func__, __LINE__, "Unable to create the tmp_stock folder", path_to_list);
 					if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
 						write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
@@ -119,7 +122,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				}
 			}
 			sprintf(file, "%s/%d", path_to_list, (int)timestamp);
-			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
+			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, ALL_RWX);
 			if (tmp_stock < 0) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open tmp_stock");
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
@@ -131,6 +134,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 			}
 			save_qr_list(list, tmp_stock);
 			close(tmp_stock);
+			umask(oldmask);
 			write(s_cl, file, PATH_MAX);
 			free(path_to_list);
 			free(file);
@@ -170,7 +174,7 @@ void _get_instructions()
 	struct sockaddr_un server;
 	QrList *list = calloc(1, sizeof(QrList));
 	load_qr(&list);
-
+	int oldmask = umask(0);
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open the socket");
 		return;
@@ -183,6 +187,7 @@ void _get_instructions()
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to bind the socket");
 		return;
 	}
+	umask(oldmask);
 	listen(s_srv, 10);
 
 	do {
@@ -238,4 +243,5 @@ void _get_instructions()
 void qr_worker()
 {
 	_get_instructions();
+	exit(EXIT_SUCCESS);
 }

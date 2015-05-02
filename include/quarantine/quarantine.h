@@ -11,6 +11,7 @@
 #define QR_DB 		BASE_DIR "/qr.db"
 #define QR_TMP      TMP_DIR "/quarantine"
 #define QR_SOCK 	TMP_DIR "/kl-qr-sck"
+#define RES_DEF     "/tmp/klearnel"
 
 #define QR_ADD 		    1
 #define QR_RM 		    2
@@ -47,10 +48,6 @@ typedef struct QrList {
     QrListNode *first;
     QrListNode *last;
 } QrList;
-
-#define List_count(A) ((A)->count)
-#define List_first(A) ((A)->first != NULL ? (A)->first->value : NULL)
-#define List_last(A) ((A)->last != NULL ? (A)->last->value : NULL)
 
 #define LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
     QrListNode *V = NULL;\

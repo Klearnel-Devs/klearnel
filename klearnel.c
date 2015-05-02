@@ -45,10 +45,12 @@ void _init_env()
 		}		
 	}
 	if (access(TMP_DIR, F_OK) == -1) {
-		if (mkdir(TMP_DIR, S_IRWXU | S_IRWXG | S_IRWXO)) {
+		int oldmask = umask(0);
+		if (mkdir(TMP_DIR, 0777)) {
 			perror("KL: Unable to create the temp directory");
 			exit(EXIT_FAILURE);
-		}		
+		}	
+		umask(oldmask);	
 	}
 	init_logging();
 	init_qr();
@@ -110,10 +112,18 @@ error:
 int main(int argc, char **argv)
 {
 	int pid;
-	if (argc > 1) {
-		execute_commands(argc, argv);
+	if (argc <= 1) {
+		printf("Klearnel: missing parameter(s)\n"
+		       "Enter \"klearnel help\" for further information\n");
 		return EXIT_SUCCESS;
 	}
+	if (!strcmp(argv[1], "start")) {
+		goto service;
+	} 
+	execute_commands(argc, argv);
+	return EXIT_SUCCESS;
+
+service:
 	_init_env();
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");

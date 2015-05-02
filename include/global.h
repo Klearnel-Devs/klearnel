@@ -32,6 +32,7 @@
 
 #define ALL_R 		S_IRUSR | S_IRGRP | S_IROTH
 #define USER_RW		S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+#define ALL_RWX		S_IRWXU | S_IRWXG | S_IRWXO
 
 #define BASE_DIR 	"/etc/klearnel"
 #define WORK_DIR	"/usr/local/klearnel"
@@ -56,6 +57,10 @@
 
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))
+
+#define List_count(A) 	((A)->count)
+#define List_first(A) 	((A)->first != NULL ? (A)->first->value : NULL)
+#define List_last(A) 	((A)->last != NULL ? (A)->last->value : NULL)
 
 /* ------ PROTOTYPES ----- */
 

@@ -85,22 +85,36 @@ void execute_commands(int nb, char **commands)
 	  	system(task);
 	} else if (!strcmp(commands[1], "add-to-scan")) {
 		if (nb < 3) {
-			fprintf(stderr, "Element to restore missing\n"
+			fprintf(stderr, "Element to add missing\n"
 				 "Correct syntax is: klearnel add-to-scan <file/folder path>\n");
 			exit(EXIT_FAILURE);
 		}
 		scan_query(nb, commands, SCAN_ADD);
+	} else if (!strcmp(commands[1], "rm-from-scan")) {
+		if (nb < 3) {
+			fprintf(stderr, "Element to remove missing\n"
+				"Correct syntax is: klearnel rm-from-scan <file/folder path to remove>\n");
+			exit(EXIT_FAILURE);
+		}
+		scan_query(nb, commands, SCAN_RM);
+	} else if (!strcmp(commands[1], "get-scan-list")) {
+		scan_query(nb, commands, SCAN_LIST);
 	} else if (!strcmp(commands[1], "license")) {
 		NOT_YET_IMP;
 		printf("See the LICENSE file located in /etc/klearnel\n");
-	} else if (!strcmp(commands[1], "exit")) {
-		printf("Killing Klearnel processes\n");
+	} else if (!strcmp(commands[1], "stop")) {
+		printf("Stopping Klearnel services\n\n");
 		if (qr_query(nb, commands, KL_EXIT) != 0) {
-			printf("Check Klearnel logs, Qr-Worker did not terminate correctly");
+			printf("Check Klearnel logs, Qr-Worker did not terminate correctly\n");
+		} else {
+			printf("Qr-Worker successfully stopped\n");
 		}
 		if (scan_query(nb, commands, KL_EXIT) != 0) {
-			printf("Check Klearnel logs, Scanner did not terminate correctly");
+			printf("Check Klearnel logs, Scanner did not terminate correctly\n");
+		} else {
+			printf("Scanner process successfully stopped\n");
 		}
+		printf("\nKlearnel services are stopped and the module will now be shutted down\n");
 	} else if (!strcmp(commands[1], "help")) {
 		printf("\n\e[4mKlearnel commands:\e[24m\n\n");
 		printf(" - \e[1madd-to-qr <path-to-file>\e[21m:\n\t Add a new file to the quarantine\n");
@@ -112,9 +126,13 @@ void execute_commands(int nb, char **commands)
 		printf(" - \e[1mget-qr-info <filename>\e[21m:\n\t NOT YET IMPLEMENTED\n");
 		printf(" - \e[1mrestore-from-qr <filename>\e[21m:\n\t Restore the specified file to its original location\n");
 		printf(" - \e[1mrestore-all-from-qr\e[21m:\n\t Restore all files to their original locations\n");
+		printf(" - \e[1madd-to-scan <file/folder path>\e[21m:\n\t Add the specified file or folder to the scanner watch list"
+			"\n\tNOTE: this command will prompt you for each action to apply to the new item. It can take a few minutes to complete.\n");
+		printf(" - \e[1mrm-from-scan <file/folder path>\e[21m: \n\t Remove the specified file/folder from the scanner watch list\n");	
 		printf(" - \e[1mview-rt-log\e[21m:\n\t Display the current klearnel's log in real time\n");
 		printf(" - \e[1mlicense\e[21m:\n\t Display the klearnel license terms\n");
-		printf(" - \e[1mexit\e[21m:\n\t Kill all Klearnel processes\n");
+		printf(" - \e[1mstart\e[21m:\n\t Start Klearnel service\n");
+		printf(" - \e[1mstop\e[21m:\n\t Stop Klearnel service\n");
 		printf(" - \e[1mhelp\e[21m:\n\t Display this help message\n");
 		printf("\nCopyright (C) 2014, 2015 Klearnel-Devs\n\n");
 	} else {

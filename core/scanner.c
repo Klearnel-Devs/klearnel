@@ -57,6 +57,35 @@ int add_watch_elem(TWatchElement elem)
 	return 0;
 }
 
+int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
+{
+	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
+	if (!node) {
+		LOG(FATAL, "Unable to allocate memory");
+		return -1;
+	}
+	node->element = elem;
+	node->next = NULL;
+	if (!(*list)) {
+		(*list) = malloc(sizeof(struct watchElementList));
+		if (!(*list)) {
+			LOG(FATAL, "Unable to allocate memory");
+			return -1;
+		}
+		node->prev = NULL;
+		(*list)->first = node;
+		(*list)->last = node;
+		(*list)->count = 1;
+		return 0;
+	}
+	
+	node->prev = (*list)->last;
+	(*list)->last->next = node;
+	(*list)->last = node;
+	(*list)->count++;
+	return 0;
+}
+
 int remove_watch_elem(TWatchElement elem) 
 {
 	TWatchElementNode* item = watch_list->first;
@@ -86,12 +115,10 @@ int load_watch_list()
 {
 	int fd = 0;
 	TWatchElement tmp;
-
 	if ((fd = open(SCAN_DB, O_RDONLY)) < 0) {
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
-
 
 	while(read(fd, &tmp, sizeof(struct watchElement)) != 0) {
 		if (add_watch_elem(tmp) < 0) {
@@ -112,25 +139,88 @@ int get_watch_list()
 	return 0;
 }
 
-int save_watch_list()
+void clear_watch_list()
 {
-	int fd, i;
-
-	if ((fd = open(SCAN_DB, O_WRONLY | O_TRUNC)) < 0) {
-		LOG(URGENT, "Unable to open the SCAN_DB");
-		return -1;
-	}
-	TWatchElementNode* item = watch_list->first;
-	for(i = 0; i < watch_list->count; i++) {
-		if (write(fd, &item->element, sizeof(struct watchElement)) < 0) {
-			write_to_log(FATAL, "%s:%s: Unable to write \"%s\" in SCAN_DB", 
-				__func__, __LINE__, item->element.path);
-			return -1;
+	if (watch_list->first != NULL) {
+		SCAN_LIST_FOREACH(watch_list, first, next, cur) {
+			if (cur->prev) {
+			    	free(cur->prev);
+			}
 		}
 	}
 	free(watch_list);
-	close(fd);
+	watch_list = NULL;
+}
+
+TWatchElement get_watch_elem(const char* path) 
+{
+	TWatchElement tmp;
+	strcpy(tmp.path, EMPTY_PATH);
+	if (!watch_list) {
+		if (load_watch_list() < 0) {
+			LOG(WARNING, "Unable to load the watch list");
+			return tmp;			
+		}
+	}
+	int i;
+	TWatchElementNode* item = watch_list->first;
+	for (i = 0; i < watch_list->count; i++) {
+		if (!strcmp(item->element.path, path)) {
+			return item->element;
+		}
+		item = item->next;
+	}
+	return tmp;
+}
+
+int save_watch_list(int custom)
+{
+	int fd;
+
+	if (custom >= 0) {
+		fd = custom;
+	} else if ((fd = open(SCAN_DB, O_WRONLY | O_TRUNC)) < 0) {
+		LOG(URGENT, "Unable to open the SCAN_DB");
+		return -1;
+	}
+	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
+		if (write(fd, &cur->element, sizeof(struct watchElement)) < 0) {
+			write_to_log(FATAL, "%s:%s: Unable to write \"%s\" in SCAN_DB", 
+				__func__, __LINE__, cur->element.path);
+			return -1;
+		}
+	}
+	clear_watch_list();
+	if (custom < 0) {
+		close(fd);
+	}
 	return 0;
+}
+
+void print_scan(TWatchElementList **list)
+{
+	clock_t begin, end;
+	double spent;
+	begin = clock();
+	printf("Scanner elements:\n");
+	SCAN_LIST_FOREACH((*list), first, next, cur) {
+		printf("\nElement \"%s\":\n", cur->element.path);
+		printf("\t- Options: %s\n", cur->element.options);
+	}
+	end = clock();
+	spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf("\nQuery executed in: %.2lf seconds\n", spent);
+}
+
+void load_tmp_scan(TWatchElementList **list, int fd)
+{
+	TWatchElement tmp;
+	while (read(fd, &tmp, sizeof(struct watchElement)) != 0) {
+		if (_add_tmp_watch_elem(tmp, list) != 0){
+			perror("Out of memory!");
+			exit(EXIT_FAILURE);
+		}
+	}
 }
 
 void scanner_worker()
@@ -140,7 +230,7 @@ void scanner_worker()
 	int c_len = 20;
 	int task = 0;
 	struct sockaddr_un server;
-
+	int oldmask = umask(0);
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to open the socket");
 		return;
@@ -153,6 +243,7 @@ void scanner_worker()
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to bind the socket");
 		return;
 	}
+	umask(oldmask);
 	listen(s_srv, 10);
 
 	do {
@@ -205,43 +296,21 @@ void scanner_worker()
 	} while (task != KL_EXIT);
 	close(s_srv);
 	unlink(server.sun_path);
-	exit_scanner();
+	exit(EXIT_SUCCESS);
 }
 
-TWatchElement get_watch_elem(const char* path) 
-{
-	TWatchElement tmp;
-	strcpy(tmp.path, EMPTY_PATH);
-	if (!watch_list) {
-		if (load_watch_list() < 0) {
-			LOG(WARNING, "Unable to load the watch list");
-			return tmp;			
-		}
-	}
-	int i;
-	TWatchElementNode* item = watch_list->first;
-	for (i = 0; i < watch_list->count; i++) {
-		if (!strcmp(item->element.path, path)) {
-			return item->element;
-		}
-	}
-	return tmp;
-}
-
-int perform_task(const int task, const char* buf, const int s_cl) 
+int perform_task(const int task, const char *buf, const int s_cl) 
 {
 	if (load_watch_list() < 0) {
 		LOG(WARNING, "Unable to load the watch list");
 		return -1;
 	}
-
 	switch (task) {
 		case SCAN_ADD:
 			if (buf == NULL) {
 				LOG(URGENT, "Buffer received is empty");
 				return -1;
 			}
-			
 			int fd = open(buf, O_RDONLY);
 			if (fd <= 0) {
 				write_to_log(URGENT,"%s:%d: Unable to open %s", 
@@ -260,6 +329,7 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;				
 			}
+			close(fd);
 			if (add_watch_elem(new) < 0) {
 				write_to_log(URGENT,"%s:%d: Unable to add %s to watch_list", 
 					__func__, __LINE__, new.path);
@@ -268,8 +338,8 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;
 			}
-			close(fd);
 			unlink(buf);
+			save_watch_list(-1);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case SCAN_RM:
@@ -293,13 +363,55 @@ int perform_task(const int task, const char* buf, const int s_cl)
 						__func__, __LINE__, "Unable to send aborted");
 				return -1;				
 			}
+			save_watch_list(-1);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
-		case SCAN_LIST:
-			NOT_YET_IMP;
+		case SCAN_LIST: ;
+			time_t timestamp = time(NULL);
+			int tmp_stock;
+			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));
+			char *file = malloc(sizeof(char)*(sizeof(timestamp)+30));
+			if (!path_to_list || !file) {
+				write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
+					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+				}
+				return 0;
+			}
+			sprintf(path_to_list, "%s", SCAN_TMP);
+			int oldmask = umask(0);
+			if (access(path_to_list, F_OK) == -1) {
+				if (mkdir(path_to_list, ALL_RWX)) {
+					write_to_log(WARNING, "%s - %d - %s:%s", __func__, __LINE__, "Unable to create the tmp_stock folder", path_to_list);
+					if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
+						write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+					}
+					free(path_to_list);
+					return 0;
+				}
+			}
+			sprintf(file, "%s/%d", path_to_list, (int)timestamp);
+			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, ALL_RWX);
+			if (tmp_stock < 0) {
+				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open tmp_stock");
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
+					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
+				}
+				free(path_to_list);
+				free(file);
+				return 0;
+			}
+			save_watch_list(tmp_stock);
+			close(tmp_stock);
+			umask(oldmask);
+			write(s_cl, file, PATH_MAX);
+			free(path_to_list);
+			free(file);
 			break;
 		case KL_EXIT:
-			watch_list = NULL;
+			LOG(INFO, "Received KL_EXIT command");
+			exit_scanner();
+			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");
@@ -316,7 +428,7 @@ int perform_event()
 
 int exit_scanner()
 {
-	if (save_watch_list() < 0) {
+	if (save_watch_list(-1) < 0) {
 		LOG(FATAL, "Unable to save the watch_list");
 		return -1;
 	}

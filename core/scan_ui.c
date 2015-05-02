@@ -173,13 +173,15 @@ TWatchElement _new_elem_form(char *path)
 
 int scan_query(int nb, char **commands, int action)
 {
-	int len, s_cl;
+	int len, s_cl, fd;
+	int c_len = 0;
 	char *query, *res;
 	struct sockaddr_un remote;
 	struct timeval timeout;
 	timeout.tv_sec 	= SOCK_TO;
 	timeout.tv_usec	= 0;
-
+	TWatchElement new_elem;
+	if (action == SCAN_ADD) new_elem = _new_elem_form(commands[2]);
 	if ((s_cl = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("[UI] Unable to create socket");
 		return -1;
@@ -208,43 +210,161 @@ int scan_query(int nb, char **commands, int action)
 	}
 	switch (action) {
 		case SCAN_ADD: ;
-			TWatchElement new_elem = _new_elem_form(commands[2]);
 			time_t timestamp = time(NULL);
 			char *tmp_filename = malloc(sizeof(char)*(sizeof(timestamp)+5+strlen(SCAN_TMP)));
-			int fd;
 			if (!tmp_filename) {
 				perror("SCAN-UI: Unable to allocate memory");
 				return -1;
 			}
 			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, (int)timestamp) < 0) {
 				perror("SCAN-UI: Unable to create the filename for temp scan file");
+				free(tmp_filename);
 				return -1;
 			}
 			fd = open(tmp_filename, O_WRONLY | O_TRUNC | O_CREAT);
 			if (fd < 0) {
 				fprintf(stderr, "SCAN-UI: Unable to create %s", tmp_filename);
+				free(tmp_filename);
 				return -1;
 			}
 
 			if (write(fd, &new_elem, sizeof(struct watchElement)) < 0) {
 				fprintf(stderr, "SCAN-UI: Unable to write the new item to %s", tmp_filename);
+				free(tmp_filename);
 				return -1;
 			}
 			close(fd);
 
-
+			c_len = strlen(tmp_filename) + 1;
+			snprintf(query, len, "%d:%d", action, c_len);
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(tmp_filename);
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				free(tmp_filename);
+				goto error;
+			}
+			
+			if (write(s_cl, tmp_filename, c_len) < 0) {
+				perror("[UI] Unable to send args of the query");
+				free(tmp_filename);
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				free(tmp_filename);
+				goto error;					
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				free(tmp_filename);
+				goto error;
+			}
+			if (!strcmp(res, SOCK_ACK)) {
+				printf("%s has been successfully added to Scanner\n", commands[2]);
+			} else if (!strcmp(res, SOCK_ABORTED)) {
+				printf("An error occured while adding %s to Scanner\n", commands[2]);
+			}
+			free(tmp_filename);
 			break;
-		case SCAN_RM:
-			NOT_YET_IMP;
+		case SCAN_RM: ;
+			c_len = strlen(commands[2]) + 1;
+			snprintf(query, len, "%d:%d", action, c_len);
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			
+			if (write(s_cl, commands[2], c_len) < 0) {
+				perror("[UI] Unable to send args of the query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;					
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (!strcmp(res, SOCK_ACK)) {
+				printf("%s has been successfully removed from Scanner\n", commands[2]);
+			} else if (!strcmp(res, SOCK_ABORTED)) {
+				printf("An error occured while removing %s to Scanner\n", commands[2]);
+			}
 			break;
 		case SCAN_LIST:
-			NOT_YET_IMP;
+			snprintf(query, len, "%d:0", action);			
+			char *list_path = malloc(PATH_MAX);
+			TWatchElementList *scan_list = NULL;
+			if (!list_path) {
+				perror("[UI] Unable to allocate memory");
+				goto error;
+			}
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(list_path);
+				goto error;
+			} 
+			if (read(s_cl, res, 2) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, list_path, PATH_MAX) < 0) {
+				perror("[UI] Unable to get query result");
+				free(list_path);
+				goto error;	
+			} 
+			if (strcmp(list_path, SOCK_ABORTED) == 0) {
+				perror("[UI] Action get-scan-list couldn't be executed");
+				free(list_path);
+				goto error;
+			} 
+
+			fd = open(list_path, O_RDONLY, S_IRUSR);
+			if (fd < 0) {
+				perror("[UI] Unable to open scan list file");
+				free(list_path);
+				goto error;
+			}
+			load_tmp_scan(&scan_list, fd);
+			close(fd);
+			if (unlink(list_path))
+				printf("Unable to remove temporary scan list file: %s", list_path);
+			print_scan(&scan_list);
 			break;
 		case KL_EXIT:
-			NOT_YET_IMP;
+			snprintf(query, len, "%d:0", action);
+			if (write(s_cl, query, len) < 0) {
+				perror("SCAN-UI: Unable to send query");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("SCAN-UI: Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, res, 2) < 0) {
+				perror("SCAN-UI: Unable to get query result");
+				goto error;
+			}
 			break;
 		default:
 			printf("SCAN-UI: Unknow action. Nothing to do.\n");
 	}
+	free(query);
+	free(res);
+	close(s_cl);
 	return 0;
+error:
+	free(query);
+	free(res);
+	close(s_cl);
+	return -1;
 }
