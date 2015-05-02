@@ -211,14 +211,17 @@ void _get_instructions()
 			if (FD_ISSET(s_srv, &fds)) {
 				len = sizeof(remote);
 				if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to accept the connection");
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to accept the connection");
 					continue;
 				}
 				if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for reception operations");
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to set timeout for reception operations");
 
 				if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for sending operations");		
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to set timeout for sending operations");		
 				do {
 					if (get_data(s_cl, &action, &buf, c_len) < 0) {
 						free(buf);
