@@ -10,7 +10,8 @@
 #include <iniparser/dictionary.h>
 #include <iniparser/iniparser.h>
 
- static dictionary *ini ;
+ static dictionary *ini = NULL;
+ static TSectionList *section_list = NULL;
 
 int _create_cfg()
 {
@@ -28,8 +29,6 @@ int _create_cfg()
 	"SMALL 		= 1048576 ;\n"
 	"MEDIUM		= 10485760 ;\n"
 	"LARGE		= 104857600 ;\n"
-	"\n"
-	"[SCANNER]\n"
 	"\n"
 	"[SMALL]\n"
 	"EXP_DEF	= 2592000 ;\n"
@@ -55,37 +54,131 @@ int _create_cfg()
 		return -1;
 }
 
+void _get_keys(TSection *section)
+{
+	TKeys *keys = malloc(sizeof(struct sectionkeys));
+	if ((keys->num = iniparser_getsecnkeys(ini, section->section_name)) == -1){
+		write_to_log(WARNING, "%s - %d - %s", __LINE__, __func__, "Unable to count config section key");
+		return;
+	}
+	keys->names = iniparser_getseckeys(ini, section->section_name);
+	section->keys = keys;
+	return; 
+}
+
+int _get_sections()
+{
+	int i;
+	if ((section_list->count = iniparser_getnsec(ini)) == -1){
+		write_to_log(WARNING, "%s - %d - %s", __LINE__, __func__, "Unable to count config sections");
+		return -1;
+	}
+	for(i = 0; i < section_list->count; i++) {
+		TSection* node = malloc(sizeof(struct section));
+		node->section_name = iniparser_getsecname(ini, i);
+		_get_keys(node);
+		if (section_list->first == NULL) {
+			section_list->first = node;
+		} else {
+			TSection *tmp = section_list->first;
+			section_list->first = node;
+			section_list->first->next = tmp;
+		}
+	}
+	return 0; 
+}
+
 void init_config()
 {  
 	if (access(CONFIG, F_OK) == -1) {
 		if (mkdir(CONFIG, S_IRWXU | S_IRGRP | S_IROTH) < 0) {
 			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the config folder", CONFIG);
-			return;
-		}
-		if (_create_cfg() == -1)
 			goto err;
+		}
+		if (_create_cfg() == -1){
+			write_to_log(FATAL, "%s", "Default configuration file is missing and could not be created");
+			goto err;
+		}
 	}
 	if (access(CFG_TMP, F_OK) == -1) {
 		int oldmask = umask(0);
 		if (mkdir(CFG_TMP, S_IRWXU | S_IRWXG | S_IRWXO) < 0) {
-			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the temp config folder", CFG_TMP);
+			write_to_log(WARNING, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the temp config folder", CFG_TMP);
 			return;
 		}
 		umask(oldmask);	
 	}
 	if (access(DEF_CFG, F_OK) == -1) {
-		if (_create_cfg() == -1)
+		if (_create_cfg() == -1){
+			write_to_log(FATAL, "%s", "Default configuration file is missing and could not be created");
 			goto err;
+		}
 	}
 	ini = iniparser_load(DEF_CFG);
 	if (ini==NULL) {
 		write_to_log(FATAL, "cannot parse file: %s\n", DEF_CFG);
-		return;
+		goto err;
 	}
+	if (!section_list) {
+		section_list = malloc(sizeof(struct sectionList));
+		if(!section_list) {
+			write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+			goto err;
+		}
+	}
+	if (_get_sections() != 0) {
+		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Section List could not be filled");
+		goto err;
+	}
+	free_cfg();
 	write_to_log(INFO, "%s", "Configuration Initialized without error");
 	return;
 	err:
-		write_to_log(FATAL, "%s", "Default configuration file is missing and could not be created");
+		exit(EXIT_FAILURE);
+}
+
+int dump_cfg(char* filepath) {
+	FILE *tmp_cfg;
+	int oldmask = umask(0);
+	if (filepath == NULL) {
+		char *tmp = malloc(strlen(CFG_TMP)+strlen("/tmp.conf") + 1);
+		if (!snprintf(tmp, strlen(CFG_TMP)+strlen("/tmp.conf") + 1, "%s%s", CFG_TMP, "/tmp.conf")) {
+			LOG(WARNING, "Unable to create tmp config filepath");
+			free(tmp);
+			goto err;
+		}
+		if ((tmp_cfg = fopen(tmp, "w")) == NULL) {
+			umask(oldmask);
+			goto err;
+		}
+		free(tmp);
+	} else {
+		if ((tmp_cfg = fopen(filepath, "w")) == NULL) {
+			umask(oldmask);
+			goto err;
+		}
+	
+	}
+	umask(oldmask);
+	iniparser_dump(ini, tmp_cfg);
+	fclose(tmp_cfg);
+	return 0;
+err:
+	write_to_log(WARNING, "Unable to dump config file");
+	return -1;
+}
+
+void free_cfg()
+{
+	int i;
+	TSection* node = malloc(sizeof(struct section));
+	for(i = 0; i < section_list->count; i++) {
+		node = section_list->first->next;
+		free(section_list->first);
+		section_list->first = node;
+	}
+	free(section_list);
+	iniparser_freedict(ini);
 }
 
 const char * get_cfg(char *section, char *key) {
@@ -132,32 +225,4 @@ int modify_cfg(char *section, char *key, char *value)
 err:
 	free(query);
 	return -1;
-}
-
-int dump_cfg(char* filepath) {
-	FILE *tmp_cfg;
-	int oldmask = umask(0);
-	if (filepath == NULL) {
-		if ((tmp_cfg = fopen(CFG_TMP, "w")) == NULL) {
-			umask(oldmask);
-			goto err;
-		}
-	} else {
-		if ((tmp_cfg = fopen(filepath, "w")) == NULL) {
-			umask(oldmask);
-			goto err;
-		}
-	
-	}
-	umask(oldmask);
-	iniparser_dump(ini, tmp_cfg);
-	fclose(tmp_cfg);
-	return 0;
-err:
-	return -1;
-}
-
-void free_cfg()
-{
-	iniparser_freedict(ini);
 }
