@@ -131,13 +131,12 @@ service:
 	}
 	
 	pid = fork();
-
 	if (pid == 0) {
 		qr_worker();
 	} else if (pid > 0) {
 		scanner_worker();
 	} else {
-		perror("KL: Unable to fork Quarantine & Scanner processes");
+		perror("KL: Unable to fork for Quarantine & Scanner processes");
 		return EXIT_FAILURE;
 	}
 

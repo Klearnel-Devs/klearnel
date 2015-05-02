@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <libgen.h>
 #include <ctype.h>
+#include <netinet/in.h>
 
 /* ------ CONSTANTS ------ */
 
@@ -42,6 +43,8 @@
 
 #define IPC_RAND 	"/dev/null"
 #define IPC_PERMS 	0666
+
+#define SOCK_NET_PORT	42225
 
 #define SOCK_ACK 	"1"
 #define SOCK_NACK 	"2"
