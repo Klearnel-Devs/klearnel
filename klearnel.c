@@ -142,7 +142,7 @@ service:
 			perror("KL: Unable to fork for Quarantine & Scanner processes");
 			return EXIT_FAILURE;
 		}
-	} else if (pid > 0) {
+	}else if (pid > 0) {
 		cfg_worker();
 	} else {
 		perror("KL: Unable to fork Klearnel processes");

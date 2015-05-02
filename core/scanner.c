@@ -176,13 +176,14 @@ TWatchElement get_watch_elem(const char* path)
 int save_watch_list(int custom)
 {
 	int fd;
-
+	if (watch_list == NULL) return 0;
 	if (custom >= 0) {
 		fd = custom;
 	} else if ((fd = open(SCAN_DB, O_WRONLY | O_TRUNC)) < 0) {
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
+
 	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
 		if (write(fd, &cur->element, sizeof(struct watchElement)) < 0) {
 			write_to_log(FATAL, "%s:%s: Unable to write \"%s\" in SCAN_DB", 
@@ -411,6 +412,7 @@ int perform_task(const int task, const char *buf, const int s_cl)
 		case KL_EXIT:
 			LOG(INFO, "Received KL_EXIT command");
 			exit_scanner();
+			LOG_DEBUG;
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		default:
