@@ -7,6 +7,10 @@
  * Copyright (C) 2014, 2015 Klearnel-Devs
  */
 
+#include <global.h>
+#include <logging/logging.h>
+#include <config/config.h>
+
 #define QR_STOCK 	WORK_DIR "/qr_stock"
 #define QR_DB 		BASE_DIR "/qr.db"
 #define QR_TMP      TMP_DIR "/quarantine"
@@ -21,8 +25,6 @@
 #define QR_RM_ALL       6
 #define QR_REST_ALL     7
 #define QR_LIST_RECALL  8
-
-#define EXP_DEF    2592000
 
 /* Structure of file into quarantine */
 struct qr_file {
