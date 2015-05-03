@@ -29,6 +29,8 @@ subdirs: build
 	@cd core; 	$(MAKE)
 	@cd logging;	$(MAKE)
 	@cd config;	$(MAKE)
+	@cd lib;	$(MAKE)
+	@cd net;	$(MAKE)
 
 build:
 	@mkdir -p build
@@ -48,4 +50,5 @@ clean-sub:
 	@cd core;	$(MAKE) clean
 	@cd logging;	$(MAKE) clean
 	@cd config;	$(MAKE) clean
-	
+	@cd lib;	$(MAKE) clean
+	@cd net; 	$(MAKE) clean	

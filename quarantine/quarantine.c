@@ -4,9 +4,7 @@
  * 
  * Copyright (C) 2014, 2015 Klearnel-Devs
  */
-#include <global.h>
 #include <quarantine/quarantine.h>
-#include <logging/logging.h>
 
 /* Add a file to the quarantine list 
  */
@@ -124,8 +122,8 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	char *new_path = malloc(strlen(QR_STOCK)+strlen(fn)+10);
 	char *tmp = NULL;
 	char *tmp_fn = NULL;
-	int i = 1;
-	
+	uint8_t i = 1;
+	uint EXP;
 	if (!new_path) {
 		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Couldn't allocate memory");
         	return -1;
@@ -156,6 +154,7 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	}
 
 	new_f.o_ino = new_s;
+
 	if (!strncpy(new_f.o_path, filepath, strlen(filepath)+1)) {
 		write_to_log(WARNING, "%s - %d - Unable to put current path - %s - to old path - %s", __func__, __LINE__, new_f.o_path, filepath);
         	goto error;
@@ -179,7 +178,20 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	/* This will be changed when config implemented 
 	 * Choice will be between expire configured and not configured
 	 */
-	new_f.d_expire  = new_f.d_begin + EXP_DEF;
+
+	 EXP = atoi(get_cfg("GLOBAL", "SMALL"));
+	if(new_f.o_ino.st_size > EXP) {
+		EXP = atoi(get_cfg("GLOBAL", "LARGE"));
+		if(new_f.o_ino.st_size < EXP) {
+			EXP = atoi(get_cfg("MEDIUM", "EXP_DEF"));
+		} else {
+			EXP = atoi(get_cfg("LARGE", "EXP_DEF"));
+		}
+	} else {
+		EXP = atoi(get_cfg("SMALL", "EXP_DEF"));
+	}
+
+	new_f.d_expire  = new_f.d_begin + EXP;
 	if (tmp == NULL) {
 		if (rename(filepath, new_path)) {
 			write_to_log(WARNING, "%s - %d - Adding aborted: Unable to move the file %s to %s", __func__, __LINE__, filepath, new_path);
@@ -205,18 +217,12 @@ int  add_file_to_qr(QrList **list, char *filepath)
 		goto error;
 	}
 	write_to_log(INFO, "File successfully moved from %s to %s in QR Stock", filepath, new_path);
-	LOG_DEBUG;
 	free(new_path);
-	LOG_DEBUG;
 	free(tmp);
-	LOG_DEBUG;
 	return 0;
 error:
-	LOG_DEBUG;
 	free(new_path);
-	LOG_DEBUG;
 	free(tmp);
-	LOG_DEBUG;
 	return -1;
 }
 
@@ -308,11 +314,19 @@ void print_qr(QrList **list)
 	clock_t begin, end;
 	double spent;
 	begin = clock();
+	char begstr[50];
+	char expstr[50];
+	struct tm *tminfo;
 	printf("Quarantine elements:\n");
 	LIST_FOREACH(list, first, next, cur) {
+		tminfo = localtime(&cur->data.d_begin);
+		strftime(begstr, sizeof(begstr), "%c", tminfo);
+		tminfo = localtime(&cur->data.d_expire);
+		strftime(expstr, sizeof(expstr), "%c", tminfo);
 		printf("\nFile \"%s\":\n", cur->data.f_name);
 		printf("\t- Old path: %s\n", cur->data.o_path);
-		printf("\t- In QR since %d\n", (int)cur->data.d_begin);
+		printf("\t- In QR since %s\n", begstr);
+		printf("\t- Expires on  %s\n", expstr);
 	}
 	end = clock();
 	spent = (double)(end - begin) / CLOCKS_PER_SEC;

@@ -1,111 +1,260 @@
- /*
- * Contains all functions required to maintain 
- configuration profiles
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   @file	config.h
+   @author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   @brief	Configuration management file
 
-#include <global.h>
+   This module implements the iniparser library to manage configuration
+   files for Klearnel.
+*/
+/*--------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------
+                                Includes
+ ---------------------------------------------------------------------------*/
 #include <config/config.h>
-#include <logging/logging.h>
 
-int _cfg_task(const int action, char *buf, const int s_cl) 
+/*---------------------------------------------------------------------------
+                                Global Variables
+ ---------------------------------------------------------------------------*/
+ static dictionary *ini = NULL;
+ static TSectionList *section_list = NULL;
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief	Creates default configuration
+  @return	0 if OK, -1 otherwise
+
+  Creates the default configuration INI file
+ */
+/*--------------------------------------------------------------------------*/
+int _create_cfg()
 {
+	FILE *ini;
+
+	if ((ini = fopen(DEF_CFG, "w")) == NULL)
+		goto err;
+	fprintf(ini,
+	"#\n"
+	"# This is the Klearnel configuration ini file\n"
+	"#\n"
+	"\n"
+	"[GLOBAL]\n"
+	"LOG_AGE    	= 2592000 ;\n"
+	"SMALL 		= 1048576 ;\n"
+	"MEDIUM		= 10485760 ;\n"
+	"LARGE		= 104857600 ;\n"
+	"\n"
+	"[SMALL]\n"
+	"EXP_DEF	= 2592000 ;\n"
+	"BACKUP		= 0 ;\n"
+	"LOCATION	= No Location Specified ;\n"
+	"\n"
+	"[MEDIUM]\n"
+	"EXP_DEF	= 2592000 ;\n"
+	"BACKUP		= 0 ;\n"
+	"LOCATION	= No Location Specified ;\n"
+	"\n"
+	"[LARGE]\n"
+	"EXP_DEF	= 2592000 ;\n"
+	"BACKUP		= 0 ;\n"
+	"LOCATION	= No Location Specified ;\n"
+	"\n");
+
+	fclose(ini);
+
 	return 0;
+	err:
+		write_to_log(FATAL, "Could not create/open log file");
+		return -1;
 }
 
-void _do_something() {
-	NOT_YET_IMP;
+/*-------------------------------------------------------------------------*/
+/**
+  @brief	Retrieves # of keys and their names for a given section
+  @param 	section 	Structure of type TSection
+  @return	void
+
+  Creates a structure of type TKeys, retrieves the # of keys &
+  corresponding key names
+ */
+/*--------------------------------------------------------------------------*/
+void _get_keys(TSection *section)
+{
+	TKeys *keys = malloc(sizeof(struct sectionkeys));
+	if ((keys->num = iniparser_getsecnkeys(ini, section->section_name)) == -1){
+		write_to_log(WARNING, "%s - %d - %s", __LINE__, __func__, "Unable to count config section key");
+		return;
+	}
+	keys->names = iniparser_getseckeys(ini, section->section_name);
+	section->keys = keys;
+	return; 
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief	Gets # of sections and their names
+  @return	0 if OK, -1 otherwise
+
+  Populates the structure of type TSection and TSectionList
+ */
+/*--------------------------------------------------------------------------*/
+int _get_sections()
+{
+	int i;
+	if ((section_list->count = iniparser_getnsec(ini)) == -1){
+		write_to_log(WARNING, "%s - %d - %s", __LINE__, __func__, "Unable to count config sections");
+		return -1;
+	}
+	for(i = 0; i < section_list->count; i++) {
+		TSection* node = malloc(sizeof(struct section));
+		node->section_name = iniparser_getsecname(ini, i);
+		_get_keys(node);
+		if (section_list->first == NULL) {
+			section_list->first = node;
+		} else {
+			TSection *tmp = section_list->first;
+			section_list->first = node;
+			section_list->first->next = tmp;
+		}
+	}
+	return 0; 
 }
 
 void init_config()
-{
-	if (access(PROFILES, F_OK) == -1) {
-		if (mkdir(PROFILES, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
-			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the stock", PROFILES);
-			return;
+{  
+	if (access(CONFIG, F_OK) == -1) {
+		if (mkdir(CONFIG, S_IRWXU | S_IRGRP | S_IROTH) < 0) {
+			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the config folder", CONFIG);
+			goto err;
+		}
+		if (_create_cfg() == -1){
+			write_to_log(FATAL, "%s", "Default configuration file is missing and could not be created");
+			goto err;
 		}
 	}
 	if (access(CFG_TMP, F_OK) == -1) {
-		if (creat(CFG_TMP, S_IRWXU | S_IRGRP | S_IROTH) < 0) {
-			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the database file", CFG_TMP);
+		int oldmask = umask(0);
+		if (mkdir(CFG_TMP, S_IRWXU | S_IRWXG | S_IRWXO) < 0) {
+			write_to_log(WARNING, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the temp config folder", CFG_TMP);
 			return;
 		}
+		umask(oldmask);	
+	}
+	if (access(DEF_CFG, F_OK) == -1) {
+		if (_create_cfg() == -1){
+			write_to_log(FATAL, "%s", "Default configuration file is missing and could not be created");
+			goto err;
+		}
+	}
+	ini = iniparser_load(DEF_CFG);
+	if (ini==NULL) {
+		write_to_log(FATAL, "cannot parse file: %s\n", DEF_CFG);
+		goto err;
+	}
+	if (!section_list) {
+		section_list = malloc(sizeof(struct sectionList));
+		if(!section_list) {
+			write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+			goto err;
+		}
+	}
+	if (_get_sections() != 0) {
+		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Section List could not be filled");
+		goto err;
 	}
 	write_to_log(INFO, "%s", "Configuration Initialized without error");
+	return;
+	err:
+		exit(EXIT_FAILURE);
 }
 
-void cfg_worker()
-{
-	int len, s_srv, s_cl;
-	// CHECK WITH ANTOINE
-	int c_len = 20;
-	int task = 0;
-	struct sockaddr_un server;
+int dump_cfg(char* filepath) {
+	FILE *tmp_cfg;
 	int oldmask = umask(0);
-	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to open the socket");
-		return;
-	}
-	server.sun_family = AF_UNIX;
-	strncpy(server.sun_path, CFG_SOCK, strlen(CFG_SOCK) + 1);
-	unlink(server.sun_path);
-	len = strlen(server.sun_path) + sizeof(server.sun_family);
-	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
-		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to bind the socket");
-		return;
+	if (filepath == NULL) {
+		char *tmp = malloc(strlen(CFG_TMP)+strlen("/tmp.conf") + 1);
+		if (!snprintf(tmp, strlen(CFG_TMP)+strlen("/tmp.conf") + 1, "%s%s", CFG_TMP, "/tmp.conf")) {
+			LOG(WARNING, "Unable to create tmp config filepath");
+			free(tmp);
+			goto err;
+		}
+		if ((tmp_cfg = fopen(tmp, "w")) == NULL) {
+			umask(oldmask);
+			goto err;
+		}
+		free(tmp);
+	} else {
+		if ((tmp_cfg = fopen(filepath, "w")) == NULL) {
+			umask(oldmask);
+			goto err;
+		}
+	
 	}
 	umask(oldmask);
-	listen(s_srv, 10);
+	iniparser_dump(ini, tmp_cfg);
+	fclose(tmp_cfg);
+	return 0;
+err:
+	write_to_log(WARNING, "Unable to dump config file");
+	return -1;
+}
 
-	do {
-		struct timeval to_socket;
-		to_socket.tv_sec 	= SOCK_TO;
-		to_socket.tv_usec = 0;
-		struct timeval to_select;
-		to_select.tv_sec 	= SEL_TO;
-		to_select.tv_usec = 0;
-		fd_set fds;
-		int res;
+void free_cfg()
+{
+	int i;
+	TSection* node = malloc(sizeof(struct section));
+	for(i = 0; i < section_list->count; i++) {
+		node = section_list->first->next;
+		free(section_list->first);
+		section_list->first = node;
+	}
+	free(section_list);
+	iniparser_freedict(ini);
+}
 
-		FD_ZERO (&fds);
-		FD_SET (s_srv, &fds);
+const char * get_cfg(char *section, char *key) {
+	char *value;
+	char *query = malloc(strlen(section) + strlen(key) + strlen(":") + 1);
+	if (!snprintf(query, (strlen(section) + strlen(key) + strlen(":") + 1), "%s:%s", section, key)) {
+		write_to_log(WARNING, "%s - %d - %s - %s:%s", __LINE__, __func__, "Unable to set config query for", section, key);
+		goto err;
+	}
 
-		struct sockaddr_un remote;
-		char *buf = NULL;
+	if ((value = iniparser_getstring(ini, query, NULL)) == NULL) {
+		write_to_log(WARNING, "%s - %d - %s - %s:%s", __LINE__, __func__, "Unable to get config value for", section, key);
+	}
+	free(query);
+	return value;
+err:
+	free(query);
+	return NULL;
+}
 
-		res = select (s_srv + 1, &fds, NULL, NULL, &to_select);
-		if (res > 0) {
-			if (FD_ISSET(s_srv, &fds)) {
-				len = sizeof(remote);
-				if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
-					write_to_log(WARNING, "%s:%d: %s", 
-						__func__, __LINE__, "Unable to accept the connection");
-					continue;
-				}
-				if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
-					write_to_log(WARNING, "%s:%d: %s", 
-						__func__, __LINE__, "Unable to set timeout for reception operations");
-
-				if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
-					write_to_log(WARNING, "%s:%d: %s", 
-						__func__, __LINE__, "Unable to set timeout for sending operations");		
-
-				if (get_data(s_cl, &task, &buf, c_len) < 0) {
-					free(buf);
-					close(s_cl);
-					write_to_log(NOTIFY, "%s:%d: %s", 
-						__func__, __LINE__, "_get_data FAILED");
-					continue;
-				}
-				_cfg_task(task, buf, s_cl);
-				free(buf);
-				close(s_cl);
-			}
-		} else {
-			_do_something();
-		}
-	} while (task != KL_EXIT);
-	close(s_srv);
-	unlink(server.sun_path);
-	exit(EXIT_SUCCESS);
+int modify_cfg(char *section, char *key, char *value)
+{
+	char *query = malloc(strlen(section) + strlen(key) + strlen(":") + 1);
+	if (section == NULL) {
+		write_to_log(WARNING, "Unable to modify config, parameter is NULL - Section");
+		goto err;
+	} else if (key == NULL) {
+		write_to_log(WARNING, "Unable to modify config, parameter is NULL - Key");
+		goto err;
+	} else if (value == NULL) {
+		write_to_log(WARNING, "Unable to modify config, parameter is NULL - Value");
+		goto err;
+	}
+	if (!snprintf(query, (strlen(section) + strlen(key) + strlen(":") + 1), "%s:%s", section, key)) {
+		write_to_log(WARNING, "%s - %d - %s - %s:%s", __LINE__, __func__, "Unable to set config query for", section, key);
+		goto err;
+	}
+	if (iniparser_set(ini, query, value) != 0) {
+		write_to_log(WARNING, "Unable to modify config");
+		goto err;
+	}
+	free(query);
+	return 0;
+err:
+	free(query);
+	return -1;
 }
