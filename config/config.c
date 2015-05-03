@@ -1,18 +1,33 @@
- /*
- * Contains all functions required to maintain 
- configuration profiles
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   @file	config.h
+   @author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   @brief	Configuration management file
 
-#include <global.h>
+   This module implements the iniparser library to manage configuration
+   files for Klearnel.
+*/
+/*--------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------
+                                Includes
+ ---------------------------------------------------------------------------*/
 #include <config/config.h>
-#include <logging/logging.h>
-#include <iniparser/dictionary.h>
-#include <iniparser/iniparser.h>
 
+/*---------------------------------------------------------------------------
+                                Global Variables
+ ---------------------------------------------------------------------------*/
  static dictionary *ini = NULL;
  static TSectionList *section_list = NULL;
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief	Creates default configuration
+  @return	0 if OK, -1 otherwise
+
+  Creates the default configuration INI file
+ */
+/*--------------------------------------------------------------------------*/
 int _create_cfg()
 {
 	FILE *ini;
@@ -54,6 +69,16 @@ int _create_cfg()
 		return -1;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief	Retrieves # of keys and their names for a given section
+  @param 	section 	Structure of type TSection
+  @return	void
+
+  Creates a structure of type TKeys, retrieves the # of keys &
+  corresponding key names
+ */
+/*--------------------------------------------------------------------------*/
 void _get_keys(TSection *section)
 {
 	TKeys *keys = malloc(sizeof(struct sectionkeys));
@@ -66,6 +91,14 @@ void _get_keys(TSection *section)
 	return; 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief	Gets # of sections and their names
+  @return	0 if OK, -1 otherwise
+
+  Populates the structure of type TSection and TSectionList
+ */
+/*--------------------------------------------------------------------------*/
 int _get_sections()
 {
 	int i;
@@ -130,7 +163,6 @@ void init_config()
 		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Section List could not be filled");
 		goto err;
 	}
-	free_cfg();
 	write_to_log(INFO, "%s", "Configuration Initialized without error");
 	return;
 	err:

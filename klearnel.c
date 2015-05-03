@@ -137,9 +137,10 @@ service:
 		scanner_worker();
 	} else {
 		perror("KL: Unable to fork for Quarantine & Scanner processes");
+		free_cfg();
 		return EXIT_FAILURE;
 	}
-
+	free_cfg();
 	 
 
 	/* will be deamonized later */
