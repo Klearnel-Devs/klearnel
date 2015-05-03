@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------------------*/
 /**
-   @file	config.h
-   @author	Copyright (C) 2014, 2015 Klearnel-Devs 
-   @brief	Configuration management file
+   \file	config.h
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Configuration management file
 
    This module implements the iniparser library to manage configuration
    files for Klearnel.
@@ -22,8 +22,8 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Creates default configuration
-  @return	0 if OK, -1 otherwise
+  \brief	Creates default configuration
+  \return	0 if OK, -1 otherwise
 
   Creates the default configuration INI file
  */
@@ -71,9 +71,9 @@ int _create_cfg()
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Retrieves # of keys and their names for a given section
-  @param 	section 	Structure of type TSection
-  @return	void
+  \brief	Retrieves # of keys and their names for a given section
+  \param 	section 	Structure of type TSection
+  \return	void
 
   Creates a structure of type TKeys, retrieves the # of keys &
   corresponding key names
@@ -93,8 +93,8 @@ void _get_keys(TSection *section)
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Gets # of sections and their names
-  @return	0 if OK, -1 otherwise
+  \brief	Gets # of sections and their names
+  \return	0 if OK, -1 otherwise
 
   Populates the structure of type TSection and TSectionList
  */
