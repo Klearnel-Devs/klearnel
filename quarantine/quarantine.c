@@ -190,7 +190,6 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	} else {
 		EXP = atoi(get_cfg("SMALL", "EXP_DEF"));
 	}
-	write_to_log(DEBUG, "%d + %d = %d", new_f.d_begin, EXP, (new_f.d_begin + EXP));
 
 	new_f.d_expire  = new_f.d_begin + EXP;
 	if (tmp == NULL) {
@@ -315,11 +314,19 @@ void print_qr(QrList **list)
 	clock_t begin, end;
 	double spent;
 	begin = clock();
+	char begstr[50];
+	char expstr[50];
+	struct tm *tminfo;
 	printf("Quarantine elements:\n");
 	LIST_FOREACH(list, first, next, cur) {
+		tminfo = localtime(&cur->data.d_begin);
+		strftime(begstr, sizeof(begstr), "%c", tminfo);
+		tminfo = localtime(&cur->data.d_expire);
+		strftime(expstr, sizeof(expstr), "%c", tminfo);
 		printf("\nFile \"%s\":\n", cur->data.f_name);
 		printf("\t- Old path: %s\n", cur->data.o_path);
-		printf("\t- In QR since %d\n", (int)cur->data.d_begin);
+		printf("\t- In QR since %s\n", begstr);
+		printf("\t- Expires on  %s\n", expstr);
 	}
 	end = clock();
 	spent = (double)(end - begin) / CLOCKS_PER_SEC;
