@@ -1,12 +1,25 @@
-/*
- * Contains all routines to execute actions linked to Scanner
- *
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	scan_ui.h
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Scanner UI file
+
+   Contains all routines to execute actions linked to Scanner
+*/
+/*--------------------------------------------------------------------------*/
 #include <global.h>
 #include <core/ui.h>
 #include <core/scanner.h>
 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief	The scanner form to display in command line
+  \param 	path 	??
+  \return	TWatchElement
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 TWatchElement _new_elem_form(char *path)
 {
 	TWatchElement new_elem;

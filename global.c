@@ -1,8 +1,12 @@
-/*
- * Contains all functions used by the whole module
- *
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	global.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Global file
+
+   Contains all functions used by the whole module
+*/
+/*--------------------------------------------------------------------------*/
 #include <global.h>
 #include <logging/logging.h>
 

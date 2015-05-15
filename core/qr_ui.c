@@ -1,16 +1,15 @@
-/*
- * Contains all routines to execute actions linked to Quarantine
- * 
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
-#include <global.h>
+/*-------------------------------------------------------------------------*/
+/**
+   \file	qr_ui.h
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Quarantine UI file
+
+   Contains all routines to execute actions linked to Quarantine
+*/
+/*--------------------------------------------------------------------------*/
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
 
-/*
- * Allow to send a query to the quarantine and execute the related action
- * Return 0 on success and -1 on error
- */
 int qr_query(int nb, char **commands, int action) 
 {
 	int len, s_cl, i;

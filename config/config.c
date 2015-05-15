@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------*/
 /**
-   \file	config.h
+   \file	config.c
    \author	Copyright (C) 2014, 2015 Klearnel-Devs 
    \brief	Configuration management file
 
-   This module implements the iniparser library to manage configuration
+   This file implements the iniparser library to manage configuration
    files for Klearnel.
 */
 /*--------------------------------------------------------------------------*/

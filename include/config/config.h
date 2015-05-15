@@ -4,7 +4,7 @@
    \author	Copyright (C) 2014, 2015 Klearnel-Devs 
    \brief	Configuration management header
 
-   This module implements the iniparser library to manage configuration
+   This file implements the iniparser library to manage configuration
    files for Klearnel.
 */
 /*--------------------------------------------------------------------------*/
@@ -47,8 +47,8 @@
  */
 /*-------------------------------------------------------------------------*/
 typedef struct sectionkeys {
-	int num;
-	char** names;
+	int num;       //!< Number of keys
+	char** names;  //!< Names of each key
 } TKeys;
 
 /*-------------------------------------------------------------------------*/
@@ -61,9 +61,9 @@ typedef struct sectionkeys {
  */
 /*-------------------------------------------------------------------------*/
 typedef struct section {
-	char *section_name;
-	struct section *next;
-	TKeys *keys;
+	char *section_name;    //!< Name of the section
+	struct section *next;  //!< Pointer to next section struct
+	TKeys *keys;           //!< Pointer to sectionkeys structure
 } TSection;
 
 /*-------------------------------------------------------------------------*/
@@ -76,8 +76,8 @@ typedef struct section {
  */
 /*-------------------------------------------------------------------------*/
 typedef struct sectionList {
-	int count;
-	struct section* first;
+	int count;             //!< Number of sections
+	struct section* first; //!< Pointer to first section structure
 } TSectionList;
 
 /*---------------------------------------------------------------------------
@@ -86,7 +86,6 @@ typedef struct sectionList {
 /*-------------------------------------------------------------------------*/
 /**
   \brief	Initializes Configuration Module
-  \param	-
   \return	void
 
   Creates the configuration folder if not already created
