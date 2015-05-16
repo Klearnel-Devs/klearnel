@@ -1,18 +1,19 @@
-/*
- * Contains all routines to execute actions linked to args in cli
- * 
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	ui.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	User interface file
+
+   Contains all routines to execute actions linked to args in cli
+*/
+/*--------------------------------------------------------------------------*/
+
 #include <global.h>
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
 #include <core/scanner.h>
 #include <logging/logging.h>
 
-
-/* Main function that calls the right routine 
- * acordingly to the passed arguments
- */ 
 void execute_commands(int nb, char **commands)
 {
 	if (!strcmp(commands[1], "add-to-qr")) {

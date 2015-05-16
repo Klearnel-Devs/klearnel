@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------*/
 /**
-   @file	config.h
-   @author	Copyright (C) 2014, 2015 Klearnel-Devs 
-   @brief	Configuration management header
+   \file	config.h
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Configuration management header
 
-   This module implements the iniparser library to manage configuration
+   This file implements the iniparser library to manage configuration
    files for Klearnel.
 */
 /*--------------------------------------------------------------------------*/
@@ -12,15 +12,6 @@
 
 #ifndef _CONFIG_H
 #define _CONFIG_H
-
-/*---------------------------------------------------------------------------
-                                Includes
- ---------------------------------------------------------------------------*/
-
-#include <global.h>
-#include <logging/logging.h>
-#include <iniparser/dictionary.h>
-#include <iniparser/iniparser.h>   
 
 /*---------------------------------------------------------------------------
                                 Definitions
@@ -39,7 +30,7 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Section Keys Structure
+  \brief	Section Keys Structure
 
   Structure containing the amount of keys and corresponding
   key names in configuration ini file for given section
@@ -47,13 +38,13 @@
  */
 /*-------------------------------------------------------------------------*/
 typedef struct sectionkeys {
-	int num;
-	char** names;
+	int num;       //!< Number of keys
+	char** names;  //!< Names of each key
 } TKeys;
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Section Structure
+  \brief	Section Structure
 
   Structure containing the name of a section and a pointer
   to the next section
@@ -61,14 +52,14 @@ typedef struct sectionkeys {
  */
 /*-------------------------------------------------------------------------*/
 typedef struct section {
-	char *section_name;
-	struct section *next;
-	TKeys *keys;
+	char *section_name;    //!< Name of the section
+	struct section *next;  //!< Pointer to next section struct
+	TKeys *keys;           //!< Pointer to sectionkeys structure
 } TSection;
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Linked List Head
+  \brief	Linked List Head
 
   Structure for linked list of configuration module, counting the
   number of sections with a pointer to the 'first'
@@ -76,8 +67,8 @@ typedef struct section {
  */
 /*-------------------------------------------------------------------------*/
 typedef struct sectionList {
-	int count;
-	struct section* first;
+	int count;             //!< Number of sections
+	struct section* first; //!< Pointer to first section structure
 } TSectionList;
 
 /*---------------------------------------------------------------------------
@@ -85,9 +76,8 @@ typedef struct sectionList {
  ---------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Initializes Configuration Module
-  @param	-
-  @return	void
+  \brief	Initializes Configuration Module
+  \return	void
 
   Creates the configuration folder if not already created
   Creates the temporary configuration folder if not already created
@@ -100,10 +90,10 @@ void init_config();
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Gets corresponding configuration value for section:key
-  @param	section 	Name of section in ini file
-  @param	key 		Name of key in ini file
-  @return	Returns the corresponding value of the section:key
+  \brief	Gets corresponding configuration value for section:key
+  \param	section 	Name of section in ini file
+  \param	key 		Name of key in ini file
+  \return	Returns the corresponding value of the section:key
 
   Gets corresponding configuration value for section:key passed 
   as parameters
@@ -113,11 +103,11 @@ const char * get_cfg(char *section, char *key);
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Modifies value of corresponding section:key
-  @param	section 	Name of section in ini file
-  @param	key 		Name of key in ini file to modify
-  @param	value		Value to inject
-  @return	0 if OK, -1 otherwise
+  \brief	Modifies value of corresponding section:key
+  \param	section 	Name of section in ini file
+  \param	key 		Name of key in ini file to modify
+  \param	value		Value to inject
+  \return	0 if OK, -1 otherwise
 
   Modifies value of corresponding section:key passed as parameters
   to new value
@@ -127,9 +117,9 @@ int modify_cfg(char *section, char *key, char *value);
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Dumps configuration to indicated filepath
-  @param	filepath	
-  @return	0 if OK, -1 otherwise
+  \brief	Dumps configuration to indicated filepath
+  \param	filepath	
+  \return	0 if OK, -1 otherwise
 
   Dumps configuration to indicated filepath, if no filepath is
   indicated, dumps to the temporary config folder in /tmp/.klearnel
@@ -139,9 +129,9 @@ int dump_cfg(char* filepath);
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief	Free's the configuration linked list & unloads the
+  \brief	Free's the configuration linked list & unloads the
   		dictionary
-  @return	void
+  \return	void
 
   Free's each allocated pointer in the linked list then free's
   the dictionary
