@@ -50,6 +50,7 @@
 #define PID_FILE	BASE_DIR "/klearnel.pid"
 #define BASH_AUTO "/etc/bash_completion.d"
 #define KLEARNEL_AUTO BASH_AUTO "/klearnel"
+#define AUTO_TMP  TMP_DIR "/ac"
 #define IPC_RAND 	"/dev/null"
 #define IPC_PERMS 	0666
 
