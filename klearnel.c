@@ -53,8 +53,8 @@ void autocomplete()
 	"	COMPREPLY=()\n"
 	"	cur=\"${COMP_WORDS[COMP_CWORD]}\"\n"
 	"	prev=\"${COMP_WORDS[COMP_CWORD-1]}\"\n"
-	"	opts=\"add-to-qr rm-from-qr rm-all-from-qr get-qr-\n"
-	"	list get-qr-info restore-from-qr restore-all-from-qr\n"
+	"	opts=\"add-to-qr rm-from-qr rm-all-from-qr get-qr-list\n"
+	"	get-qr-info restore-from-qr restore-all-from-qr\n"
 	"	add-to-scan rm-from-scan view-rt-log license start\n"
 	"	stop help\""
 	"\n"
@@ -72,10 +72,10 @@ void autocomplete()
 	fprintf(ac, "#!/bin/bash\n"
 		". /etc/bash_completion.d/klearnel");
 	fclose(ac);
-	unlink(AUTO_TMP);
+	
 	system("chmod +x /tmp/.klearnel/ac");
 	system("/tmp/.klearnel/ac");
-
+	unlink(AUTO_TMP);
 	write_to_log(INFO, "Klearnel bash autocompletion file successfully created");
 	return;
 	err:
