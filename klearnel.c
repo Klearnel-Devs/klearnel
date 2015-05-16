@@ -40,6 +40,19 @@
   
  */
 /*--------------------------------------------------------------------------*/
+void autocomplete()
+{
+
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Initialize all components required by the module
+  \return       void
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 void _init_env()
 {
 	if (access("/etc/", W_OK) == -1) {
@@ -65,6 +78,11 @@ void _init_env()
 			exit(EXIT_FAILURE);
 		}	
 		umask(oldmask);	
+	}
+	if (access(BASH_AUTO, F_OK) == 0) {
+		if(access(KLEARNEL_AUTO, F_OK) == -1) {
+			autocomplete();
+		}
 	}
 	init_logging();
 	init_qr();
