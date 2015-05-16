@@ -58,91 +58,135 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Checks for broken and duplicate symlinks
-  \param        -
+  \param        data 	The element to verify
+  \param 	action	The action to take
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _checkSymlinks() {
+void _checkSymlinks(TWatchElement data, int action) {
 	NOT_YET_IMP;
 }
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Backup of files and folders larger than X size
-  \param        -
+  \param        data 	The element to verify
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _backupFiles() {
+void _backupFiles(TWatchElement data) {
 	NOT_YET_IMP;
 }
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Delete files and folders larger than X size
-  \param        -
+  \param        data 	The element to verify
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _deleteFiles() {
+void _deleteFiles(TWatchElement data) {
 	NOT_YET_IMP;
 }
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Deletes or Fuses duplicate files in a folder
-  \param        -
+  \param        data 	The element to verify
+  \param 	action	The action to take
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _handleDuplicates() {
+void _handleDuplicates(TWatchElement data, int action) {
 	NOT_YET_IMP;
 }
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Checks and repairs incoherent permissions
-  \param        -
+  \param        data 	The element to verify
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _checkPermissions() {
+void _checkPermissions(TWatchElement data) {
 	NOT_YET_IMP;
 }
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Cleans folder at a specified time
-  \param        -
+  \param        data 	The element to verify
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _cleanFolder() {
+void _cleanFolder(TWatchElement data) {
 	NOT_YET_IMP;
 }
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Deletes or backs up files and folders older than X
-  \param        -
+  \param        data 	The element to verify
+  \param 	action	The action to take
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _oldFiles() {
+void _oldFiles(TWatchElement data, int action) {
 	NOT_YET_IMP;
 }
 
 int perform_event() 
 {
-	NOT_YET_IMP;
+	int i;
+	if (watch_list->first == NULL) {
+		return 0;
+	}
+	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
+		for(i = 0; i < OPTIONS; i++) {
+			switch(i) {
+				case SCAN_BR_S :
+				case SCAN_DUP_S : 
+					if (cur->element.options[i] == '1') 
+						_checkSymlinks(cur->element, i);
+					break;
+				case SCAN_BACKUP : 
+					if (cur->element.options[i] == '1')
+						_backupFiles(cur->element);
+					break; 
+				case SCAN_DEL_F_SIZE : 
+					if (cur->element.options[i] == '1')
+						_deleteFiles(cur->element); 
+					break;
+				case SCAN_DUP_F :
+				case SCAN_FUSE : 
+					if (cur->element.options[i] == '1')
+						_handleDuplicates(cur->element, i);
+					break;
+				case SCAN_INTEGRITY : 
+					if (cur->element.options[i] == '1')
+						_checkPermissions(cur->element); 
+					break;
+				case SCAN_CL_TEMP : 
+					if (cur->element.options[i] == '1')
+						_cleanFolder(cur->element); 
+					break;
+				case SCAN_DEL_F_OLD : 
+				case SCAN_BACKUP_OLD : 
+					if (cur->element.options[i] == '1')
+						_oldFiles(cur->element, i); 
+					break;
+				default: break;
+			}
+		}
+	}
 	return 0;
 }
 
