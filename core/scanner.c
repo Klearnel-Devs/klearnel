@@ -1,8 +1,15 @@
-/*
- * Scanner manage the automated process for folders / files it had to follow
- *
- * Copyright (C) 2014, 2015 Klearnel-Devs 
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	scanner.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Scanner module file
+
+   Scanner manage the automated process for folders / files it had to follow
+*/
+/*--------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------
+                                Includes
+ ---------------------------------------------------------------------------*/
 #include <global.h>
 #include <quarantine/quarantine.h>
 #include <logging/logging.h>
@@ -56,7 +63,16 @@ int add_watch_elem(TWatchElement elem)
 	watch_list->count++;
 	return 0;
 }
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Adds TWatchElement to temporary TWatchElemtnList
+  \param        elem 	The TWatchElement to add
+  \param        list 	The temporary TWatchElementList
+  \return       Return 0 on success and -1 on error	
 
+  
+ */
+/*--------------------------------------------------------------------------*/
 int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
 {
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));

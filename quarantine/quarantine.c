@@ -1,15 +1,31 @@
- /*
- * Files that require user actions are stored in quarantine
- * It is the last place before physical suppression of any file
- * 
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
-#include <global.h>
-#include <quarantine/quarantine.h>
-#include <logging/logging.h>
+/*-------------------------------------------------------------------------*/
+/**
+   \file	quarantine.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Quarantine file
 
-/* Add a file to the quarantine list 
+   Files that require user actions are stored in quarantine
+   It is the last place before physical suppression of any file
+*/
+/*--------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------
+                                Includes
+ ---------------------------------------------------------------------------*/
+#include <global.h>
+#include <logging/logging.h>
+#include <config/config.h>
+#include <quarantine/quarantine.h>
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Add a file to the quarantine list 
+  \param        list 	The Quarantine list
+  \param        new_f 	The QrData to add to the new node
+  \return       0 on success, -1 on error
+
+  
  */
+/*--------------------------------------------------------------------------*/
 int _add_to_qr_list(QrList **list, QrData new_f)
 {
 	QrListNode *node = calloc(1, sizeof(QrListNode));
@@ -43,7 +59,16 @@ int _add_to_qr_list(QrList **list, QrData new_f)
 	(*list)->count++;
 	return 0;
 }
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Recursive function to find a node
+  \param        node 	Node to check
+  \param        num 	The (inode) number to crosscheck again
+  \return       Returns the corresponding QrListNode
 
+  
+ */
+/*--------------------------------------------------------------------------*/
 QrListNode* _find_QRNode(QrListNode *node, int num) 
 {
 	if (node == NULL){
@@ -55,8 +80,16 @@ QrListNode* _find_QRNode(QrListNode *node, int num)
 	out:
 	return node;
 }
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Removes QrListNode from QrList
+  \param        list 	The quarantine list
+  \param        node 	The Node to remove
+  \return       0 on success, -1 on error
 
-/* Remove file data from the qr_list */
+  
+ */
+/*--------------------------------------------------------------------------*/
 int _rm_from_qr_list(QrList **list, QrListNode *node)
 {
 	if(((*list)->first == NULL) && ((*list)->last == NULL)){
@@ -96,8 +129,17 @@ int _rm_from_qr_list(QrList **list, QrListNode *node)
 	error:
 		return -1;
 }
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Recursively write the data in the quarantine list to QR_DB
+  \param        listNode 	The node to write
+  \param 	fd 		The file descriptor to write to
+  \param        custom 		Set if output to custom file
+  \return       void
 
-/* Recursively write the data in the quarantine list to QR_DB */
+  
+ */
+/*--------------------------------------------------------------------------*/
 void _write_node(QrListNode *listNode, int fd, int custom)
 {
 	if (listNode==NULL) {
@@ -115,7 +157,6 @@ void _write_node(QrListNode *listNode, int fd, int custom)
 	_write_node(listNode->next, fd, custom);
 }
 
-/* Move file to STOCK_QR */
 int  add_file_to_qr(QrList **list, char *filepath)
 {
 	QrData new_f;
@@ -124,8 +165,8 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	char *new_path = malloc(strlen(QR_STOCK)+strlen(fn)+10);
 	char *tmp = NULL;
 	char *tmp_fn = NULL;
-	int i = 1;
-	
+	uint8_t i = 1;
+	uint EXP;
 	if (!new_path) {
 		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Couldn't allocate memory");
         	return -1;
@@ -156,6 +197,7 @@ int  add_file_to_qr(QrList **list, char *filepath)
 	}
 
 	new_f.o_ino = new_s;
+
 	if (!strncpy(new_f.o_path, filepath, strlen(filepath)+1)) {
 		write_to_log(WARNING, "%s - %d - Unable to put current path - %s - to old path - %s", __func__, __LINE__, new_f.o_path, filepath);
         	goto error;
@@ -176,10 +218,21 @@ int  add_file_to_qr(QrList **list, char *filepath)
         	goto error;
 
 	new_f.d_begin   = time(NULL);
-	/* This will be changed when config implemented 
-	 * Choice will be between expire configured and not configured
-	 */
-	new_f.d_expire  = new_f.d_begin + EXP_DEF;
+
+	 EXP = atoi(get_cfg("GLOBAL", "SMALL"));
+	if(new_f.o_ino.st_size > EXP) {
+		EXP = atoi(get_cfg("GLOBAL", "LARGE"));
+		if(new_f.o_ino.st_size < EXP) {
+			EXP = atoi(get_cfg("MEDIUM", "EXP_DEF"));
+		} else {
+			EXP = atoi(get_cfg("LARGE", "EXP_DEF"));
+		}
+	} else {
+		EXP = atoi(get_cfg("SMALL", "EXP_DEF"));
+	}
+	write_to_log(DEBUG, "%d + %d = %d", new_f.d_begin, EXP, (new_f.d_begin + EXP));
+
+	new_f.d_expire  = new_f.d_begin + EXP;
 	if (tmp == NULL) {
 		if (rename(filepath, new_path)) {
 			write_to_log(WARNING, "%s - %d - Adding aborted: Unable to move the file %s to %s", __func__, __LINE__, filepath, new_path);
@@ -205,22 +258,15 @@ int  add_file_to_qr(QrList **list, char *filepath)
 		goto error;
 	}
 	write_to_log(INFO, "File successfully moved from %s to %s in QR Stock", filepath, new_path);
-	LOG_DEBUG;
 	free(new_path);
-	LOG_DEBUG;
 	free(tmp);
-	LOG_DEBUG;
 	return 0;
 error:
-	LOG_DEBUG;
 	free(new_path);
-	LOG_DEBUG;
 	free(tmp);
-	LOG_DEBUG;
 	return -1;
 }
 
-/* Initialize all requirements for Quarantine */
 void init_qr()
 {
 	if (access(QR_STOCK, F_OK) == -1) {
@@ -246,9 +292,6 @@ void init_qr()
 	write_to_log(INFO, "%s", "QR Initialized without error");
 }
 
-/* Recursively clear the quarantine list 
- * Keep the memory clean
- */
 void clear_qr_list(QrList **list)
 {
 	if ((*list)->first != NULL) {
@@ -262,9 +305,6 @@ void clear_qr_list(QrList **list)
 	*list = NULL;
 }
 
-/*
- * Load temporary QR file (used by user to list files in qr)
- */
 void load_tmp_qr(QrList **list, int fd)
 {
 	QrData tmp;
@@ -277,7 +317,7 @@ void load_tmp_qr(QrList **list, int fd)
 }
 
 
-/* Load quarantine with content of QR_DB  
+/* 
  */
 void load_qr(QrList **list)
 {
@@ -299,10 +339,6 @@ void load_qr(QrList **list)
 	write_to_log(INFO, "%s", "Quarantine loaded with content of QR_DB");
 }
 
-
-/*
- * Print all elements contained in qr-list to stdout
- */
 void print_qr(QrList **list)
 {
 	clock_t begin, end;
@@ -319,11 +355,6 @@ void print_qr(QrList **list)
 	printf("\nQuery executed in: %.2lf seconds\n", spent);
 }
 
-/* Write the list into the quarantine DB 
- * Can save list to another file than QR_STOCK with param: custom (file descriptor)
- * custom: must be set to -1 if not used
- * Return 0 on success and -1 on error
- */
 int save_qr_list(QrList **list, int custom)
 {
 	int fd;
@@ -344,9 +375,6 @@ int save_qr_list(QrList **list, int custom)
 	return 0;	
 }
 
-/* Search for a file in the list on filename base 
- * Return a struct node if found, NULL in other cases
- */
 QrListNode* search_in_qr(QrList *list, char *filename)
 {
 	char *base;
@@ -377,7 +405,6 @@ out:
 	
 }
 
-/* Delete definitively a file from the quarantine */
 int rm_file_from_qr(QrList **list, char *filename)
 {
 	QrListNode *rm_file;
@@ -411,7 +438,6 @@ err:
 	return -1;
 }
 
-/* Restore file to its anterior state and place */
 int restore_file(QrList **list, char *filename)
 {
 	QrListNode *res_file = search_in_qr(*list, filename);

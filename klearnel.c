@@ -1,31 +1,46 @@
-/*
- * This file is the main one for the klearnel module
- * Please read README.md for more information 
- *
- * Copyright (C) 2014, 2015 Klearnel-Devs
- * 
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	klearnel.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Klearnel File
+
+  This file is the main one for the klearnel module
+  Please read README.md for more information 
+ 
+  Copyright (C) 2014, 2015 Klearnel-Devs
+  
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation; either version 2
+  of the License, or (at your option) any later version.
+ 
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+ 
+  You should have received a copy of the GNU General Public License along
+  with this program; if not, write to the Free Software Foundation, Inc.,
+  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+/*--------------------------------------------------------------------------*/
+ 
 #include <global.h>
 #include <quarantine/quarantine.h>
 #include <core/scanner.h>
 #include <core/ui.h>
 #include <logging/logging.h>
 #include <config/config.h>
+#include <net/crypter.h>
 
-/* Initialize all components required by the module */
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Initialize all components required by the module
+  \return       void
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 void _init_env()
 {
 	if (access("/etc/", W_OK) == -1) {
@@ -56,19 +71,32 @@ void _init_env()
 	init_qr();
 	init_scanner();
 	init_config();
+	encrypt_root();
 }
 
-/* Daemonize the module */
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Daemonize the module
+  \return       void
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 void _daemonize()
 {
 	NOT_YET_IMP;
 }
 
-/* Save the main process ID
- * to allow restart and stop actions
- * and to have a program status
- * Return 0 on success, -1 on error
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Saves the main process ID for operations
+  \param        pid 	The PID of the main Klearnel process
+  \return       0 on success, -1 on error
+
+  Saves the main process ID to allow restart and stop actions
+  and to have a program status
  */
+/*--------------------------------------------------------------------------*/
 int _save_main_pid(pid_t pid)
 {
 	int fd;
@@ -104,11 +132,16 @@ error:
 	return -1;
 }
 
-/* Main function of the module 
- * It will initialize all components
- * and create the other processes required
- * Return 0 on success, -1 on error
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Main function of the module
+  \param        argc 	Number of launch arguments
+  \param        argv	Launch arguments
+  \return       0 on success
+
+  It will initialize all components and create the other processes required
  */
+/*--------------------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
 	int pid;
@@ -131,24 +164,16 @@ service:
 	}
 	
 	pid = fork();
-
 	if (pid == 0) {
-		pid = fork();
-		if (pid == 0) {
-			qr_worker();
-		} else if (pid > 0) {
-			scanner_worker();
-		} else {
-			perror("KL: Unable to fork for Quarantine & Scanner processes");
-			return EXIT_FAILURE;
-		}
-	}else if (pid > 0) {
-		cfg_worker();
+		qr_worker();
+	} else if (pid > 0) {
+		scanner_worker();
 	} else {
-		perror("KL: Unable to fork Klearnel processes");
+		perror("KL: Unable to fork for Quarantine & Scanner processes");
+		free_cfg();
 		return EXIT_FAILURE;
 	}
-
+	free_cfg();
 	 
 
 	/* will be deamonized later */
