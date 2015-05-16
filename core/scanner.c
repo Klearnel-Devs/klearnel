@@ -7,6 +7,12 @@
    Scanner manage the automated process for folders / files it had to follow
 */
 /*--------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------
+                                Includes
+ ---------------------------------------------------------------------------*/
+#include <global.h>
+#include <quarantine/quarantine.h>
+#include <logging/logging.h>
 #include <core/scanner.h>
 
 static TWatchElementList* watch_list = NULL;

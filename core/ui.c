@@ -7,6 +7,7 @@
    Contains all routines to execute actions linked to args in cli
 */
 /*--------------------------------------------------------------------------*/
+
 #include <global.h>
 #include <core/ui.h>
 #include <quarantine/quarantine.h>

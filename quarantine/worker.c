@@ -179,11 +179,6 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 	}
 	return 0;
 }
-
- 
- * 
- * 
-
  
 /*-------------------------------------------------------------------------*/
 /**
