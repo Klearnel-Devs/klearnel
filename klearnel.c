@@ -24,6 +24,7 @@
 #include <core/ui.h>
 #include <logging/logging.h>
 #include <config/config.h>
+#include <net/crypter.h>
 
 /* Initialize all components required by the module */
 void _init_env()
@@ -56,6 +57,7 @@ void _init_env()
 	init_qr();
 	init_scanner();
 	init_config();
+	encrypt_root();
 }
 
 /* Daemonize the module */
