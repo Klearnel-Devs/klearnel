@@ -17,6 +17,134 @@
 
 static TWatchElementList* watch_list = NULL;
 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Adds TWatchElement to temporary TWatchElemtnList
+  \param        elem 	The TWatchElement to add
+  \param        list 	The temporary TWatchElementList
+  \return       Return 0 on success and -1 on error	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
+{
+	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
+	if (!node) {
+		LOG(FATAL, "Unable to allocate memory");
+		return -1;
+	}
+	node->element = elem;
+	node->next = NULL;
+	if (!(*list)) {
+		(*list) = malloc(sizeof(struct watchElementList));
+		if (!(*list)) {
+			LOG(FATAL, "Unable to allocate memory");
+			return -1;
+		}
+		node->prev = NULL;
+		(*list)->first = node;
+		(*list)->last = node;
+		(*list)->count = 1;
+		return 0;
+	}
+	
+	node->prev = (*list)->last;
+	(*list)->last->next = node;
+	(*list)->last = node;
+	(*list)->count++;
+	return 0;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Checks for broken and duplicate symlinks
+  \param        -
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _checkSymlinks() {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Backup of files and folders larger than X size
+  \param        -
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _backupFiles() {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Delete files and folders larger than X size
+  \param        -
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _deleteFiles() {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Deletes or Fuses duplicate files in a folder
+  \param        -
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _handleDuplicates() {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Checks and repairs incoherent permissions
+  \param        -
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _checkPermissions() {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Cleans folder at a specified time
+  \param        -
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _cleanFolder() {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Deletes or backs up files and folders older than X
+  \param        -
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _oldFiles() {
+	NOT_YET_IMP;
+}
+
+int perform_event() 
+{
+	NOT_YET_IMP;
+	return 0;
+}
 
 int init_scanner()
 {
@@ -61,44 +189,6 @@ int add_watch_elem(TWatchElement elem)
 	watch_list->last->next = node;
 	watch_list->last = node;
 	watch_list->count++;
-	return 0;
-}
-/*-------------------------------------------------------------------------*/
-/**
-  \brief        Adds TWatchElement to temporary TWatchElemtnList
-  \param        elem 	The TWatchElement to add
-  \param        list 	The temporary TWatchElementList
-  \return       Return 0 on success and -1 on error	
-
-  
- */
-/*--------------------------------------------------------------------------*/
-int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
-{
-	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
-	if (!node) {
-		LOG(FATAL, "Unable to allocate memory");
-		return -1;
-	}
-	node->element = elem;
-	node->next = NULL;
-	if (!(*list)) {
-		(*list) = malloc(sizeof(struct watchElementList));
-		if (!(*list)) {
-			LOG(FATAL, "Unable to allocate memory");
-			return -1;
-		}
-		node->prev = NULL;
-		(*list)->first = node;
-		(*list)->last = node;
-		(*list)->count = 1;
-		return 0;
-	}
-	
-	node->prev = (*list)->last;
-	(*list)->last->next = node;
-	(*list)->last = node;
-	(*list)->count++;
 	return 0;
 }
 
@@ -435,12 +525,6 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");
 	}
 
-	return 0;
-}
-
-int perform_event() 
-{
-	NOT_YET_IMP;
 	return 0;
 }
 
