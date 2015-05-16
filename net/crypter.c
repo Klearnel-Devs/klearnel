@@ -114,6 +114,11 @@ void encrypt_root()
     		printf("Error unable to check passwords\n");
     	} else if (result == 1) {
     		printf("Passwords don't seem to correspond\n");
+            unlink(SECRET);
+            printf("Press any key to continue...");
+            getchar();
+            system("clear");
+            encrypt_root();
     	} else {
     		printf("Passwords are the same!\n"
     		       "You will not be asked to enter it anymore\n"
