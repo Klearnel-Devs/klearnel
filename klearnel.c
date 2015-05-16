@@ -31,6 +31,7 @@
 #include <core/ui.h>
 #include <logging/logging.h>
 #include <config/config.h>
+#include <net/crypter.h>
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -70,6 +71,7 @@ void _init_env()
 	init_qr();
 	init_scanner();
 	init_config();
+	encrypt_root();
 }
 
 /*-------------------------------------------------------------------------*/
