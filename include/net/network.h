@@ -1,8 +1,12 @@
- /*
+ /**
+ * \file network.h 
+ * \brief Network header
+ * \author Copyright (C) 2014, 2015 Klearnel-Devs
+ * 
  * Contains all prototypes and structures used 
  * by the network feature
  * 
- * Copyright (C) 2014, 2015 Klearnel-Devs
+ * 
  */
 
 typedef struct pair

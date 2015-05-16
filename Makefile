@@ -19,7 +19,7 @@ info:
 	@echo "Created by Klearnel-Devs"
 
 $(EXECUTABLE): subdirs $(OBJ-KL) 
-	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o)
+	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o) -lssl -lcrypto
 
 $(OBJ-KL): $(BUILD_DIR)/%.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -51,4 +51,4 @@ clean-sub:
 	@cd logging;	$(MAKE) clean
 	@cd config;	$(MAKE) clean
 	@cd lib;	$(MAKE) clean
-	@cd net; 	$(MAKE) clean	
+	@cd net; 	$(MAKE) clean
