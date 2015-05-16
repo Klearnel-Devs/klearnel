@@ -34,6 +34,55 @@
 
 /*-------------------------------------------------------------------------*/
 /**
+  \brief        Creates Klearnel Bash Autocompletion
+  \return       void
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void autocomplete()
+{
+	FILE *ac;
+	if ((ac = fopen(KLEARNEL_AUTO, "w")) == NULL)
+		goto err;
+	fprintf(ac,
+	"_klearnel()\n"
+	"{\n"
+	"	local cur prev opts\n"
+	"	COMPREPLY=()\n"
+	"	cur=\"${COMP_WORDS[COMP_CWORD]}\"\n"
+	"	prev=\"${COMP_WORDS[COMP_CWORD-1]}\"\n"
+	"	opts=\"add-to-qr rm-from-qr rm-all-from-qr get-qr-\n"
+	"	list get-qr-info restore-from-qr restore-all-from-qr\n"
+	"	add-to-scan rm-from-scan view-rt-log license start\n"
+	"	stop help\""
+	"\n"
+	"	if [[ ${cur} == * ]] ; then\n"
+	"		COMPREPLY=( $(compgen -W \"${opts}\" -- ${cur}) )\n"
+	"		return 0\n"
+	"	fi\n"
+	"}\n"
+	"complete -F _klearnel klearnel\n");
+
+	fclose(ac);
+
+	if ((ac = fopen(AUTO_TMP, "w")) == NULL)
+		goto err;
+	fprintf(ac, "#!/bin/bash\n"
+		". /etc/bash_completion.d/klearnel");
+	fclose(ac);
+	unlink(AUTO_TMP);
+	system("chmod +x /tmp/.klearnel/ac");
+	system("/tmp/.klearnel/ac");
+
+	write_to_log(INFO, "Klearnel bash autocompletion file successfully created");
+	return;
+	err:
+		write_to_log(WARNING, "Could not create/source klearnel bash autocompletion file");
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   \brief        Initialize all components required by the module
   \return       void
 
@@ -65,6 +114,11 @@ void _init_env()
 			exit(EXIT_FAILURE);
 		}	
 		umask(oldmask);	
+	}
+	if (access(BASH_AUTO, F_OK) == 0) {
+		if(access(KLEARNEL_AUTO, F_OK) == -1) {
+			autocomplete();
+		}
 	}
 	init_logging();
 	init_qr();
