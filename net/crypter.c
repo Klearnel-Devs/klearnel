@@ -1,13 +1,14 @@
-/*
- * SHA-256 password encryptor
+/**
+ * \file crypter.c
+ * \brief SHA-256 password encryptor
  * 
- * Copyright (C) 2014, 2015 Klearnel-Devs
+ * \author Copyright (C) 2014, 2015 Klearnel-Devs
  */
 #include <openssl/sha.h>
-#include <net/crypter.h>
 #include <logging/logging.h>
 #include <global.h>
 #include <termios.h>
+#include <net/crypter.h>
 
 bool simpleSHA256(void* input, unsigned long length, unsigned char* md)
 {
