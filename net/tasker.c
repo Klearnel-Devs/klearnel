@@ -2,7 +2,7 @@
  * This file contains all functions that are needed
  * for the network communication with the manager
  *
- * It uses the sender.c and receiver.c to call related
+ * It uses the networker.c to call related
  * actions to execute.
  * 
  * Copyright (C) 2014, 2015 Klearnel-Devs
