@@ -29,7 +29,6 @@ int _check_token(const int s_cl)
 		free(token);
 		return -1;
 	}
-	printf("Token received: %s\n", token);
 	SOCK_ANS(s_cl, SOCK_ACK);
 
 	int fd = open(TOKEN_DB, O_RDONLY);
@@ -41,7 +40,6 @@ int _check_token(const int s_cl)
 		return -1;
 	}
 	close(fd);
-	printf("Inner token: %s\n", inner_token);
 	if (strcmp(token, inner_token) == 0) {
 		SOCK_ANS(s_cl, SOCK_ACK);
 		return 0;
@@ -61,12 +59,6 @@ int _get_root(const int s_cl)
 	}
 	SOCK_ANS(s_cl, SOCK_ACK);
 	int result = check_hash(hash);
-	printf("Hash received: ");
-	int i;
-	for (i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-		printf("%c", hash[i]);
-	}
-	printf("\n");
 	unsigned char voider[255];
 	read(s_cl, voider, 255);
 	if (result == 0) {
@@ -132,7 +124,7 @@ void networker()
 			close(s_cl);
 			continue;
 		}
-		LOG_DEBUG;
+
 		if (get_data(s_cl, &action, &buf, c_len) < 0) {
 			free(buf);
 			close(s_cl);
