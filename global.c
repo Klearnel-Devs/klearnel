@@ -1,8 +1,12 @@
-/*
- * Contains all functions used by the whole module
- *
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	global.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Global file
+
+   Contains all functions used by the whole module
+*/
+/*--------------------------------------------------------------------------*/
 #include <global.h>
 #include <logging/logging.h>
 
@@ -17,6 +21,10 @@ int get_data(const int sock, int *action, char **buf, int c_len)
 
 	if (read(sock, a_type, c_len) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Error while receiving data through socket");
+		return -1;
+	}
+	
+	if (strcmp(a_type, "") == 0) {
 		return -1;
 	}
 

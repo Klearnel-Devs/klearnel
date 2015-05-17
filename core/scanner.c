@@ -1,8 +1,15 @@
-/*
- * Scanner manage the automated process for folders / files it had to follow
- *
- * Copyright (C) 2014, 2015 Klearnel-Devs 
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	scanner.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Scanner module file
+
+   Scanner manage the automated process for folders / files it had to follow
+*/
+/*--------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------
+                                Includes
+ ---------------------------------------------------------------------------*/
 #include <global.h>
 #include <quarantine/quarantine.h>
 #include <logging/logging.h>
@@ -56,7 +63,16 @@ int add_watch_elem(TWatchElement elem)
 	watch_list->count++;
 	return 0;
 }
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Adds TWatchElement to temporary TWatchElemtnList
+  \param        elem 	The TWatchElement to add
+  \param        list 	The temporary TWatchElementList
+  \return       Return 0 on success and -1 on error	
 
+  
+ */
+/*--------------------------------------------------------------------------*/
 int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
 {
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
@@ -176,13 +192,14 @@ TWatchElement get_watch_elem(const char* path)
 int save_watch_list(int custom)
 {
 	int fd;
-
+	if (watch_list == NULL) return 0;
 	if (custom >= 0) {
 		fd = custom;
 	} else if ((fd = open(SCAN_DB, O_WRONLY | O_TRUNC)) < 0) {
 		LOG(URGENT, "Unable to open the SCAN_DB");
 		return -1;
 	}
+
 	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
 		if (write(fd, &cur->element, sizeof(struct watchElement)) < 0) {
 			write_to_log(FATAL, "%s:%s: Unable to write \"%s\" in SCAN_DB", 
@@ -411,6 +428,7 @@ int perform_task(const int task, const char *buf, const int s_cl)
 		case KL_EXIT:
 			LOG(INFO, "Received KL_EXIT command");
 			exit_scanner();
+			LOG_DEBUG;
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		default:

@@ -1,17 +1,29 @@
-/*
- * Process that associates tasks with required quarantine actions
- * Forked from Klearnel, forks to accomplish certain tasks
- * 
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	worker.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Quarantine file
+
+   Process that associates tasks with required quarantine actions
+   Forked from Klearnel, forks to accomplish certain tasks
+*/
+/*--------------------------------------------------------------------------*/
 #include <global.h>
 #include <quarantine/quarantine.h>
 #include <logging/logging.h>
 
-/*
- * Searches QR list and deletes a file who's date is older than todays date time
- * Calls to rm_file_from_qr to delete file physically, logically
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Searches & Deletes Expired Files Recursively
+  \param        list 	 	The Quarantine database list
+  \param 	listNode 	The node to search
+  \param        now 		The current system time
+  \return       void
+
+  Searches QR list and deletes a file who's date is older than todays date time
+  Calls to rm_file_from_qr to delete file physically, logically
  */
+/*--------------------------------------------------------------------------*/
 void _search_expired(QrList **list, QrListNode *listNode, time_t now)
 {
 	if (listNode == NULL) {
@@ -25,11 +37,17 @@ void _search_expired(QrList **list, QrListNode *listNode, time_t now)
 	return;
 }
 
-/*
- * Function of process who is tasked with deleting files
- * earmarked by a deletion date older than todays date time
- * Loops until no more expired files are detected
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Manages the Expired Files functionality
+  \param        list 	The quarantine list to iterate
+  \return       void
+
+  Function of process who is tasked with deleting files 
+  earmarked by a deletion date older than todays date time.
+  Loops until no more expired files are detected
  */
+/*--------------------------------------------------------------------------*/
 void _expired_files(QrList **list)
 {
 	(*list) = calloc(1, sizeof(QrList));
@@ -45,10 +63,17 @@ void _expired_files(QrList **list)
 	return;
 }
 
-/* Call the action related to the "action" arg 
- * If action has been executed correctly return the new qr_list, 
- * if not return the unchanged list or NULL
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Call the action related to the "action" arg 
+  \param        list 	The Quarantine list
+  \param 	action  The action to take
+  \param        buf 	Command received by socket
+  \param 	s_cl 	The socket connection
+  \return       0 on success, -1 on error
+
  */
+/*--------------------------------------------------------------------------*/
 int _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
 {
 	switch (action) {
@@ -154,18 +179,22 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 	}
 	return 0;
 }
+ 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Get instructions via Unix domain sockets
+  \return       void
 
-/* Get instructions via Unix domain sockets
- * and execute actions accordingly
- * 
- * For client side, follow these steps:
- * - Connect to the socket
- * - Send the action to execute (see quarantine.h)
- * with the length of second arg (format is action_num:length_sec_arg)
- * - Wait for SOCK_ARG
- * - Send the second arg (if applicable)
- * - Wait for action result
+  Get instructions via Unix domain sockets and execute actions accordingly
+  For client side, follow these steps:
+  - Connect to the socket
+  - Send the action to execute (see quarantine.h)
+  with the length of second arg (format is action_num:length_sec_arg)
+  - Wait for SOCK_ARG
+  - Send the second arg (if applicable)
+  - Wait for action result
  */
+/*--------------------------------------------------------------------------*/
 void _get_instructions()
 {
 	int len, s_srv, s_cl;
@@ -211,14 +240,17 @@ void _get_instructions()
 			if (FD_ISSET(s_srv, &fds)) {
 				len = sizeof(remote);
 				if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to accept the connection");
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to accept the connection");
 					continue;
 				}
 				if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for reception operations");
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to set timeout for reception operations");
 
 				if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for sending operations");		
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to set timeout for sending operations");		
 				do {
 					if (get_data(s_cl, &action, &buf, c_len) < 0) {
 						free(buf);
@@ -239,7 +271,6 @@ void _get_instructions()
 	unlink(server.sun_path);
 }
 
-/* Main function of qr-worker process */
 void qr_worker()
 {
 	_get_instructions();
