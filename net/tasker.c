@@ -12,6 +12,47 @@
 #include <net/network.h>
 #include <logging/logging.h>
 
+
+int _check_token(const int s_cl) 
+{
+	char *token = malloc(sizeof(char)*255);
+	if (!token) {
+		LOG(FATAL, "Unable to allocate memory");
+		return -1;
+	}
+
+	if (read(s_cl, token, (sizeof(char)*255)) < 0) {
+		LOG(FATAL, "Unable to read the token");
+		free(token);
+		return -1;
+	}
+
+	SOCK_ANS(s_cl, SOCK_ACK);
+
+	int fd = open(TOKEN_DB, O_RDONLY);
+	char inner_token[255];
+	if (read(fd, inner_token, 255) < 0) {
+		LOG(FATAL, "Unable to read the inner token");
+		free(token);
+		close(fd);
+		return -1;
+	}
+	close(fd);
+
+	if (strcmp(token, inner_token) == 0) {
+		SOCK_ANS(s_cl, SOCK_ACK);
+		return 0;
+	} else {
+		SOCK_ANS(s_cl, SOCK_NACK);
+		return -1;
+	}
+}
+
+int _get_root(const int s_cl)
+{
+
+}
+
 void networker()
 {
 	int len, s_srv, s_cl;
@@ -54,6 +95,12 @@ void networker()
 		if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for sending operations");
 		
+		if (_check_token(s_cl) < 0) {
+			free(buf);
+			close(s_cl);
+			continue;
+		}
+		
 		if (get_data(s_cl, &action, &buf, c_len) < 0) {
 			free(buf);
 			close(s_cl);
@@ -72,3 +119,4 @@ void networker()
 	} while (action != KL_EXIT);
 	close(s_srv);
 }
+

@@ -10,15 +10,14 @@
  */
 
 #define TOKEN_DB BASE_DIR "/klearnel.tk"
+#define KLM_TOKEN_DB BASE_DIR "/manager_token.db"
 
-#define NET_TK 		100
-#define NET_ROOT 	101
-
-typedef struct pair
+typedef struct pairList
 {
-	int id;
-	int sec_token;
-} TPair;
+	char sec_token[255];
+	struct pairList *next;
+	struct pairList *prev;
+} TPairList;
 
 /* Execute the action received through the network socket
  * Return 0 on success and -1 on error
