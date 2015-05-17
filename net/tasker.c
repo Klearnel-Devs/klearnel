@@ -9,8 +9,10 @@
  */
 
 #include <global.h>
-#include <net/network.h>
+#include <net/crypter.h>
 #include <logging/logging.h>
+#include <net/network.h>
+
 
 
 int _check_token(const int s_cl) 
@@ -50,7 +52,24 @@ int _check_token(const int s_cl)
 
 int _get_root(const int s_cl)
 {
+	unsigned char hash[SHA256_DIGEST_LENGTH];
+	if (read(s_cl, hash, SHA256_DIGEST_LENGTH) < 0) {
+		LOG(FATAL, "Unable to read the hash");
+		return -1;
+	}
+	SOCK_ANS(s_cl, SOCK_ACK);
+	int result = check_hash(hash);
 
+	if (result == 0) {
+		SOCK_ANS(s_cl, SOCK_ACK);
+		return 0;
+	} else if (result == 1) {
+		SOCK_ANS(s_cl, SOCK_NACK);
+		return -1;
+	} else {
+		SOCK_ANS(s_cl, SOCK_ABORTED);
+		return -1;
+	}
 }
 
 void networker()
@@ -100,7 +119,13 @@ void networker()
 			close(s_cl);
 			continue;
 		}
-		
+
+		if (_get_root(s_cl) < 0) {
+			free(buf);
+			close(s_cl);
+			continue;
+		}
+
 		if (get_data(s_cl, &action, &buf, c_len) < 0) {
 			free(buf);
 			close(s_cl);
