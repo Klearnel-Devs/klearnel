@@ -32,6 +32,7 @@
 #include <logging/logging.h>
 #include <config/config.h>
 #include <net/crypter.h>
+#include <net/network.h>
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -71,7 +72,10 @@ void _init_env()
 	init_qr();
 	init_scanner();
 	init_config();
+	int is_gen = -1;
+	while(is_gen < 0) is_gen = generate_token();
 	encrypt_root();
+
 }
 
 /*-------------------------------------------------------------------------*/

@@ -9,6 +9,11 @@
  * 
  */
 
+#define TOKEN_DB BASE_DIR "/klearnel.tk"
+
+#define NET_TK 		100
+#define NET_ROOT 	101
+
 typedef struct pair
 {
 	int id;
@@ -19,6 +24,7 @@ typedef struct pair
  * Return 0 on success and -1 on error
  */
 int execute_action(const char *buf, const int action, const int s_cl);
-int sendResult();
 
 void networker();
+
+int generate_token();
