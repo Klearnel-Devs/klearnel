@@ -171,7 +171,16 @@ service:
 	if (pid == 0) {
 		qr_worker();
 	} else if (pid > 0) {
-		scanner_worker();
+		int pid_net = fork();
+		if (pid_net == 0) {
+			networker();
+		} else if (pid_net > 0) {
+			scanner_worker();
+		} else {
+			perror("KL: Unable to fork for Network & Scanner processes");
+			free_cfg();
+			return EXIT_FAILURE;
+		}
 	} else {
 		perror("KL: Unable to fork for Quarantine & Scanner processes");
 		free_cfg();
