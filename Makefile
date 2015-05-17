@@ -19,7 +19,7 @@ info:
 	@echo "Created by Klearnel-Devs"
 
 $(EXECUTABLE): subdirs $(OBJ-KL) 
-	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o) -lssl -lcrypto
+	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o) -lssl -lcrypto -lm
 
 $(OBJ-KL): $(BUILD_DIR)/%.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@

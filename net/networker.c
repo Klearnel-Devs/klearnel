@@ -9,10 +9,15 @@
  *
  */
 #include <global.h>
+#include <logging/logging.h>
 #include <net/network.h>
 
 int execute_action(const char *buf, const int action, const int s_cl)
 {
-	NOT_YET_IMP;
+	switch (action) {
+		default:
+			LOG(WARNING, "Unknow command received");
+	}
+
 	return 0;
 }

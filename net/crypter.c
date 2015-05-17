@@ -55,7 +55,7 @@ int check_hash(const unsigned char *hash_to_check)
 		return -1;
 	}
 	fclose(f);
-	int i;
+    int i;
 	for (i = 0; i < SHA256_DIGEST_LENGTH; i++) {
 		if (digest[i] != hash_to_check[i])
 			return 1;

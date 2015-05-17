@@ -23,6 +23,10 @@ int get_data(const int sock, int *action, char **buf, int c_len)
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Error while receiving data through socket");
 		return -1;
 	}
+	
+	if (strcmp(a_type, "") == 0) {
+		return -1;
+	}
 
 	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send ack in socket");

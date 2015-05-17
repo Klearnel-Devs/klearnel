@@ -32,6 +32,7 @@
 #include <logging/logging.h>
 #include <config/config.h>
 #include <net/crypter.h>
+#include <net/network.h>
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -126,7 +127,10 @@ void _init_env()
 	init_scanner();
 	init_config();
 	delete_logs();
+	int is_gen = -1;
+	while(is_gen < 0) is_gen = generate_token();
 	encrypt_root();
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -222,7 +226,16 @@ service:
 	if (pid == 0) {
 		qr_worker();
 	} else if (pid > 0) {
-		scanner_worker();
+		int pid_net = fork();
+		if (pid_net == 0) {
+			networker();
+		} else if (pid_net > 0) {
+			scanner_worker();
+		} else {
+			perror("KL: Unable to fork for Network & Scanner processes");
+			free_cfg();
+			return EXIT_FAILURE;
+		}
 	} else {
 		perror("KL: Unable to fork for Quarantine & Scanner processes");
 		free_cfg();
