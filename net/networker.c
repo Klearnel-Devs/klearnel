@@ -9,6 +9,7 @@
  *
  */
 #include <global.h>
+#include <logging/logging.h>
 #include <net/network.h>
 
 int execute_action(const char *buf, const int action, const int s_cl)

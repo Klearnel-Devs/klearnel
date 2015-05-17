@@ -9,6 +9,7 @@
  */
 
 #include <global.h>
+#include <openssl/sha.h>
 #include <net/crypter.h>
 #include <logging/logging.h>
 #include <net/network.h>
