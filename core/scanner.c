@@ -16,6 +16,9 @@
 #include <core/scanner.h>
 
 static TWatchElementList* watch_list = NULL;
+static int protect_num = 2;
+static const char *protect[] = {"/boot", "/proc"};
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -55,6 +58,27 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
 	(*list)->count++;
 	return 0;
 }
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Deletes broken or duplicate symlink
+  \param        symlink 	The absolute path of the symlink
+  \param 	action	The action to take
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+  void _deleteSym(const char* symlink, int action)
+  {
+  	int i;
+  	for(i = 0; i < protect_num; i++) {
+  		if(strncmp(symlink, protect[i], strlen(protect[i])) == 0)
+  			return;
+  	}
+  //	[TODO]
+  }
+
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Checks for broken and duplicate symlinks
@@ -62,11 +86,82 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
   \param 	action	The action to take
   \return       void	
 
-  
+  Forks, Exec's the find command, outputs result to parent
+  by replacing STDOUT with write end of pipe.
  */
 /*--------------------------------------------------------------------------*/
 void _checkSymlinks(TWatchElement data, int action) {
-	NOT_YET_IMP;
+	int i = 0;
+      	int pid;
+      	int pipe_fd[2];
+      	char buf;
+      	char *prog1_argv[7];
+      	char *file = malloc(sizeof(char)*255);
+      	if (file == NULL) {
+		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+		return;
+      	}
+
+	prog1_argv[0] = "/usr/bin/find";
+      	prog1_argv[1] = data.path;
+      	prog1_argv[2] = "-type";
+      	prog1_argv[3] = "l";
+      	prog1_argv[4] = "-xtype";
+      	prog1_argv[5] = "l";
+      	prog1_argv[6] = "-print0";
+      	prog1_argv[7] = NULL;
+
+	if (pipe(pipe_fd) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
+		goto err1;
+	}
+
+	if ( (pid = fork() ) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
+		goto err2;
+	}
+
+	if (pid == 0) {
+		close (pipe_fd[0]);
+		if (dup2 (pipe_fd[1], 1) == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to duplicate file descriptor");
+		}
+		close (pipe_fd[1]);
+		if (execvp(prog1_argv[0], prog1_argv) == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to execute find broken symlinks");
+		}
+		exit(EXIT_SUCCESS);
+	} else {
+		close(pipe_fd[1]);
+		while (read(pipe_fd[0], &buf, 1) > 0) {
+			file[i] = buf;
+			i++;
+			if(buf == '\0') {
+				_deleteSym(file, action);
+				free(file);
+				file = malloc(sizeof(char)*255);
+				if (file == NULL) {
+					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+							"Unable to allocate memory");
+					close(pipe_fd[0]);
+					return;
+			      	}
+				i = 0;
+			}
+		}
+		close(pipe_fd[0]);
+		goto err1;
+	}
+	err2:
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+	err1:
+		free(file);
+		return;
 }
 /*-------------------------------------------------------------------------*/
 /**
