@@ -9,8 +9,10 @@
  * 
  */
 
-#define TOKEN_DB BASE_DIR "/klearnel.tk"
+#define TOKEN_DB BASE_DIR "/klearnel.tk" 
 #define KLM_TOKEN_DB BASE_DIR "/manager_token.db"
+
+#define NET_MONITOR 50 /* Get all informations from the module */
 
 typedef struct pairList
 {
@@ -22,7 +24,7 @@ typedef struct pairList
 /* Execute the action received through the network socket
  * Return 0 on success and -1 on error
  */
-int execute_action(const char *buf, const int action, const int s_cl);
+int execute_action(const char *buf, const int c_len, const int action, const int s_cl);
 
 void networker();
 

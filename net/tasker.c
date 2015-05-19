@@ -14,7 +14,64 @@
 #include <logging/logging.h>
 #include <net/network.h>
 
+int _get_data(const int sock, int *action, unsigned char **buf, int c_len)
+{
+	unsigned char a_type_unsigned[c_len];
+	char *a_type = malloc(c_len);
+	int len, bytes_read;
+	if (a_type == NULL) {
+		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+		return -1;
+	}
 
+	if ((bytes_read = read(sock, a_type_unsigned, c_len)) < 0) {
+		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Error while receiving data through socket");
+		return -1;
+	}
+	
+	if (strcmp(a_type, "") == 0) {
+		return -1; // Stop here if there is no information read from socket
+	}
+
+	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
+		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send ack in socket");
+		free(a_type);
+		return -1;
+	}
+	int c;
+	for (c = 0; c < bytes_read; c++) {
+		a_type[c] = a_type_unsigned[c];
+	}
+	a_type[c+1] = '\0';
+	*action = atoi(strtok(a_type, ":"));
+	len = atoi(strtok(NULL, ":"));
+	if (len > 0) {
+		*buf = malloc(sizeof(char)*len);
+		if (*buf == NULL) {
+			if (SOCK_ANS(sock, SOCK_RETRY) < 0)
+				write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send retry");
+			write_to_log(FATAL,"%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+			free(a_type);
+			return -1;
+		}
+
+		if (read(sock, *buf, len) < 0) {
+			if (SOCK_ANS(sock, SOCK_NACK) < 0)
+				write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send nack");
+			write_to_log(FATAL,"%s - %d - %s", __func__, __LINE__, "Unable to read data from socket");
+			free(a_type);
+			return -1;			
+		}
+
+		if(SOCK_ANS(sock, SOCK_ACK) < 0) {
+			write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send ack");
+			free(a_type);
+			return -1;
+		}
+	}
+	free(a_type);
+	return len;
+}
 
 int _check_token(const int s_cl) 
 {
@@ -59,8 +116,8 @@ int _get_root(const int s_cl)
 	}
 	SOCK_ANS(s_cl, SOCK_ACK);
 	int result = check_hash(hash);
-	unsigned char voider[255];
-	read(s_cl, voider, 255);
+	//unsigned char voider[255];
+	//read(s_cl, voider, 255);
 	if (result == 0) {
 		SOCK_ANS(s_cl, SOCK_ACK);
 		return 0;
@@ -101,7 +158,7 @@ void networker()
 		to_socket.tv_usec = 0;
 
 		struct sockaddr_in remote;
-		char *buf = NULL;
+		unsigned char *buf = NULL;
 
 		len = sizeof(remote);
 		if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
@@ -124,14 +181,21 @@ void networker()
 			close(s_cl);
 			continue;
 		}
-
-		if (get_data(s_cl, &action, &buf, c_len) < 0) {
+		int len;
+		if ((len = _get_data(s_cl, &action, &buf, c_len)) < 0) {
 			free(buf);
 			close(s_cl);
 			write_to_log(NOTIFY, "%s - %d - %s", __func__, __LINE__, "Unable to get action to execute");
 			continue;
 		}
-		if (execute_action(buf, action, s_cl) < 0) {
+		len += 1;
+		char *buf_signed = malloc(sizeof(char)*len);
+		int c;
+		for (c = 0; c < len - 1; c++) {
+			buf_signed[c] = buf[c];
+		}
+		buf_signed[len - 1] = '\0';
+		if (execute_action(buf_signed, len, action, s_cl) < 0) {
 			free(buf);
 			SOCK_ANS(s_cl, SOCK_ABORTED);
 			close(s_cl);
