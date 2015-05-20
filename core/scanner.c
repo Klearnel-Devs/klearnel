@@ -99,7 +99,8 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
   by replacing STDOUT with write end of pipe.
  */
 /*--------------------------------------------------------------------------*/
-void _checkSymlinks(TWatchElement data) {
+void _checkSymlinks(TWatchElement data) 
+{
 	int pid;
       	int pipe_fd[2];
 
@@ -169,6 +170,7 @@ void _checkSymlinks(TWatchElement data) {
 			}
 		}
 		close(pipe_fd[0]);
+		free(link);
 		return;
 	}
 	err:
@@ -324,27 +326,131 @@ void _dupSymlinks(TWatchElement data)
 }
 /*-------------------------------------------------------------------------*/
 /**
-  \brief        Backup of files and folders larger than X size
-  \param        data 	The element to verify
+  \brief        Backup of files and folders
+  \param        file 	The file to backup
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _backupFiles(TWatchElement data) {
+void _backupFiles(const char* file) 
+{
 	NOT_YET_IMP;
 }
 /*-------------------------------------------------------------------------*/
 /**
-  \brief        Delete files and folders larger than X size
-  \param        data 	The element to verify
+  \brief        Delete files and folders
+  \param        file 	The file to delete
   \return       void	
 
   
  */
 /*--------------------------------------------------------------------------*/
-void _deleteFiles(TWatchElement data) {
+void _deleteFiles(const char* file) 
+{
 	NOT_YET_IMP;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Checks files and folders of x size to backup
+  		or delete
+  \param        data 	The element to verify
+  \param 	action 	The action to take
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _checkFiles(TWatchElement data, int action)
+{
+	int pid;
+      	int pipe_fd[2];
+
+	if (pipe(pipe_fd) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
+		return;
+	}
+
+	if ( (pid = fork() ) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
+		goto err;
+	}
+
+	if (pid == 0) {
+	      	char *prog1_argv[7];
+	      	double size;
+	      	if (action == SCAN_BACKUP) {
+	      		size = data.back_limit_size;
+	      	} else if (action == SCAN_DEL_F_SIZE) {
+	      		size = data.del_limit_size;
+	      	}
+		prog1_argv[0] = "/usr/bin/find";
+	      	prog1_argv[1] = data.path;
+	      	prog1_argv[2] = "-type";
+	      	prog1_argv[3] = "f";
+	      	prog1_argv[4] = "-size";
+	      	prog1_argv[5] = malloc(strlen("+") + sizeof(double) + strlen("k") + 1);
+	      	if (snprintf(prog1_argv[5], strlen("+") + sizeof(double) + strlen("k") + 1, 
+	      			"%s%d%s", "+", (int)(size*1000), "k") < 0){
+	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to print file size limit");
+			goto childDeath;
+	  	}
+	      	prog1_argv[6] = "-print0";
+	      	prog1_argv[7] = NULL;
+		close (pipe_fd[0]);
+		if (dup2 (pipe_fd[1], 1) == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to duplicate file descriptor");
+			goto childDeath;
+		}
+		if (execvp(prog1_argv[0], prog1_argv) == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to execute find broken symlinks");
+			goto childDeath;
+		}
+		close (pipe_fd[1]);
+		free(prog1_argv[5]);
+		exit(EXIT_SUCCESS);
+	childDeath:
+		close (pipe_fd[1]);
+		free(prog1_argv[5]);
+		exit(EXIT_FAILURE);
+	} else {
+		int i = 0;
+		char buf;
+	      	char *file = malloc(sizeof(char)*255);
+	      	if (file == NULL) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to allocate memory");
+			return;
+	      	}
+		close(pipe_fd[1]);
+		while (read(pipe_fd[0], &buf, 1) > 0) {
+			file[i] = buf;
+			i++;
+			if(buf == '\0') {
+				if(action == SCAN_DEL_F_SIZE) {
+					_deleteFiles(file);
+				} else if (action == SCAN_BACKUP) {
+					_backupFiles(file);
+				}
+				free(file);
+				file = malloc(sizeof(char)*255);
+				i = 0;
+			}
+		}
+		close(pipe_fd[0]);
+		free(file);
+		return;
+	}
+	err:
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+		return;
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -353,7 +459,8 @@ void _deleteFiles(TWatchElement data) {
   \param 	action	The action to take
   \return       void	
 
-  
+  Deletes duplicate files, keeping only the most recently modified
+  version.
  */
 /*--------------------------------------------------------------------------*/
 void _handleDuplicates(TWatchElement data, int action) {
@@ -377,7 +484,7 @@ void _checkPermissions(TWatchElement data) {
   \param        data 	The element to verify
   \return       void	
 
-  
+  Applicable only to temp folders
  */
 /*--------------------------------------------------------------------------*/
 void _cleanFolder(TWatchElement data) {
@@ -415,12 +522,9 @@ int perform_event()
 						_dupSymlinks(cur->element);
 					break;
 				case SCAN_BACKUP : 
-					if (cur->element.options[i] == '1')
-						_backupFiles(cur->element);
-					break; 
 				case SCAN_DEL_F_SIZE : 
 					if (cur->element.options[i] == '1')
-						_deleteFiles(cur->element); 
+						_checkFiles(cur->element, i); 
 					break;
 				case SCAN_DUP_F :
 				case SCAN_FUSE : 
