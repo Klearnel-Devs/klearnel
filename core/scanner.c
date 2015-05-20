@@ -61,11 +61,73 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
 
 /*-------------------------------------------------------------------------*/
 /**
+  \brief        Backup of files and folders
+  \param        file 	The file to backup
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _backupFiles(const char* file) 
+{
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Delete files and folders to Quarantine
+  \param        file 	The file to delete
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _deleteFiles(const char* file) 
+{
+	NOT_YET_IMP;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Permanently delete files and folders
+  \param        file 	The file or folder to delete
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _permDelete(const char* file) 
+{
+	struct stat new_s;
+	if (stat(file, &new_s) != 0) {
+		goto step;
+	} 
+	if(S_ISDIR(new_s.st_mode)) {
+		if (rmdir(file) != 0) {
+			write_to_log(WARNING, "%s - %d - %s - %s", 
+  				__func__, __LINE__, 
+  				"Cannot delete directory", 
+  				file);
+		}
+		return;
+	}
+	step:
+	if (unlink(file) != 0) {
+		write_to_log(WARNING, "%s - %d - %s - %s", 
+  				__func__, __LINE__, 
+  				"Cannot delete file", 
+  				file);
+	}
+	return
+}
+/*-------------------------------------------------------------------------*/
+/**
   \brief        Deletes broken or duplicate symlink
   \param        symlink 	The absolute path of the symlink
   \return       void	
 
-  
+  Crosschecks symlink parameter with global variable protect to
+  verify that we aren't crushing temporary symlinks required
+  at boot or by system. If crosscheck is OK, symlink is unlinked
  */
 /*--------------------------------------------------------------------------*/
   void _deleteSym(const char* symlink)
@@ -95,8 +157,9 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
   \param        data 	The element to verify
   \return       void	
 
-  Forks, Exec's the find command, outputs result to parent
-  by replacing STDOUT with write end of pipe.
+  Forks, Exec's the find command, outputs result to parent by replacing 
+  STDOUT with write end of pipe. Parent then calls _deleteSym for each
+  file read in pipe
  */
 /*--------------------------------------------------------------------------*/
 void _checkSymlinks(TWatchElement data) 
@@ -119,7 +182,7 @@ void _checkSymlinks(TWatchElement data)
 	if (pid == 0) {
 	      	char *prog1_argv[7];
 
-		prog1_argv[0] = "/usr/bin/find";
+		prog1_argv[0] = "find";
 	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[3] = "l";
@@ -214,7 +277,7 @@ void _dupSymlinks(TWatchElement data)
 	if (pid == 0) {
 		char *prog1_argv[5];
 
-		prog1_argv[0] = "/usr/bin/find";
+		prog1_argv[0] = "find";
 	      	prog1_argv[1] = "/home/nuccah";
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[3] = "l";
@@ -324,32 +387,6 @@ void _dupSymlinks(TWatchElement data)
 		close(pipe_fd[1]);
 		return;
 }
-/*-------------------------------------------------------------------------*/
-/**
-  \brief        Backup of files and folders
-  \param        file 	The file to backup
-  \return       void	
-
-  
- */
-/*--------------------------------------------------------------------------*/
-void _backupFiles(const char* file) 
-{
-	NOT_YET_IMP;
-}
-/*-------------------------------------------------------------------------*/
-/**
-  \brief        Delete files and folders
-  \param        file 	The file to delete
-  \return       void	
-
-  
- */
-/*--------------------------------------------------------------------------*/
-void _deleteFiles(const char* file) 
-{
-	NOT_YET_IMP;
-}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -359,7 +396,9 @@ void _deleteFiles(const char* file)
   \param 	action 	The action to take
   \return       void	
 
-  
+  Forks, Exec's the find command, outputs result to parent by replacing 
+  STDOUT with write end of pipe. Parent then calls _deleteFiles
+  or _backupFiles depending on action parameter
  */
 /*--------------------------------------------------------------------------*/
 void _checkFiles(TWatchElement data, int action)
@@ -387,14 +426,14 @@ void _checkFiles(TWatchElement data, int action)
 	      	} else if (action == SCAN_DEL_F_SIZE) {
 	      		size = data.del_limit_size;
 	      	}
-		prog1_argv[0] = "/usr/bin/find";
+		prog1_argv[0] = "find";
 	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[3] = "f";
 	      	prog1_argv[4] = "-size";
 	      	prog1_argv[5] = malloc(strlen("+") + sizeof(double) + strlen("k") + 1);
-	      	if (snprintf(prog1_argv[5], strlen("+") + sizeof(double) + strlen("k") + 1, 
-	      			"%s%d%s", "+", (int)(size*1000), "k") < 0){
+	      	if (snprintf(prog1_argv[5], strlen("+") + sizeof(int) + strlen("k") + 1, 
+	      			"%s%d%s", "+", (int)(size), "M") < 0){
 	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Failed to print file size limit");
 			goto childDeath;
@@ -489,11 +528,99 @@ void _checkPermissions(TWatchElement data) {
   \param        data 	The element to verify
   \return       void	
 
-  Applicable only to temp folders
+  Applicable only to temp folders. Forks, then child enters a fork
+  loop Exec'ing the find command on basis of table of types, 
+  outputs result to parent by replacing STDOUT with write end of 
+  pipe. Files are then deleted followed by folders.
  */
 /*--------------------------------------------------------------------------*/
 void _cleanFolder(TWatchElement data) {
-	NOT_YET_IMP;
+	if (!data.isTemp) {
+		return;
+	}
+	int pid;
+      	int pipe_fd[2];
+      	int i;
+	if (pipe(pipe_fd) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
+		return;
+	}
+
+	if ( (pid = fork() ) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not fork");
+		goto err;
+	}
+
+	if (pid == 0) {
+	      	char *prog1_argv[5];
+	      	char *types[] = {"b", "c", "p", "f", "l", "s", "d"};
+	      	int returnStatus, childpid;
+		prog1_argv[0] = "find";
+	      	prog1_argv[1] = "/home";
+	      	prog1_argv[2] = "-type";
+	      	prog1_argv[4] = "-print0";
+	      	prog1_argv[5] = NULL;
+	      	close (pipe_fd[0]);
+	      	if (dup2 (pipe_fd[1], 1) == -1) {
+	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+					"Failed to duplicate file descriptor");
+			goto childDeath;
+		}
+		for(i = 0; i < (sizeof(types)/sizeof(char)); i++) {
+			prog1_argv[3] = types[i];
+			childpid = fork();
+			if(childpid == 0) {
+				if (execvp(prog1_argv[0], prog1_argv) == -1) {
+					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+					"Failed to execute find broken symlinks");
+					goto childDeath;
+				}
+			} else {
+    				waitpid(childpid, &returnStatus, 0);
+			}
+	      	}
+		close (pipe_fd[1]);
+		free(prog1_argv[5]);
+		exit(EXIT_SUCCESS);
+	childDeath:
+		close (pipe_fd[1]);
+		free(prog1_argv[5]);
+		exit(EXIT_FAILURE);
+	} else {
+		i = 0;
+		char buf;
+	      	char *file = malloc(sizeof(char)*255);
+	      	if (file == NULL) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to allocate memory");
+			return;
+	      	}
+		close(pipe_fd[1]);
+		while (read(pipe_fd[0], &buf, 1) > 0) {
+			file[i] = buf;
+			i++;
+			if(buf == '\0') {
+				_permDelete(file);
+				free(file);
+				file = malloc(sizeof(char)*255);
+				if (file == NULL) {
+					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+						"Unable to allocate memory");
+					goto err;
+				}
+				i = 0;
+			}
+		}
+		close(pipe_fd[0]);
+		free(file);
+		return;
+	}
+	err:
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+		return;
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -502,7 +629,9 @@ void _cleanFolder(TWatchElement data) {
   \param 	action	The action to take
   \return       void	
 
-  
+  Forks, Exec's the find command, outputs result to parent by replacing 
+  STDOUT with write end of pipe. Parent then calls _deleteFiles
+  or _backupFiles depending on action parameter
  */
 /*--------------------------------------------------------------------------*/
 void _oldFiles(TWatchElement data, int action) {
@@ -524,7 +653,7 @@ void _oldFiles(TWatchElement data, int action) {
 	if (pid == 0) {
 	      	char *prog1_argv[8];
 	      	uint age = data.max_age;
-		prog1_argv[0] = "/usr/bin/find";
+		prog1_argv[0] = "find";
 	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-daystart";
 	      	prog1_argv[3] = "-type";
