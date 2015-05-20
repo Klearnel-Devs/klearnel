@@ -67,7 +67,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				goto error;
 			}
 			if (read(s_cl, res, 2) < 0) {
-				LOG(URGENT, "Unable to get query result");
+				>>>>>>> Network features: SCAN_ADD and SCAN_RM implemented & testedLOG(URGENT, "Unable to get query result");
 				goto error;
 			}
 
