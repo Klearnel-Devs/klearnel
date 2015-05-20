@@ -112,7 +112,7 @@ void _checkSymlinks(TWatchElement data)
 
 	if ( (pid = fork() ) < 0) {
 		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
-				"Scanner could not pipe");
+				"Scanner could not fork");
 		goto err;
 	}
 
@@ -375,7 +375,7 @@ void _checkFiles(TWatchElement data, int action)
 
 	if ( (pid = fork() ) < 0) {
 		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
-				"Scanner could not pipe");
+				"Scanner could not fork");
 		goto err;
 	}
 
@@ -440,6 +440,11 @@ void _checkFiles(TWatchElement data, int action)
 				}
 				free(file);
 				file = malloc(sizeof(char)*255);
+				if (file == NULL) {
+					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+						"Unable to allocate memory");
+					goto err;
+				}
 				i = 0;
 			}
 		}
@@ -454,7 +459,7 @@ void _checkFiles(TWatchElement data, int action)
 }
 /*-------------------------------------------------------------------------*/
 /**
-  \brief        Deletes or Fuses duplicate files in a folder
+  \brief        Deletes duplicate files in a folder
   \param        data 	The element to verify
   \param 	action	The action to take
   \return       void	
@@ -501,7 +506,94 @@ void _cleanFolder(TWatchElement data) {
  */
 /*--------------------------------------------------------------------------*/
 void _oldFiles(TWatchElement data, int action) {
-	NOT_YET_IMP;
+	int pid;
+      	int pipe_fd[2];
+
+	if (pipe(pipe_fd) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
+		return;
+	}
+
+	if ( (pid = fork() ) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not fork");
+		goto err;
+	}
+
+	if (pid == 0) {
+	      	char *prog1_argv[8];
+	      	uint age = data.max_age;
+		prog1_argv[0] = "/usr/bin/find";
+	      	prog1_argv[1] = data.path;
+	      	prog1_argv[2] = "-daystart";
+	      	prog1_argv[3] = "-type";
+	      	prog1_argv[4] = "f";
+	      	prog1_argv[5] = "-atime";
+	      	prog1_argv[6] = malloc(strlen("+") + sizeof(uint) + 1);
+	      	if (snprintf(prog1_argv[6], strlen("+") + sizeof(uint) + 1, 
+	      			"%s%d", "+", (uint)(age)) < 0){
+	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to print file age limit");
+			goto childDeath;
+	  	}
+	      	prog1_argv[7] = "-print0";
+	      	prog1_argv[8] = NULL;
+		close (pipe_fd[0]);
+		if (dup2 (pipe_fd[1], 1) == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to duplicate file descriptor");
+			goto childDeath;
+		}
+		if (execvp(prog1_argv[0], prog1_argv) == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to execute find broken symlinks");
+			goto childDeath;
+		}
+		close (pipe_fd[1]);
+		free(prog1_argv[6]);
+		exit(EXIT_SUCCESS);
+	childDeath:
+		close (pipe_fd[1]);
+		free(prog1_argv[6]);
+		exit(EXIT_FAILURE);
+	} else {
+		int i = 0;
+		char buf;
+	      	char *file = malloc(sizeof(char)*255);
+	      	if (file == NULL) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to allocate memory");
+			return;
+	      	}
+		close(pipe_fd[1]);
+		while (read(pipe_fd[0], &buf, 1) > 0) {
+			file[i] = buf;
+			i++;
+			if(buf == '\0') {
+				if(action == SCAN_DEL_F_OLD) {
+					_deleteFiles(file);
+				} else if (action == SCAN_BACKUP_OLD) {
+					_backupFiles(file);
+				}
+				free(file);
+				file = malloc(sizeof(char)*255);
+				if (file == NULL) {
+					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+						"Unable to allocate memory");
+					goto err;
+				}
+				i = 0;
+			}
+		}
+		close(pipe_fd[0]);
+		free(file);
+		return;
+	}
+	err:
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+		return;
 }
 
 int perform_event() 
