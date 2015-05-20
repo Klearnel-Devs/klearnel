@@ -65,7 +65,7 @@ typedef struct watchElement {
 	double back_limit_size;	//!<  Used by option 2
 	double del_limit_size;	//!<  Used by option 3
 	bool isTemp; 		//!<  Used by option 7
-	float max_age; 		//!<  Used by option 8
+	int max_age; 		//!<  Used by option 8
 } TWatchElement;
 
 /*-------------------------------------------------------------------------*/

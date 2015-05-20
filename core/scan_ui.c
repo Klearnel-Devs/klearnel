@@ -176,11 +176,11 @@ TWatchElement _new_elem_form(char *path)
 	if ((new_elem.options[SCAN_DEL_F_OLD] == '1') || (new_elem.options[SCAN_BACKUP_OLD] == '1')) {
 		while (new_elem.max_age <= 0) {
 			printf("\nEnter the limit age of files (in days): ");
-			scanf("%f", &new_elem.max_age);
+			scanf("%d", &new_elem.max_age);
 			fflush(stdin);
 		}				
 	}
-	new_elem.options[SCAN_OPT_END] = '\0';
+	new_elem.options[SCAN_OPT_END] = '\0'; 
 	return new_elem;
 }
 
