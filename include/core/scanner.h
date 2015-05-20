@@ -17,6 +17,8 @@
 #define SCAN_SOCK	TMP_DIR	"/kl-scan-sck"
 #define SCAN_TMP 	TMP_DIR "/scan"
 
+#define OPTIONS   11
+
 #define SCAN_ADD	10
 #define SCAN_RM		11
 #define SCAN_LIST	12
@@ -61,11 +63,11 @@
 /*-------------------------------------------------------------------------*/
 typedef struct watchElement {
 	char path[PATH_MAX];	 
-	char options[11]; 
+	char options[OPTIONS]; 
 	double back_limit_size;	//!<  Used by option 2
 	double del_limit_size;	//!<  Used by option 3
-	bool isTemp; 		//!<  Used by option 7
-	float max_age; 		//!<  Used by option 8
+	bool isTemp; 		        //!<  Used by option 7
+	float max_age; 		      //!<  Used by option 8
 } TWatchElement;
 
 /*-------------------------------------------------------------------------*/

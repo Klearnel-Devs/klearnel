@@ -16,7 +16,436 @@
 #include <core/scanner.h>
 
 static TWatchElementList* watch_list = NULL;
+static int protect_num = 2;
+static const char *protect[] = {"/boot", "/proc"};
 
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Adds TWatchElement to temporary TWatchElemtnList
+  \param        elem 	The TWatchElement to add
+  \param        list 	The temporary TWatchElementList
+  \return       Return 0 on success and -1 on error	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
+{
+	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
+	if (!node) {
+		LOG(FATAL, "Unable to allocate memory");
+		return -1;
+	}
+	node->element = elem;
+	node->next = NULL;
+	if (!(*list)) {
+		(*list) = malloc(sizeof(struct watchElementList));
+		if (!(*list)) {
+			LOG(FATAL, "Unable to allocate memory");
+			return -1;
+		}
+		node->prev = NULL;
+		(*list)->first = node;
+		(*list)->last = node;
+		(*list)->count = 1;
+		return 0;
+	}
+	
+	node->prev = (*list)->last;
+	(*list)->last->next = node;
+	(*list)->last = node;
+	(*list)->count++;
+	return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Deletes broken or duplicate symlink
+  \param        symlink 	The absolute path of the symlink
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+  void _deleteSym(const char* symlink)
+  {
+  	int i;
+  	struct stat new_s;
+  	for(i = 0; i < protect_num; i++) {
+  		if(strncmp(symlink, protect[i], strlen(protect[i])) == 0)
+  			return;
+  	}
+  	if (stat(symlink, &new_s) != 0)  {
+  		if (unlink(symlink) != 0) {
+  			write_to_log(WARNING, "%s - %d - %s - %s", 
+  				__func__, __LINE__, 
+  				"Unable to unlink broken symlink", 
+  				symlink);
+  			return;
+  		} else {
+  			write_to_log(INFO, "Symlink Deleted : %s",symlink);
+  		}
+  	}
+  }
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Checks for broken symlinks
+  \param        data 	The element to verify
+  \return       void	
+
+  Forks, Exec's the find command, outputs result to parent
+  by replacing STDOUT with write end of pipe.
+ */
+/*--------------------------------------------------------------------------*/
+void _checkSymlinks(TWatchElement data) {
+	int pid;
+      	int pipe_fd[2];
+
+	if (pipe(pipe_fd) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
+		return;
+	}
+
+	if ( (pid = fork() ) < 0) {
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
+		goto err;
+	}
+
+	if (pid == 0) {
+	      	char *prog1_argv[7];
+
+		prog1_argv[0] = "/usr/bin/find";
+	      	prog1_argv[1] = data.path;
+	      	prog1_argv[2] = "-type";
+	      	prog1_argv[3] = "l";
+	      	prog1_argv[4] = "-xtype";
+	      	prog1_argv[5] = "l";
+	      	prog1_argv[6] = "-print0";
+	      	prog1_argv[7] = NULL;
+		close (pipe_fd[0]);
+		if (dup2 (pipe_fd[1], 1) == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to duplicate file descriptor");
+			close (pipe_fd[1]);
+			exit(EXIT_FAILURE);
+		}
+		if (execvp(prog1_argv[0], prog1_argv) == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Failed to execute find broken symlinks");
+			close (pipe_fd[1]);
+			exit(EXIT_FAILURE);
+		}
+		close (pipe_fd[1]);
+		exit(EXIT_SUCCESS);
+	} else {
+		int i = 0;
+		char buf;
+	      	char *link = malloc(sizeof(char)*255);
+	      	if (link == NULL) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to allocate memory");
+			return;
+	      	}
+		close(pipe_fd[1]);
+		while (read(pipe_fd[0], &buf, 1) > 0) {
+			link[i] = buf;
+			i++;
+			if(buf == '\0') {
+				_deleteSym(link);
+				free(link);
+				link = malloc(sizeof(char)*255);
+				if (link == NULL) {
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, 
+						"Unable to allocate memory");
+					close(pipe_fd[0]);
+					return;
+			      	}
+				i = 0;
+			}
+		}
+		close(pipe_fd[0]);
+		return;
+	}
+	err:
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+		return;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Checks for duplicate symlinks
+  \param        data 	The element to verify
+  \return       void	
+
+  Forks, Exec's the find command, outputs result to parent by replacing 
+  STDOUT with write end of pipe. Dynamic string array stores the final
+  destination of each symlink for the current directory being searched
+  and if matches one already encountered, it is deleted via the 
+  _deleteSym function. Iterates over symlinks until real path
+
+ */
+/*--------------------------------------------------------------------------*/
+void _dupSymlinks(TWatchElement data)
+{
+      	int pid;
+      	int pipe_fd[2];
+
+	if (pipe(pipe_fd) < 0) {
+		write_to_log(WARNING, "%s - %d - %s", 
+				__func__, __LINE__, 
+				"Unable to create pipes");
+		return;
+	}
+
+	if ( (pid = fork() ) < 0) {
+		write_to_log(WARNING, "%s - %d - %s", 
+				__func__, __LINE__, 
+				"Unable to fork processes");
+		goto err;
+	}
+
+	if (pid == 0) {
+		char *prog1_argv[5];
+
+		prog1_argv[0] = "/usr/bin/find";
+	      	prog1_argv[1] = "/home/nuccah";
+	      	prog1_argv[2] = "-type";
+	      	prog1_argv[3] = "l";
+	      	prog1_argv[4] = "-print0";
+	      	prog1_argv[5] = NULL;
+		close (pipe_fd[0]);
+		if (dup2 (pipe_fd[1], 1) == -1) {
+			close (pipe_fd[1]);
+			exit(EXIT_FAILURE);
+		}
+		if (execvp(prog1_argv[0], prog1_argv) == -1) {
+			close (pipe_fd[1]);
+			exit(EXIT_FAILURE);
+		}
+		close (pipe_fd[1]);
+		exit(EXIT_SUCCESS);
+	} else {
+		int i = 0, j = 0;
+		int num = 0;
+	      	char buf;
+	      	char ** symArray;
+	      	char *file;
+		char *base_path = malloc(sizeof(char)*255);
+	      	char *link = malloc(sizeof(char)*255);
+	      	char *dir  = malloc(sizeof(char)*255);
+	      	if (base_path == NULL || link == NULL) {
+	      		write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, 
+						"Unable to allocate memory");
+			goto err;
+	      	}
+		close(pipe_fd[1]);
+		while (read(pipe_fd[0], &buf, 1) > 0) {
+			link[i] = buf;
+			i++;
+			if(buf == '\0') {
+				if ((file = realpath(link, NULL)) == NULL) {
+					goto out;
+				}
+				memcpy(dir, link, strlen(link));
+				dirname(dir);
+				if(strcmp(base_path, dir) == 0) {
+					num++;
+					symArray = realloc(symArray, num * sizeof(*symArray));
+					if (symArray == NULL) {
+						write_to_log(WARNING, "%s - %d - %s", 
+							__func__, __LINE__, 
+							"Unable to allocate memory");
+						goto err2;
+					}
+				} else {
+					base_path = malloc(strlen(dir));
+					if (base_path == NULL) {
+						write_to_log(WARNING, "%s - %d - %s", 
+							__func__, __LINE__, 
+							"Unable to allocate memory");
+						goto err;
+					}
+					memcpy(base_path, dir, strlen(dir));
+					for ( j = 0; j < num; j++ ) {
+						free(symArray[j]);
+					}
+					num = 1;
+					symArray = malloc(num * sizeof(*symArray)); // PROTECT
+					if (symArray == NULL) {
+						write_to_log(WARNING, "%s - %d - %s", 
+							__func__, __LINE__, 
+							"Unable to allocate memory");
+						goto err2;
+					}
+				}
+				symArray[num-1] = malloc(sizeof(char)*255); // PROTECT
+				if (symArray[num-1] == NULL) {
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, 
+						"Unable to allocate memory");
+					goto err3;
+				}
+				symArray[num-1] = "";
+				for(j = 0; j < num; j++) {
+					if (strcmp(symArray[j], file) == 0) {
+						_deleteSym(link);
+						num--; 
+						goto out; 
+					}
+				}
+				symArray[num-1] = file;
+				out:
+				i = 0;
+			}
+
+		}
+	err3:
+		for ( j = 0; j < num; j++ ) {
+			free(symArray[j]);
+		}
+	err2:
+		free(base_path);
+		free(link);
+		free(dir);
+		free(file);
+		close(pipe_fd[0]);
+		return;
+	}
+	err:
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+		return;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Backup of files and folders larger than X size
+  \param        data 	The element to verify
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _backupFiles(TWatchElement data) {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Delete files and folders larger than X size
+  \param        data 	The element to verify
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _deleteFiles(TWatchElement data) {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Deletes or Fuses duplicate files in a folder
+  \param        data 	The element to verify
+  \param 	action	The action to take
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _handleDuplicates(TWatchElement data, int action) {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Checks and repairs incoherent permissions
+  \param        data 	The element to verify
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _checkPermissions(TWatchElement data) {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Cleans folder at a specified time
+  \param        data 	The element to verify
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _cleanFolder(TWatchElement data) {
+	NOT_YET_IMP;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Deletes or backs up files and folders older than X
+  \param        data 	The element to verify
+  \param 	action	The action to take
+  \return       void	
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void _oldFiles(TWatchElement data, int action) {
+	NOT_YET_IMP;
+}
+
+int perform_event() 
+{
+	int i;
+	if (watch_list->first == NULL) {
+		return 0;
+	}
+	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
+		for(i = 0; i < OPTIONS; i++) {
+			switch(i) {
+				case SCAN_BR_S :
+					if (cur->element.options[i] == '1') 
+						_checkSymlinks(cur->element);
+					break;
+				case SCAN_DUP_S : 
+					if (cur->element.options[i] == '1') 
+						_dupSymlinks(cur->element);
+					break;
+				case SCAN_BACKUP : 
+					if (cur->element.options[i] == '1')
+						_backupFiles(cur->element);
+					break; 
+				case SCAN_DEL_F_SIZE : 
+					if (cur->element.options[i] == '1')
+						_deleteFiles(cur->element); 
+					break;
+				case SCAN_DUP_F :
+				case SCAN_FUSE : 
+					if (cur->element.options[i] == '1')
+						_handleDuplicates(cur->element, i);
+					break;
+				case SCAN_INTEGRITY : 
+					if (cur->element.options[i] == '1')
+						_checkPermissions(cur->element); 
+					break;
+				case SCAN_CL_TEMP : 
+					if (cur->element.options[i] == '1')
+						_cleanFolder(cur->element); 
+					break;
+				case SCAN_DEL_F_OLD : 
+				case SCAN_BACKUP_OLD : 
+					if (cur->element.options[i] == '1')
+						_oldFiles(cur->element, i); 
+					break;
+				default: break;
+			}
+		}
+	}
+	return 0;
+}
 
 int init_scanner()
 {
@@ -61,44 +490,6 @@ int add_watch_elem(TWatchElement elem)
 	watch_list->last->next = node;
 	watch_list->last = node;
 	watch_list->count++;
-	return 0;
-}
-/*-------------------------------------------------------------------------*/
-/**
-  \brief        Adds TWatchElement to temporary TWatchElemtnList
-  \param        elem 	The TWatchElement to add
-  \param        list 	The temporary TWatchElementList
-  \return       Return 0 on success and -1 on error	
-
-  
- */
-/*--------------------------------------------------------------------------*/
-int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
-{
-	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
-	if (!node) {
-		LOG(FATAL, "Unable to allocate memory");
-		return -1;
-	}
-	node->element = elem;
-	node->next = NULL;
-	if (!(*list)) {
-		(*list) = malloc(sizeof(struct watchElementList));
-		if (!(*list)) {
-			LOG(FATAL, "Unable to allocate memory");
-			return -1;
-		}
-		node->prev = NULL;
-		(*list)->first = node;
-		(*list)->last = node;
-		(*list)->count = 1;
-		return 0;
-	}
-	
-	node->prev = (*list)->last;
-	(*list)->last->next = node;
-	(*list)->last = node;
-	(*list)->count++;
 	return 0;
 }
 
@@ -435,12 +826,6 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");
 	}
 
-	return 0;
-}
-
-int perform_event() 
-{
-	NOT_YET_IMP;
 	return 0;
 }
 
