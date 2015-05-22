@@ -99,7 +99,52 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				LOG(WARNING, "File not found in quarantine");
 			}		
 			break;
+		case QR_LIST:
+			if (action != QR_LIST) {
+				snprintf(query, len, "%d:0", QR_LIST_RECALL);
+			} else {
+				snprintf(query, len, "%d:0", action);
+			}
+			
+			char *list_path = malloc(PATH_MAX);
+			QrList *qr_list = calloc(1, sizeof(QrList));
+			int fd;
+			if (!list_path) {
+				perror("[UI] Unable to allocate memory");
+				goto error;
+			}
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(list_path);
+				goto error;
+			} 
+			if (read(s_cl, res, 1) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, list_path, PATH_MAX) < 0) {
+				perror("[UI] Unable to get query result");
+				free(list_path);
+				goto error;	
+			} 
+			if (strcmp(list_path, SOCK_ABORTED) == 0) {
+				perror("[UI] Action get-qr-list couldn't be executed");
+				free(list_path);
+				goto error;
+			} 
 
+			fd = open(list_path, O_RDONLY, S_IRUSR);
+			if (fd < 0) {
+				perror("[UI] Unable to open qr list file");
+				free(list_path);
+				goto error;
+			}
+			load_tmp_qr(&qr_list, fd);
+			close(fd);
+			if (unlink(list_path))
+				printf("Unable to remove temporary quarantine file: %s", list_path);
+
+			break;
 	} 
 
 	free(query);
@@ -378,7 +423,148 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			break;
 		case SCAN_LIST:
-			NOT_YET_IMP;
+			snprintf(query, len, "%d:0", action);			
+			char *list_path = malloc(PATH_MAX);
+			TWatchElementList *scan_list = NULL;
+			if (!list_path) {
+				perror("[UI] Unable to allocate memory");
+				goto error;
+			}
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(list_path);
+				goto error;
+			} 
+			if (read(s_cl, res, 1) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, list_path, PATH_MAX) < 0) {
+				perror("[UI] Unable to get query result");
+				free(list_path);
+				goto error;	
+			} 
+			if (strcmp(list_path, SOCK_ABORTED) == 0) {
+				perror("[UI] Action get-scan-list couldn't be executed");
+				free(list_path);
+				goto error;
+			} 
+
+			fd = open(list_path, O_RDONLY, S_IRUSR);
+			if (fd < 0) {
+				perror("[UI] Unable to open scan list file");
+				free(list_path);
+				goto error;
+			}
+			load_tmp_scan(&scan_list, fd);
+			close(fd);
+			if (unlink(list_path))
+				printf("Unable to remove temporary scan list file: %s", list_path);
+
+
+			SCAN_LIST_FOREACH(scan_list, first, next, cur) {
+				char size[20];
+				sprintf(size, "%d", (int)strlen(cur->element.path));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send back_limit_size length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, cur->element.path, strlen(cur->element.path)) < 0) {
+					LOG(WARNING, "Unable to send path");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+
+
+				sprintf(size, "%d", (int)strlen(cur->element.options));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send back_limit_size length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}				
+				if (write(net_sock, cur->element.options, strlen(cur->element.options)) < 0) {
+					LOG(WARNING, "Unable to send options");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				char *tmp = malloc(50);
+				sprintf(tmp, "%.2lf", cur->element.back_limit_size);
+				sprintf(size, "%d", (int)strlen(tmp));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send back_limit_size length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, tmp, strlen(tmp)) < 0) {
+					LOG(WARNING, "Unable to send back_limit_size");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+
+				sprintf(tmp, "%.2lf", cur->element.del_limit_size);
+				sprintf(size, "%d", (int)strlen(tmp));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send del_limit_size length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, tmp, strlen(tmp)) < 0) {
+					LOG(WARNING, "Unable to send del_limit_size");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				free(tmp);
+				tmp = malloc(2);
+				sprintf(tmp, "%d", (cur->element.isTemp) ? 1 : 0);
+				sprintf(size, "%d", (int)strlen(tmp));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send isTemp length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, tmp, strlen(tmp)) < 0) {
+					LOG(WARNING, "Unable to send isTemp");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+
+				free(tmp);
+				tmp = malloc(50);
+				sprintf(tmp, "%d", cur->element.max_age);
+				sprintf(size, "%d", (int)strlen(tmp));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send max_age length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, tmp, strlen(tmp)) < 0) {
+					LOG(WARNING, "Unable to send max_age");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}				
+				free(tmp);
+			}
+
+			if (write(net_sock, "EOF", 4) < 0) {
+				LOG(WARNING, "Unable to send EOF");
+			}
+			if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+			}
+
 			break;
 	}
 	free(query);
