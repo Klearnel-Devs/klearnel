@@ -117,7 +117,7 @@ void _permDelete(const char* file)
   				"Cannot delete file", 
   				file);
 	}
-	return
+	return;
 }
 /*-------------------------------------------------------------------------*/
 /**
