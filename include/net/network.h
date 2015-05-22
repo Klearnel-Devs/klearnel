@@ -10,7 +10,6 @@
  */
 
 #define TOKEN_DB BASE_DIR "/klearnel.tk" 
-#define KLM_TOKEN_DB BASE_DIR "/manager_token.db"
 
 #define NET_MONITOR 50 /* Get all informations from the module */
 

@@ -12,7 +12,125 @@
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
 #include <core/scanner.h>
+#include <net/network.h>
+#include <net/crypter.h>
+#include <netinet/in.h>
+#include <openssl/sha.h>
 #include <logging/logging.h>
+
+
+int net_exiter()
+{
+	int len, s_cl;
+	int f_tok;
+	char *query, *res;
+	struct sockaddr_in remote;
+	struct timeval timeout;
+	timeout.tv_sec 	= SOCK_TO;
+	timeout.tv_usec	= 0;
+
+	if ((s_cl = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("[UI] Unable to create socket");
+		return -1;
+	}
+
+	bzero((char *) &remote, sizeof(remote));
+	remote.sin_family = AF_INET;
+	inet_aton("127.0.0.1", &remote.sin_addr.s_addr);
+	remote.sin_port = htons(SOCK_NET_PORT);
+
+	if (connect(s_cl, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
+		perror("[UI] Unable to connect the qr_sock");
+		goto error;
+	}
+	
+	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
+		perror("[UI] Unable to set timeout for reception operations");
+
+	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+		perror("[UI] Unable to set timeout for sending operations");
+
+	len = 20;
+	res = malloc(2);
+	query = malloc(len);
+	if ((res == NULL)) {
+		perror("[UI] Unable to allocate memory");
+		goto error;
+	}
+
+	f_tok = open(TOKEN_DB, O_RDONLY);
+	char inner_token[255];
+	if (read(f_tok, inner_token, 255) < 0) {
+		perror("[UI] Unable to read the inner token");
+		close(f_tok);
+		return -1;
+	}
+	close(f_tok);
+
+	if (write(s_cl, inner_token, 255) < 0) {
+		perror("[UI] Unable to send token");
+		goto error;
+	}
+
+	if (read(s_cl, res, 1) < 0) {
+		perror("[UI] Unable to get ack");
+		goto error;
+	}
+
+	FILE *f = fopen(SECRET, "rb");
+	if (!f) {
+		perror("[UI] Unable to open secret file");
+		goto error;
+	}
+	unsigned char digest[SHA256_DIGEST_LENGTH];
+	if (fread(digest, SHA256_DIGEST_LENGTH, 1, f) < 0) {
+		perror("[UI] Unable to read digest in secret file");
+		fclose(f);
+		goto error;
+	}
+	fclose(f);
+
+
+	if (write(s_cl, digest, SHA256_DIGEST_LENGTH) < 0) {
+		perror("[UI] Unable to send encrypted password");
+		goto error;
+	}
+
+	if (read(s_cl, res, 1) < 0) {
+		perror("[UI] Unable to get ack");
+		goto error;
+	}
+
+	snprintf(query, len, "%d:0", KL_EXIT);
+
+	if (write(s_cl, query, len) < 0) {
+		perror("[UI] Unable to send query");
+		goto error;
+	}
+
+	if (read(s_cl, res, 1) < 0) {
+		perror("[UI] Unable to get query result");
+		goto error;
+	}
+
+	if (read(s_cl, res, 1) < 0) {
+		perror("[UI] Unable to get query result");
+		goto error;
+	}
+
+
+	close(s_cl);
+	free(res);
+	free(query);
+	return 0;
+
+error:
+	close(s_cl);
+	free(res);
+	free(query);
+	return -1;
+}
+
 
 void execute_commands(int nb, char **commands)
 {
@@ -105,6 +223,11 @@ void execute_commands(int nb, char **commands)
 		printf("See the LICENSE file located in /etc/klearnel\n");
 	} else if (!strcmp(commands[1], "stop")) {
 		printf("Stopping Klearnel services\n\n");
+		if (net_exiter() != 0) {
+			printf("Check Klearnel logs, Networker did not terminate correctly\n");
+		} else {
+			printf("Networker process successfully stopped\n");
+		}
 		if (qr_query(nb, commands, KL_EXIT) != 0) {
 			printf("Check Klearnel logs, Qr-Worker did not terminate correctly\n");
 		} else {

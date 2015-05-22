@@ -66,7 +66,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				LOG(URGENT, "Unable to send query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
@@ -75,11 +75,11 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				LOG(URGENT, "Unable to send args of the query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;					
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
@@ -311,7 +311,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				free(tmp_filename);
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				free(tmp_filename);
 				goto error;
@@ -322,16 +322,17 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				free(tmp_filename);
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				free(tmp_filename);
 				goto error;					
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				free(tmp_filename);
 				goto error;
 			}
+
 			if (!strcmp(res, SOCK_ACK)) {
 				write_to_log(INFO, "%s has been successfully added to Scanner\n", buf);
 				SOCK_ANS(net_sock, SOCK_ACK);
@@ -349,7 +350,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				LOG(URGENT, "Unable to send query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
@@ -358,14 +359,15 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				LOG(URGENT, "Unable to send args of the query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;					
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
+			printf("ACK : %s\n", res);
 			if (!strcmp(res, SOCK_ACK)) {
 				write_to_log(INFO, "%s has been successfully removed from Scanner\n", buf);
 				SOCK_ANS(net_sock, SOCK_ACK);
