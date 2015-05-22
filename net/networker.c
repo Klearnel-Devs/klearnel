@@ -412,7 +412,6 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
-			printf("ACK : %s\n", res);
 			if (!strcmp(res, SOCK_ACK)) {
 				write_to_log(INFO, "%s has been successfully removed from Scanner\n", buf);
 				SOCK_ANS(net_sock, SOCK_ACK);
