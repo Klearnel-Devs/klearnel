@@ -52,18 +52,19 @@ void autocomplete()
 	"	COMPREPLY=()\n"
 	"	cur=\"${COMP_WORDS[COMP_CWORD]}\"\n"
 	"	prev=\"${COMP_WORDS[COMP_CWORD-1]}\"\n"
-	"	opts=\"add-to-qr rm-from-qr rm-all-from-qr get-qr-\n"
-	"	list get-qr-info restore-from-qr restore-all-from-qr\n"
-	"	add-to-scan rm-from-scan view-rt-log license start\n"
-	"	stop help\""
+	"	opts=\"-add-to-qr -rm-from-qr -rm-all-from-qr -get-qr-list\n"
+	"	-get-qr-info -restore-from-qr -restore-all-from-qr\n"
+	"	-add-to-scan -rm-from-scan -view-rt-log -license -start\n"
+	"	-stop -help\""
 	"\n"
-	"	if [[ ${cur} == * ]] ; then\n"
+	"	if [[ ${cur} == -* ]] ; then\n"
 	"		COMPREPLY=( $(compgen -W \"${opts}\" -- ${cur}) )\n"
 	"		return 0\n"
+	"	elif [[ ${prev} == -* ]] ; then\n"
+	"		_filedir\n"
 	"	fi\n"
 	"}\n"
 	"complete -F _klearnel klearnel\n");
-
 	fclose(ac);
 
 	if ((ac = fopen(AUTO_TMP, "w")) == NULL)
