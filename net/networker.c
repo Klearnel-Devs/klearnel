@@ -425,6 +425,8 @@ int execute_action(const char *buf, const int c_len, const int action, const int
 				return -1;
 			}
 			break;
+		case KL_EXIT:
+			break;
 		default:
 			LOG(WARNING, "Unknow command received");
 	}
