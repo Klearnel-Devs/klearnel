@@ -95,13 +95,13 @@ void encrypt_root()
 	if (access(SECRET, F_OK) != -1) 
 		return;
 	char password[PASS_SIZE];
-	printf("Please enter the ROOT password: ");
+	printf("Please enter a password: ");
     	getPassword(password);
     	printf("\n");
 
     	encrypt_data(password);
 
-    	printf("Retype password to check: ");
+    	printf("Please enter the password again: ");
     	char pass_check[PASS_SIZE];
     	getPassword(pass_check);
     	printf("\n");
@@ -122,7 +122,7 @@ void encrypt_root()
     	} else {
     		printf("Passwords are the same!\n"
     		       "You will not be asked to enter it anymore\n"
-    		       "NOTE: If you change the root password, delete the file "
+    		       "NOTE: If you want to change the password, delete the file "
     		       "/etc/klearnel/secret.pem and restart klearnel\n");
     	}
 }
