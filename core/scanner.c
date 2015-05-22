@@ -508,7 +508,71 @@ void _checkFiles(TWatchElement data, int action)
  */
 /*--------------------------------------------------------------------------*/
 void _handleDuplicates(TWatchElement data, int action) {
-	NOT_YET_IMP;
+	int pid;
+      	int pipe_fd[2];
+
+	if (pipe(pipe_fd) < 0) {
+	
+		return;
+	}
+
+	if ( (pid = fork() ) < 0) {
+
+		goto err;
+	}
+
+	
+
+	if (pid == 0) {
+		if (chdir("/home/nuccah/Documents") != 0) {
+			_exit(EXIT_FAILURE);
+		}
+		close (pipe_fd[0]);
+		if (dup2 (pipe_fd[1], 1) == -1) {
+
+			goto childDeath;
+		}
+		if (system("find -not -empty -type f -printf \"%s\n\" | sort -rn | uniq -d | "
+			"xargs -I{} -n1 find -type f -size {}c -print0 | xargs -0 md5sum | "
+			"sort | uniq -w32 --all-repeated=separate | cut -c 35-") == -1) {
+			
+			goto childDeath;
+		}
+		close (pipe_fd[1]);
+		exit(EXIT_SUCCESS);
+	childDeath:
+		close (pipe_fd[1]);
+		_exit(EXIT_FAILURE);
+	} else {
+		int i = 0;
+		char buf;
+	      	char *file = malloc(sizeof(char)*255);
+	      	if (file == NULL) {
+
+			return;
+	      	}
+		close(pipe_fd[1]);
+		while (read(pipe_fd[0], &buf, 1) > 0) {
+			file[i] = buf;
+			i++;
+			if(buf == '\n') {
+				printf("%s\n", file);
+				free(file);
+				file = calloc(255, sizeof(char)*255);
+				if (file == NULL) {
+				
+					goto err;
+				}
+				i = 0;
+			}
+		}
+		close(pipe_fd[0]);
+		return;
+	}
+	err:
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+		return;
 }
 /*-------------------------------------------------------------------------*/
 /**
