@@ -66,7 +66,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				LOG(URGENT, "Unable to send query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
@@ -75,11 +75,11 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				LOG(URGENT, "Unable to send args of the query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;					
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
@@ -99,7 +99,52 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				LOG(WARNING, "File not found in quarantine");
 			}		
 			break;
+		case QR_LIST:
+			if (action != QR_LIST) {
+				snprintf(query, len, "%d:0", QR_LIST_RECALL);
+			} else {
+				snprintf(query, len, "%d:0", action);
+			}
+			
+			char *list_path = malloc(PATH_MAX);
+			QrList *qr_list = calloc(1, sizeof(QrList));
+			int fd;
+			if (!list_path) {
+				perror("[UI] Unable to allocate memory");
+				goto error;
+			}
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(list_path);
+				goto error;
+			} 
+			if (read(s_cl, res, 1) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, list_path, PATH_MAX) < 0) {
+				perror("[UI] Unable to get query result");
+				free(list_path);
+				goto error;	
+			} 
+			if (strcmp(list_path, SOCK_ABORTED) == 0) {
+				perror("[UI] Action get-qr-list couldn't be executed");
+				free(list_path);
+				goto error;
+			} 
 
+			fd = open(list_path, O_RDONLY, S_IRUSR);
+			if (fd < 0) {
+				perror("[UI] Unable to open qr list file");
+				free(list_path);
+				goto error;
+			}
+			load_tmp_qr(&qr_list, fd);
+			close(fd);
+			if (unlink(list_path))
+				printf("Unable to remove temporary quarantine file: %s", list_path);
+
+			break;
 	} 
 
 	free(query);
@@ -125,7 +170,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 	TWatchElement new_elem;
 
 	if ((s_cl = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-		perror("[UI] Unable to create socket");
+		LOG(URGENT, "Unable to create socket");
 		return -1;
 	}
 
@@ -134,20 +179,20 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
-		perror("[UI] Unable to connect the qr_sock");
+		LOG(URGENT, "Unable to connect the qr_sock");
 		return -1;
 	}
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
-		perror("[UI] Unable to set timeout for reception operations");
+		LOG(WARNING, "Unable to set timeout for reception operations");
 
 	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
-		perror("[UI] Unable to set timeout for sending operations");
+		LOG(WARNING, "Unable to set timeout for sending operations");
 
 	len = 20;
 	res = malloc(2);
 	query = malloc(len);
 	if ((query == NULL) || (res == NULL)) {
-		perror("[UI] Unable to allocate memory");
+		LOG(FATAL, "Unable to allocate memory");
 		return -1;
 	}
 	switch (action) {
@@ -188,7 +233,6 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 					break;
 				param_len += (int)len_unsigned[i];
 			}
-			write_to_log(DEBUG, "Len computed: %d", param_len);
 			unsigned char *tmp_buf_uns = malloc(sizeof(unsigned char)*param_len);
 			if (read(net_sock, tmp_buf_uns, param_len) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to read back_limit_size from socket",
@@ -201,7 +245,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			tmp_buf[param_len] = '\0';
 			sscanf(tmp_buf, "%lf", &new_elem.back_limit_size);
-			write_to_log(DEBUG, "Back limit size: %lf", new_elem.back_limit_size);
+			
 			SOCK_ANS(net_sock, SOCK_ACK);
 
 			/* ------------------- del_limit_size reception ----------------------------- */
@@ -218,7 +262,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 					break;
 				param_len += (int)len_unsigned[i];
 			}
-			write_to_log(DEBUG, "Len computed: %d", param_len);
+			
 			tmp_buf_uns = malloc(sizeof(unsigned char)*param_len);
 			if (read(net_sock, tmp_buf_uns, param_len) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to read del_limit_size from socket",
@@ -231,7 +275,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			tmp_buf[param_len] = '\0';
 			sscanf(tmp_buf, "%lf", &new_elem.del_limit_size);
-			write_to_log(DEBUG, "Del limit size: %lf", new_elem.del_limit_size);
+			
 			SOCK_ANS(net_sock, SOCK_ACK);
 
 			/* ----------------------- isTemp reception ----------------------------- */
@@ -260,7 +304,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 					break;
 				param_len += (int)len_unsigned[i];
 			}
-			write_to_log(DEBUG, "Len computed: %d", param_len);
+			
 			tmp_buf_uns = malloc(sizeof(unsigned char)*param_len);
 			if (read(net_sock, tmp_buf_uns, param_len) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to read max_age from socket",
@@ -273,19 +317,9 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			tmp_buf[param_len] = '\0';
 			sscanf(tmp_buf, "%d", &new_elem.max_age);
-			write_to_log(DEBUG, "Max Age: %d", new_elem.max_age);
+			
 			SOCK_ANS(net_sock, SOCK_ACK);
 
-			write_to_log(DEBUG, "New Elem: \n"
-					" - Path: %s\n"
-					" - Options: %s\n"
-					" - Backup Limit Size: %lf\n"
-					" - Delete Limit size: %lf\n"
-					" - Temp folder ?: %d\n"
-					" - Max Age: %d",
-					new_elem.path, new_elem.options, new_elem.back_limit_size,
-					new_elem.del_limit_size, new_elem.isTemp, new_elem.max_age 
-					);
 			free(tmp_buf_uns);
 			free(tmp_buf);
 
@@ -296,19 +330,21 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				return -1;
 			}
 			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, (int)timestamp) < 0) {
-				perror("SCAN-UI: Unable to create the filename for temp scan file");
+				LOG(URGENT, "Unable to create the filename for temp scan file");
 				free(tmp_filename);
 				return -1;
 			}
 			fd = open(tmp_filename, O_WRONLY | O_TRUNC | O_CREAT);
 			if (fd < 0) {
-				fprintf(stderr, "SCAN-UI: Unable to create %s", tmp_filename);
+				write_to_log(URGENT, "%s:%d: Unable to create %s",
+					__func__, __LINE__, tmp_filename);
 				free(tmp_filename);
 				return -1;
 			}
 
 			if (write(fd, &new_elem, sizeof(struct watchElement)) < 0) {
-				fprintf(stderr, "SCAN-UI: Unable to write the new item to %s", tmp_filename);
+				write_to_log(URGENT, "%s:%d: Unable to write the new item to %s", 
+					__func__, __LINE__, tmp_filename);
 				free(tmp_filename);
 				return -1;
 			}
@@ -316,35 +352,39 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			int path_len = strlen(tmp_filename)+1;
 			snprintf(query, len, "%d:%d", action, path_len);
 			if (write(s_cl, query, len) < 0) {
-				perror("[UI] Unable to send query");
+				LOG(URGENT, "Unable to send query");
 				free(tmp_filename);
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
-				perror("[UI] Unable to get query result");
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
 				free(tmp_filename);
 				goto error;
 			}
 			
 			if (write(s_cl, tmp_filename, path_len) < 0) {
-				perror("[UI] Unable to send args of the query");
+				LOG(URGENT, "Unable to send args of the query");
 				free(tmp_filename);
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
-				perror("[UI] Unable to get query result");
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
 				free(tmp_filename);
 				goto error;					
 			}
-			if (read(s_cl, res, 2) < 0) {
-				perror("[UI] Unable to get query result");
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
 				free(tmp_filename);
 				goto error;
 			}
+
 			if (!strcmp(res, SOCK_ACK)) {
-				printf("%s has been successfully added to Scanner\n", buf);
+				write_to_log(INFO, "%s has been successfully added to Scanner\n", buf);
+				SOCK_ANS(net_sock, SOCK_ACK);
 			} else if (!strcmp(res, SOCK_ABORTED)) {
-				printf("An error occured while adding %s to Scanner\n", buf);
+				write_to_log(INFO, "%s:%d: An error occured while adding %s to Scanner\n",
+				__func__, __LINE__, buf);
+				SOCK_ANS(net_sock, SOCK_ABORTED);
 			}
 			free(tmp_filename);
 
@@ -352,34 +392,179 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 		case SCAN_RM:
 			snprintf(query, len, "%d:%d", action, c_len);
 			if (write(s_cl, query, len) < 0) {
-				perror("[UI] Unable to send query");
+				LOG(URGENT, "Unable to send query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
-				perror("[UI] Unable to get query result");
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
 			
 			if (write(s_cl, buf, c_len) < 0) {
-				perror("[UI] Unable to send args of the query");
+				LOG(URGENT, "Unable to send args of the query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
-				perror("[UI] Unable to get query result");
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
 				goto error;					
 			}
-			if (read(s_cl, res, 2) < 0) {
-				perror("[UI] Unable to get query result");
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
 				goto error;
 			}
+			printf("ACK : %s\n", res);
 			if (!strcmp(res, SOCK_ACK)) {
-				printf("%s has been successfully removed from Scanner\n", buf);
+				write_to_log(INFO, "%s has been successfully removed from Scanner\n", buf);
+				SOCK_ANS(net_sock, SOCK_ACK);
 			} else if (!strcmp(res, SOCK_ABORTED)) {
-				printf("An error occured while removing %s to Scanner\n", buf);
+				write_to_log(INFO, "%s:%d: An error occured while removing %s to Scanner\n",
+				__func__, __LINE__, buf);
+				SOCK_ANS(net_sock, SOCK_ABORTED);
 			}
 			break;
 		case SCAN_LIST:
-			NOT_YET_IMP;
+			snprintf(query, len, "%d:0", action);			
+			char *list_path = malloc(PATH_MAX);
+			TWatchElementList *scan_list = NULL;
+			if (!list_path) {
+				perror("[UI] Unable to allocate memory");
+				goto error;
+			}
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				free(list_path);
+				goto error;
+			} 
+			if (read(s_cl, res, 1) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, list_path, PATH_MAX) < 0) {
+				perror("[UI] Unable to get query result");
+				free(list_path);
+				goto error;	
+			} 
+			if (strcmp(list_path, SOCK_ABORTED) == 0) {
+				perror("[UI] Action get-scan-list couldn't be executed");
+				free(list_path);
+				goto error;
+			} 
+
+			fd = open(list_path, O_RDONLY, S_IRUSR);
+			if (fd < 0) {
+				perror("[UI] Unable to open scan list file");
+				free(list_path);
+				goto error;
+			}
+			load_tmp_scan(&scan_list, fd);
+			close(fd);
+			if (unlink(list_path))
+				printf("Unable to remove temporary scan list file: %s", list_path);
+
+
+			SCAN_LIST_FOREACH(scan_list, first, next, cur) {
+				char size[20];
+				sprintf(size, "%d", (int)strlen(cur->element.path));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send back_limit_size length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, cur->element.path, strlen(cur->element.path)) < 0) {
+					LOG(WARNING, "Unable to send path");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+
+
+				sprintf(size, "%d", (int)strlen(cur->element.options));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send back_limit_size length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}				
+				if (write(net_sock, cur->element.options, strlen(cur->element.options)) < 0) {
+					LOG(WARNING, "Unable to send options");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				char *tmp = malloc(50);
+				sprintf(tmp, "%.2lf", cur->element.back_limit_size);
+				sprintf(size, "%d", (int)strlen(tmp));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send back_limit_size length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, tmp, strlen(tmp)) < 0) {
+					LOG(WARNING, "Unable to send back_limit_size");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+
+				sprintf(tmp, "%.2lf", cur->element.del_limit_size);
+				sprintf(size, "%d", (int)strlen(tmp));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send del_limit_size length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, tmp, strlen(tmp)) < 0) {
+					LOG(WARNING, "Unable to send del_limit_size");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				free(tmp);
+				tmp = malloc(2);
+				sprintf(tmp, "%d", (cur->element.isTemp) ? 1 : 0);
+				sprintf(size, "%d", (int)strlen(tmp));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send isTemp length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, tmp, strlen(tmp)) < 0) {
+					LOG(WARNING, "Unable to send isTemp");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+
+				free(tmp);
+				tmp = malloc(50);
+				sprintf(tmp, "%d", cur->element.max_age);
+				sprintf(size, "%d", (int)strlen(tmp));
+				if (write(net_sock, size, 20) < 0) {
+					LOG(WARNING, "Unable to send max_age length");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}
+				if (write(net_sock, tmp, strlen(tmp)) < 0) {
+					LOG(WARNING, "Unable to send max_age");
+				}
+				if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+				}				
+				free(tmp);
+			}
+
+			if (write(net_sock, "EOF", 4) < 0) {
+				LOG(WARNING, "Unable to send EOF");
+			}
+			if (read(net_sock, res, 1) < 0) {
+					LOG(WARNING, "Unable to read ACK");
+			}
+
 			break;
 	}
 	free(query);
@@ -425,6 +610,8 @@ int execute_action(const char *buf, const int c_len, const int action, const int
 			if (_execute_monitor_action(buf, c_len, action, s_cl) < 0) {
 				return -1;
 			}
+			break;
+		case KL_EXIT:
 			break;
 		default:
 			LOG(WARNING, "Unknow command received");

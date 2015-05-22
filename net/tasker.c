@@ -176,7 +176,7 @@ void networker()
 			close(s_cl);
 			continue;
 		}
-
+		
 		if (_get_root(s_cl) < 0) {
 			close(s_cl);
 			continue;

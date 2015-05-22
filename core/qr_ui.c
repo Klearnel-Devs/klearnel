@@ -67,7 +67,7 @@ int qr_query(int nb, char **commands, int action)
 					perror("[UI] Unable to send query");
 					goto error;
 				}
-				if (read(s_cl, res, 2) < 0) {
+				if (read(s_cl, res, 1) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;
 				}
@@ -76,11 +76,11 @@ int qr_query(int nb, char **commands, int action)
 					perror("[UI] Unable to send args of the query");
 					goto error;
 				}
-				if (read(s_cl, res, 2) < 0) {
+				if (read(s_cl, res, 1) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;					
 				}
-				if (read(s_cl, res, 2) < 0) {
+				if (read(s_cl, res, 1) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;
 				}
@@ -130,7 +130,7 @@ int qr_query(int nb, char **commands, int action)
 				free(list_path);
 				goto error;
 			} 
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				perror("[UI] Unable to get query result");
 				goto error;
 			}
@@ -179,7 +179,7 @@ int qr_query(int nb, char **commands, int action)
 						perror("[UI] Unable to send query");
 						goto error;
 					}
-					if (read(s_cl, res, 2) < 0) {
+					if (read(s_cl, res, 1) < 0) {
 						perror("[UI] Unable to get query result");
 						goto error;
 					}
@@ -187,11 +187,11 @@ int qr_query(int nb, char **commands, int action)
 						perror("[UI] Unable to send args of the query");
 						goto error;
 					}
-					if (read(s_cl, res, 2) < 0) {
+					if (read(s_cl, res, 1) < 0) {
 						perror("[UI] Unable to get query result");
 						goto error;					
 					}
-					if (read(s_cl, res, 2) < 0) {
+					if (read(s_cl, res, 1) < 0) {
 						perror("[UI] Unable to get query result");
 						goto error;
 					}
@@ -221,11 +221,11 @@ out:
 				perror("[UI] Unable to send query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				perror("[UI] Unable to get query result");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				perror("[UI] Unable to get query result");
 				goto error;
 			}

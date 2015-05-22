@@ -60,12 +60,12 @@
 
 #define SOCK_NET_PORT	42225
 
-#define SOCK_ACK 	"1"
-#define SOCK_NACK 	"2"
-#define SOCK_DENIED 	"3"
-#define SOCK_UNK	"4"
-#define SOCK_ABORTED 	"8"
-#define SOCK_RETRY 	"9"
+#define SOCK_ACK 	"1\0"
+#define SOCK_NACK 	"2\0"
+#define SOCK_DENIED 	"3\0"
+#define SOCK_UNK	"4\0"
+#define SOCK_ABORTED 	"8\0"
+#define SOCK_RETRY 	"9\0"
 
 #define KL_EXIT 	-1
 
