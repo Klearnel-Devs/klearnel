@@ -99,6 +99,8 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				LOG(WARNING, "File not found in quarantine");
 			}		
 			break;
+		case QR_RM_ALL:
+		case QR_REST_ALL:
 		case QR_LIST:
 			if (action != QR_LIST) {
 				snprintf(query, len, "%d:0", QR_LIST_RECALL);
@@ -143,7 +145,133 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 			close(fd);
 			if (unlink(list_path))
 				printf("Unable to remove temporary quarantine file: %s", list_path);
+			if (action == QR_LIST) {
+				LIST_FOREACH(&qr_list, first, next, cur) {
+					char size[20];
+					sprintf(size, "%d", (int)strlen(cur->data.f_name));
+					if (write(net_sock, size, 20) < 0) {
+						LOG(WARNING, "Unable to send filename length");
+					}
+					if (read(net_sock, res, 1) < 0) {
+						LOG(WARNING, "Unable to read ACK");
+					}
+					if (write(net_sock, cur->data.f_name, strlen(cur->data.f_name)) < 0) {
+						LOG(WARNING, "Unable to send filename");
+					}
+					if (read(net_sock, res, 1) < 0) {
+						LOG(WARNING, "Unable to read ACK");
+					}
 
+
+					sprintf(size, "%d", (int)strlen(cur->data.o_path));
+					if (write(net_sock, size, 20) < 0) {
+						LOG(WARNING, "Unable to send path length");
+					}
+					if (read(net_sock, res, 1) < 0) {
+						LOG(WARNING, "Unable to read ACK");
+					}
+					if (write(net_sock, cur->data.o_path, strlen(cur->data.o_path)) < 0) {
+						LOG(WARNING, "Unable to send path");
+					}
+					if (read(net_sock, res, 1) < 0) {
+						LOG(WARNING, "Unable to read ACK");
+					}
+
+					char *tmp = malloc(50);
+					sprintf(tmp, "%li", (long int)cur->data.d_begin);
+					sprintf(size, "%d", (int)strlen(tmp));
+					if (write(net_sock, size, 20) < 0) {
+						LOG(WARNING, "Unable to send begin date length");
+					}
+					if (read(net_sock, res, 1) < 0) {
+						LOG(WARNING, "Unable to read ACK");
+					}
+					if (write(net_sock, tmp, strlen(tmp)) < 0) {
+						LOG(WARNING, "Unable to send begin date");
+					}
+					if (read(net_sock, res, 1) < 0) {
+						LOG(WARNING, "Unable to read ACK");
+					}
+
+					sprintf(tmp, "%li", (long int)cur->data.d_expire);
+					sprintf(size, "%d", (int)strlen(tmp));
+					if (write(net_sock, size, 20) < 0) {
+						LOG(WARNING, "Unable to send expire date length");
+					}
+					if (read(net_sock, res, 1) < 0) {
+						LOG(WARNING, "Unable to read ACK");
+					}
+					if (write(net_sock, tmp, strlen(tmp)) < 0) {
+						LOG(WARNING, "Unable to send expire date");
+					}
+					if (read(net_sock, res, 1) < 0) {
+						LOG(WARNING, "Unable to read ACK");
+					}
+					free(tmp);
+				}
+
+				if (write(net_sock, "EOF", 4) < 0) {
+					LOG(WARNING, "Unable to send EOF");
+				}
+				
+
+				goto out;
+			} else {
+				LIST_FOREACH(&qr_list, first, next, cur) {
+					char *next_query = malloc(len);
+					if (next_query == NULL) {
+						perror("[UI] Unable to allocate memory");
+						goto error;
+					}
+					int c_len = strlen(cur->data.f_name) + 1;
+					if ( cur->next == NULL ) {
+						if ( action == QR_RM_ALL ) {
+							snprintf(next_query, len, "%d:%d", QR_RM, c_len);
+						} else {
+							snprintf(next_query, len, "%d:%d", QR_REST, c_len);
+						}
+					} else {
+						snprintf(next_query, len, "%d:%d", action, c_len);
+					}
+					if (write(s_cl, next_query, len) < 0) {
+						perror("[UI] Unable to send query");
+						goto error;
+					}
+					if (read(s_cl, res, 1) < 0) {
+						perror("[UI] Unable to get query result");
+						goto error;
+					}
+					if (write(s_cl, cur->data.f_name, c_len) < 0) {
+						perror("[UI] Unable to send args of the query");
+						goto error;
+					}
+					if (read(s_cl, res, 1) < 0) {
+						perror("[UI] Unable to get query result");
+						goto error;					
+					}
+					if (read(s_cl, res, 1) < 0) {
+						perror("[UI] Unable to get query result");
+						goto error;
+					}
+					if (!strcmp(res, SOCK_ACK)) {
+						switch (action) {
+							case QR_RM_ALL: printf("File %s successfully deleted from QR\n", cur->data.f_name); break;
+							case QR_REST_ALL: printf("File %s successfully restored\n", cur->data.f_name); break;
+						}
+					} else if (!strcmp(res, SOCK_ABORTED)) {
+						switch (action) {
+							case QR_RM_ALL: printf("File %s could not be deleted from QR\n", cur->data.f_name); break;
+							case QR_REST_ALL: printf("File %s could not be restored\n", cur->data.f_name); break;
+						}
+					} else if (!strcmp(res, SOCK_UNK)) {
+						fprintf(stderr, "File not found in quarantine\n");
+					}
+					free(next_query);
+				}
+			}
+out:
+			clear_qr_list(&qr_list);
+			free(list_path);
 			break;
 	} 
 
@@ -465,7 +593,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				char size[20];
 				sprintf(size, "%d", (int)strlen(cur->element.path));
 				if (write(net_sock, size, 20) < 0) {
-					LOG(WARNING, "Unable to send back_limit_size length");
+					LOG(WARNING, "Unable to send path length");
 				}
 				if (read(net_sock, res, 1) < 0) {
 					LOG(WARNING, "Unable to read ACK");
@@ -480,7 +608,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 
 				sprintf(size, "%d", (int)strlen(cur->element.options));
 				if (write(net_sock, size, 20) < 0) {
-					LOG(WARNING, "Unable to send back_limit_size length");
+					LOG(WARNING, "Unable to send options length");
 				}
 				if (read(net_sock, res, 1) < 0) {
 					LOG(WARNING, "Unable to read ACK");
@@ -495,7 +623,8 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				sprintf(tmp, "%.2lf", cur->element.back_limit_size);
 				sprintf(size, "%d", (int)strlen(tmp));
 				if (write(net_sock, size, 20) < 0) {
-					LOG(WARNING, "Unable to send back_limit_size length");
+					char *tmp = malloc(50);
+				sprintf(tmp, "%.2lf", cur->element.back_limit_size);LOG(WARNING, "Unable to send back_limit_size length");
 				}
 				if (read(net_sock, res, 1) < 0) {
 					LOG(WARNING, "Unable to read ACK");
@@ -559,9 +688,6 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 
 			if (write(net_sock, "EOF", 4) < 0) {
 				LOG(WARNING, "Unable to send EOF");
-			}
-			if (read(net_sock, res, 1) < 0) {
-					LOG(WARNING, "Unable to read ACK");
 			}
 
 			break;

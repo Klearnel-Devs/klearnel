@@ -97,7 +97,8 @@ int _check_token(const int s_cl)
 		return -1;
 	}
 	close(fd);
-	if (strcmp(token, inner_token) == 0) {
+
+	if (strncmp(token, inner_token, strlen(inner_token)) == 0) {
 		SOCK_ANS(s_cl, SOCK_ACK);
 		return 0;
 	} else {
@@ -202,6 +203,7 @@ void networker()
 			write_to_log(NOTIFY, "%s - %d - %s %d", __func__, __LINE__, "Unable to execute the received action:", action);
 			continue;
 		}
+		shutdown(s_cl, SHUT_WR);
 		free(buf);
 		close(s_cl);
 	} while (action != KL_EXIT);
