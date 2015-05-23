@@ -144,6 +144,11 @@ char *_returnOrig(char *file, char *prev)
 	
 	char *token = malloc(sizeof(char)*255);
 	char *token_prv = malloc(sizeof(char)*255);
+	if ((token == NULL) || (token_prv == NULL)){
+		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+			"Unable to allocate memory");
+		return file;
+      	}
 	char *full_file;
 	char *full_prev;
 	char *path = "/home/nuccah/Documents";
@@ -153,25 +158,46 @@ char *_returnOrig(char *file, char *prev)
 	 		token[i-35] = file[i];
 	 	}
 	 	full_file = malloc(strlen(path)+strlen(token)+1);
-	 	snprintf(full_file, strlen(path)+strlen(token)+1, "%s%s", path, token); 
+	 	if (full_file == NULL){
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to allocate memory");
+			return file;
+	      	}
+	 	if (snprintf(full_file, strlen(path)+strlen(token)+1, "%s%s", path, token) != 0) {
+	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to print to new variable");
+			return file;
+	 	}
+
 	 	for(i = 35; i < strlen(prev); i++) {
 	 		token_prv[i-35] = prev[i];
 	 	}
 	 	full_prev = malloc(strlen(path)+strlen(token_prv)+1);
-	 	snprintf(full_prev, strlen(path)+strlen(token_prv)+1, "%s%s", path, token_prv); 
-	 	printf("Stating: %s\n", full_file);
-	 	if(stat(full_file, &file_stat) != 0) {
-	 		printf("Failed\n");
+	 	if (full_prev == NULL){
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to allocate memory");
+			return file;
+	      	}
+	 	if (snprintf(full_prev, strlen(path)+strlen(token_prv)+1, "%s%s", path, token_prv) != 0) {
+	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to print to new variable");
+			return file;
 	 	}
-	 	printf("Stating: %s\n", full_prev);
+	 	if(stat(full_file, &file_stat) != 0) {
+	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to stat file: %s", full_prev);
+			return file;
+	 	}
 	 	if(stat(full_prev, &prev_stat) != 0) {
-	 		printf("Failed\n");
+	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to stat file: %s", full_prev);
+			return file;
 	 	}
 	 	if ((int)file_stat.st_ctime < (int)prev_stat.st_ctime) {
-	 		printf("Deleted: %s\n", prev);
+	 		_deleteFiles(full_prev);
 	 		return file;
 	 	} else {
-	 		printf("Deleted: %s\n", file);
+	 		_deleteFiles(full_file);
 	 		return prev;
 	 	}
 	}
