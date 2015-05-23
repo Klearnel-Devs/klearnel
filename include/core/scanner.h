@@ -17,6 +17,8 @@
 #define SCAN_SOCK	TMP_DIR	"/kl-scan-sck"
 #define SCAN_TMP 	TMP_DIR "/scan"
 
+#define MD5       35
+
 #define OPTIONS   11
 
 #define SCAN_ADD	10

@@ -17,8 +17,9 @@
 
 static TWatchElementList* watch_list = NULL;
 static int protect_num = 2;
+static int exclude_num = 2;
 static const char *protect[] = {"/boot", "/proc"};
-
+static const char *exclude[] = {".git", ".svn"};
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -118,6 +119,63 @@ void _permDelete(const char* file)
   				file);
 	}
 	return;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Compares two files to determine original
+  \param        file 	The file currently being treated
+  \param 	prev 	The previous file
+  \return       char* 	The original file	
+
+  The current file is crosschecked for exclusion, then the md5 sums
+  are compared to determine if one of the files are duplicates. To determine
+  the original, the file with the oldest st_ctime inode value is kept and
+  the duplicate sent to quarantine.
+ */
+/*--------------------------------------------------------------------------*/
+char *_returnOrig(char *file, char *prev)
+{
+	int i;
+	for(i = 0; i < exclude_num; i++) {
+  		if(strstr(file, exclude[i]))
+  			return file;
+  	}
+	
+	char *token = malloc(sizeof(char)*255);
+	char *token_prv = malloc(sizeof(char)*255);
+	char *full_file;
+	char *full_prev;
+	char *path = "/home/nuccah/Documents";
+	struct stat file_stat, prev_stat;
+	if(strncmp(file, prev, MD5) == 0) {
+	 	for(i = 35; i < strlen(file); i++) {
+	 		token[i-35] = file[i];
+	 	}
+	 	full_file = malloc(strlen(path)+strlen(token)+1);
+	 	snprintf(full_file, strlen(path)+strlen(token)+1, "%s%s", path, token); 
+	 	for(i = 35; i < strlen(prev); i++) {
+	 		token_prv[i-35] = prev[i];
+	 	}
+	 	full_prev = malloc(strlen(path)+strlen(token_prv)+1);
+	 	snprintf(full_prev, strlen(path)+strlen(token_prv)+1, "%s%s", path, token_prv); 
+	 	printf("Stating: %s\n", full_file);
+	 	if(stat(full_file, &file_stat) != 0) {
+	 		printf("Failed\n");
+	 	}
+	 	printf("Stating: %s\n", full_prev);
+	 	if(stat(full_prev, &prev_stat) != 0) {
+	 		printf("Failed\n");
+	 	}
+	 	if ((int)file_stat.st_ctime < (int)prev_stat.st_ctime) {
+	 		printf("Deleted: %s\n", prev);
+	 		return file;
+	 	} else {
+	 		printf("Deleted: %s\n", file);
+	 		return prev;
+	 	}
+	}
+	return file;
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -510,32 +568,31 @@ void _checkFiles(TWatchElement data, int action)
 void _handleDuplicates(TWatchElement data, int action) {
 	int pid;
       	int pipe_fd[2];
-
 	if (pipe(pipe_fd) < 0) {
-	
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not pipe");
 		return;
 	}
-
 	if ( (pid = fork() ) < 0) {
-
+		write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+				"Scanner could not fork");
 		goto err;
 	}
-
-	
-
 	if (pid == 0) {
 		if (chdir("/home/nuccah/Documents") != 0) {
 			_exit(EXIT_FAILURE);
 		}
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
-
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+					"Failed to duplicate file descriptor");
 			goto childDeath;
 		}
 		if (system("find -not -empty -type f -printf \"%s\n\" | sort -rn | uniq -d | "
 			"xargs -I{} -n1 find -type f -size {}c -print0 | xargs -0 md5sum | "
-			"sort | uniq -w32 --all-repeated=separate | cut -c 35-") == -1) {
-			
+			"sort | uniq -w32 --all-repeated=separate") == -1) {
+			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+					"Failed to execute find duplicates");
 			goto childDeath;
 		}
 		close (pipe_fd[1]);
@@ -547,24 +604,33 @@ void _handleDuplicates(TWatchElement data, int action) {
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
-	      	if (file == NULL) {
-
+	      	char *prev = malloc(sizeof(char)*255);
+	      	if ((file == NULL) || (prev == NULL)) {
+	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+				"Unable to allocate memory");
 			return;
 	      	}
+	      	prev = " ";
 		close(pipe_fd[1]);
+		char tmp_buf;
 		while (read(pipe_fd[0], &buf, 1) > 0) {
-			file[i] = buf;
+			if(buf != '\n')
+				file[i] = buf;
 			i++;
 			if(buf == '\n') {
-				printf("%s\n", file);
-				free(file);
+				if (tmp_buf != '\n') {
+					prev = _returnOrig(file, prev);
+				}
 				file = calloc(255, sizeof(char)*255);
 				if (file == NULL) {
-				
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, 
+						"Unable to allocate memory");
 					goto err;
 				}
 				i = 0;
 			}
+			tmp_buf = buf;
 		}
 		close(pipe_fd[0]);
 		return;
