@@ -14,6 +14,7 @@
 #include <quarantine/quarantine.h>
 #include <logging/logging.h>
 #include <core/scanner.h>
+#include <config/config.h>
 
 static TWatchElementList* watch_list = NULL;
 static int protect_num = 2;
@@ -69,9 +70,108 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
   
  */
 /*--------------------------------------------------------------------------*/
-void _backupFiles(const char* file) 
+void _backupFiles(char* file) 
 {
-	NOT_YET_IMP;
+	int i = 0;
+	struct stat inode;
+	char *backup = malloc(sizeof(char)*255);
+	char *tmp = malloc(sizeof(char)*255);
+	char *path;
+	char *backup_path;
+	if ((backup == NULL) || (tmp == NULL)){
+		LOG(FATAL, "Unable to allocate memory");
+		return;
+	}
+	if (stat(file, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", file);
+		goto err;
+	}
+	if (S_ISREG(inode.st_mode)) {
+		if (inode.st_size < atoi(get_cfg("GLOBAL", "SMALL"))) {
+			if (atoi(get_cfg("SMALL", "BACKUP")) == 0) {
+				LOG(INFO, "No backup directory configured");
+				goto err;
+			} 
+			tmp = get_cfg("SMALL", "LOCATION");
+		} else if (inode.st_size > atoi(get_cfg("GLOBAL", "LARGE"))) {
+			if (atoi(get_cfg("LARGE", "BACKUP")) == 0) {
+				LOG(INFO, "No backup directory configured");
+				goto err;
+			}
+			tmp = get_cfg("LARGE", "LOCATION");
+		} else {
+			if (atoi(get_cfg("MEDIUM", "BACKUP")) == 0) {
+				LOG(INFO, "No backup directory configured");
+				goto err;
+			}
+			tmp = get_cfg("MEDIUM", "LOCATION");
+		}
+		if(tmp[strlen(tmp)-1] != '/') {
+			if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
+					tmp, "/") <= 0) {
+				LOG(FATAL, "Unable to print path");
+				goto err;
+			}
+		}
+		if (access(backup, F_OK) == -1) {
+			write_to_log(FATAL, "Unable to access backup directory : %s", 
+					backup);
+			goto err;
+		}
+		char date[7];
+		time_t rawtime;
+	  	struct tm * timeinfo;
+	  	time(&rawtime);
+	  	timeinfo = localtime(&rawtime);
+	  	strftime(date, sizeof(date), "%y%m%d", timeinfo);
+	  	char *backup_path = malloc(strlen(backup)+strlen(date)+1);
+	  	if(backup_path == NULL) {
+	  		LOG(FATAL, "Unable to allocate memory");
+			goto err;
+	  	}
+	  	if (snprintf(backup_path, strlen(backup)+strlen(date)+1, 
+	  		"%s%s", backup, date) <= 0) {
+	  		LOG(FATAL, "Unable to print path");
+			goto err2;
+	  	}
+	  	if (access(backup_path, F_OK) == -1) {
+			if (mkdir(backup_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+				write_to_log(FATAL, "Unable to create backup subdirectory : %s", 
+					backup_path);
+				goto err2;
+			}
+		}
+	  	path = malloc(strlen(backup_path)+strlen("/")+strlen(basename(file))+1);
+	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+1, 
+	  		"%s/%s", backup_path, basename(file)) <= 0) {
+			LOG(FATAL, "Unable to print path");
+			goto err3;
+	  	}
+	  	while (access(path, F_OK) == 0) {
+	  		path = realloc(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+sizeof(int)+1);
+		  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+sizeof(int)+1, 
+		  		"%s/%s%d", backup_path, basename(file), i) <= 0) {
+				LOG(FATAL, "Unable to print path");
+				goto err3;
+		  	}
+		  	i++;
+	  	}
+	  	if (rename(file, path) != 0) {
+	  		write_to_log(FATAL, "Unable to move file from %s to %s", 
+					file, path);
+			goto err3;
+	  	}
+	} else {
+		NOT_YET_IMP;
+		goto err;
+	}
+	err3:
+	free(path);
+	err2:
+	free(backup_path);
+	err:
+	free(tmp);
+	free(backup);
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -134,7 +234,7 @@ void _permDelete(const char* file)
   the duplicate sent to quarantine.
  */
 /*--------------------------------------------------------------------------*/
-char *_returnOrig(char *file, char *prev)
+char *_returnOrig(char *file, char *prev, char *path)
 {
 	int i;
 	for(i = 0; i < exclude_num; i++) {
@@ -151,7 +251,6 @@ char *_returnOrig(char *file, char *prev)
       	}
 	char *full_file;
 	char *full_prev;
-	char *path = "/home/nuccah/Documents";
 	struct stat file_stat, prev_stat;
 	if(strncmp(file, prev, MD5) == 0) {
 	 	for(i = 35; i < strlen(file); i++) {
@@ -163,7 +262,7 @@ char *_returnOrig(char *file, char *prev)
 				"Unable to allocate memory");
 			return file;
 	      	}
-	 	if (snprintf(full_file, strlen(path)+strlen(token)+1, "%s%s", path, token) != 0) {
+	 	if (snprintf(full_file, strlen(path)+strlen(token)+1, "%s%s", path, token) <= 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to print to new variable");
 			return file;
@@ -178,7 +277,7 @@ char *_returnOrig(char *file, char *prev)
 				"Unable to allocate memory");
 			return file;
 	      	}
-	 	if (snprintf(full_prev, strlen(path)+strlen(token_prv)+1, "%s%s", path, token_prv) != 0) {
+	 	if (snprintf(full_prev, strlen(path)+strlen(token_prv)+1, "%s%s", path, token_prv) < 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to print to new variable");
 			return file;
@@ -605,7 +704,7 @@ void _handleDuplicates(TWatchElement data, int action) {
 		goto err;
 	}
 	if (pid == 0) {
-		if (chdir("/home/nuccah/Documents") != 0) {
+		if (chdir(data.path) != 0) {
 			_exit(EXIT_FAILURE);
 		}
 		close (pipe_fd[0]);
@@ -645,7 +744,7 @@ void _handleDuplicates(TWatchElement data, int action) {
 			i++;
 			if(buf == '\n') {
 				if (tmp_buf != '\n') {
-					prev = _returnOrig(file, prev);
+					prev = _returnOrig(file, prev, data.path);
 				}
 				file = calloc(255, sizeof(char)*255);
 				if (file == NULL) {
