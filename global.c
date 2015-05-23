@@ -33,10 +33,8 @@ int get_data(const int sock, int *action, char **buf, int c_len)
 		free(a_type);
 		return -1;
 	}
-	write_to_log(DEBUG, "a_type received: %s", a_type);
 	*action = atoi(strtok(a_type, ":"));
 	len = atoi(strtok(NULL, ":"));
-	write_to_log(DEBUG, "len computed: %d", len);
 	if (len > 0) {
 		*buf = malloc(sizeof(char)*len);
 		if (*buf == NULL) {

@@ -205,7 +205,7 @@ int scan_query(int nb, char **commands, int action)
 	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
-		perror("[UI] Unable to connect the qr_sock");
+		perror("[UI] Unable to connect the scan_sock");
 		return -1;
 	}
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
