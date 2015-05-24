@@ -72,12 +72,19 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
 /*--------------------------------------------------------------------------*/
 void _backupFiles(char* file) 
 {
-	int i = 0;
+	int i = 0, childExitStatus;
 	struct stat inode;
+	pid_t pid;
+	char *path, *backup_path;
 	char *backup = malloc(sizeof(char)*255);
 	char *tmp = malloc(sizeof(char)*255);
-	char *path;
-	char *backup_path;
+	char *dirname = malloc(sizeof(char)*255);
+	char date[7];
+	time_t rawtime;
+	struct tm * timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	strftime(date, sizeof(date), "%y", timeinfo);
 	if ((backup == NULL) || (tmp == NULL)){
 		LOG(FATAL, "Unable to allocate memory");
 		return;
@@ -86,7 +93,13 @@ void _backupFiles(char* file)
 		write_to_log(FATAL, "Unable to stat file : %s", file);
 		goto err;
 	}
-	if (S_ISREG(inode.st_mode)) {
+
+	if (!S_ISREG(inode.st_mode) && !S_ISDIR(inode.st_mode)) {
+		write_to_log(INFO, "%s - %d - %s : %s", __func__, __LINE__, 
+				"Not a file or folder", file);
+		goto err;
+	}
+	if(S_ISREG(inode.st_mode)) {
 		if (inode.st_size < atoi(get_cfg("GLOBAL", "SMALL"))) {
 			if (atoi(get_cfg("SMALL", "BACKUP")) == 0) {
 				LOG(INFO, "No backup directory configured");
@@ -106,64 +119,107 @@ void _backupFiles(char* file)
 			}
 			tmp = get_cfg("MEDIUM", "LOCATION");
 		}
-		if(tmp[strlen(tmp)-1] != '/') {
-			if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
-					tmp, "/") <= 0) {
-				LOG(FATAL, "Unable to print path");
-				goto err;
-			}
+		// if(tmp[strlen(tmp)-1] != '/') {
+		// 	if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
+		// 			tmp, "/") <= 0) {
+		// 		LOG(FATAL, "Unable to print path");
+		// 		goto err;
+		// 	}
+		// }
+	} else {
+		if(file[strlen(file)-1] == '/') {
+			file[strlen(file)-1] = '\0';
 		}
-		if (access(backup, F_OK) == -1) {
-			write_to_log(FATAL, "Unable to access backup directory : %s", 
-					backup);
-			goto err;
-		}
-		char date[7];
-		time_t rawtime;
-	  	struct tm * timeinfo;
-	  	time(&rawtime);
-	  	timeinfo = localtime(&rawtime);
-	  	strftime(date, sizeof(date), "%y%m%d", timeinfo);
-	  	char *backup_path = malloc(strlen(backup)+strlen(date)+1);
-	  	if(backup_path == NULL) {
-	  		LOG(FATAL, "Unable to allocate memory");
-			goto err;
-	  	}
-	  	if (snprintf(backup_path, strlen(backup)+strlen(date)+1, 
-	  		"%s%s", backup, date) <= 0) {
-	  		LOG(FATAL, "Unable to print path");
+	}
+	if (access(backup, F_OK) == -1) {
+		write_to_log(FATAL, "Unable to access backup directory : %s", 
+				backup);
+		goto err;
+	}
+  	backup_path = malloc(strlen(backup)+strlen(date)+1);
+  	if(backup_path == NULL) {
+  		LOG(FATAL, "Unable to allocate memory");
+		goto err;
+  	}
+  	if (snprintf(backup_path, strlen(backup)+strlen(date)+1, 
+  		"%s%s", backup, date) <= 0) {
+  		LOG(FATAL, "Unable to print path");
+		goto err2;
+  	}
+  	if (access(backup_path, F_OK) == -1) {
+		if (mkdir(backup_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+			write_to_log(FATAL, "Unable to create backup subdirectory : %s", 
+				backup_path);
 			goto err2;
-	  	}
-	  	if (access(backup_path, F_OK) == -1) {
+		}
+	}
+	if(S_ISREG(inode.st_mode)) {
+		tmp = calloc(255, sizeof(char));
+		tmp = basename(file);
+		dirname = basename(tmp);
+		if (access(backup_path, F_OK) == -1) {
 			if (mkdir(backup_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 				write_to_log(FATAL, "Unable to create backup subdirectory : %s", 
 					backup_path);
 				goto err2;
 			}
 		}
-	  	path = malloc(strlen(backup_path)+strlen("/")+strlen(basename(file))+1);
+		path = malloc(strlen(backup_path)+strlen("/")+strlen(dirname)+strlen("/")+strlen(basename(file))+1);
+	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(dirname)+strlen("/")+strlen(basename(file))+1, 
+	  		"%s/%s/%s", backup_path, dirname, basename(file)) <= 0) {
+			LOG(FATAL, "Unable to print path");
+			goto err3;
+	  	}
+	} else {
+		path = malloc(strlen(backup_path)+strlen("/")+strlen(basename(file))+1);
 	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+1, 
 	  		"%s/%s", backup_path, basename(file)) <= 0) {
 			LOG(FATAL, "Unable to print path");
 			goto err3;
 	  	}
-	  	while (access(path, F_OK) == 0) {
-	  		path = realloc(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+sizeof(int)+1);
-		  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+sizeof(int)+1, 
-		  		"%s/%s%d", backup_path, basename(file), i) <= 0) {
-				LOG(FATAL, "Unable to print path");
-				goto err3;
-		  	}
-		  	i++;
-	  	}
-	  	if (rename(file, path) != 0) {
-	  		write_to_log(FATAL, "Unable to move file from %s to %s", 
-					file, path);
+	}
+  	while (access(path, F_OK) == 0) {
+  		path = realloc(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+sizeof(int)+1);
+	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+sizeof(int)+1, 
+	  		"%s/%s%d", backup_path, basename(file), i) <= 0) {
+			LOG(FATAL, "Unable to print path");
 			goto err3;
 	  	}
+	  	i++;
+  	}
+  	pid = fork();
+	if (pid == 0) {
+		if(S_ISREG(inode.st_mode)) {
+	  		execl("/bin/cp", "/bin/cp", file, path, (char *)0);
+	  	} else {
+	  		prog1_argv[0] = "/bin/cp";
+		      	prog1_argv[1] = "";
+		      	prog1_argv[2] = "";
+		      	prog1_argv[3] = "";
+		      	prog1_argv[4] = "";
+		      	prog1_argv[5] = "";
+		      	prog1_argv[6] = "";
+		      	prog1_argv[7] = NULL;
+			if (execvp(prog1_argv[0], prog1_argv) == -1) {
+				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+					"Failed to execute find broken symlinks");
+				close (pipe_fd[1]);
+				exit(EXIT_FAILURE);
+			}
+	  	}
+	} else if ( pid < 0 ) {
+		LOG(FATAL, "Could not fork backup exec");
+		goto err3;
 	} else {
-		NOT_YET_IMP;
-		goto err;
+		pid_t ws = waitpid(pid, &childExitStatus, WNOHANG);
+		if (ws == -1) {
+	        	LOG(FATAL, "Backup Exec failed");
+	        }
+	        if( WIFEXITED(childExitStatus)) {
+			LOG(INFO, "Backup performed successfully");
+	        } else {
+	        	LOG(FATAL, "Backup Exec failed");
+	        }
 	}
 	err3:
 	free(path);
@@ -172,6 +228,7 @@ void _backupFiles(char* file)
 	err:
 	free(tmp);
 	free(backup);
+	free(dirname);
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -342,7 +399,7 @@ char *_returnOrig(char *file, char *prev, char *path)
 
   Forks, Exec's the find command, outputs result to parent by replacing 
   STDOUT with write end of pipe. Parent then calls _deleteSym for each
-  file read in pipe
+  file read in pipecalloc
  */
 /*--------------------------------------------------------------------------*/
 void _checkSymlinks(TWatchElement data) 
@@ -456,7 +513,7 @@ void _dupSymlinks(TWatchElement data)
 				"Unable to fork processes");
 		goto err;
 	}
-
+calloc
 	if (pid == 0) {
 		char *prog1_argv[5];
 
@@ -746,7 +803,7 @@ void _handleDuplicates(TWatchElement data, int action) {
 				if (tmp_buf != '\n') {
 					prev = _returnOrig(file, prev, data.path);
 				}
-				file = calloc(255, sizeof(char)*255);
+				file = calloc(255, sizeof(char));
 				if (file == NULL) {
 					write_to_log(WARNING, "%s - %d - %s", 
 						__func__, __LINE__, 
