@@ -219,7 +219,7 @@ int  add_file_to_qr(QrList **list, char *filepath)
 
 	new_f.d_begin   = time(NULL);
 
-	 EXP = atoi(get_cfg("GLOBAL", "SMALL"));
+	EXP = atoi(get_cfg("GLOBAL", "SMALL"));
 	if(new_f.o_ino.st_size > EXP) {
 		EXP = atoi(get_cfg("GLOBAL", "LARGE"));
 		if(new_f.o_ino.st_size < EXP) {

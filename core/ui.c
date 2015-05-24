@@ -149,34 +149,34 @@ void execute_commands(int nb, char **commands)
 				}
 			}
 		}
-		qr_query(nb, commands, QR_ADD);
+		qr_query(commands, QR_ADD);
 	} else if (!strcmp(commands[1], "-rm-from-qr")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to remove missing\n"
 				 "Correct syntax is: klearnel -rm-fom-qr <filename>\n");
 			exit(EXIT_FAILURE);
 		}
-		qr_query(nb, commands, QR_RM);
+		qr_query(commands, QR_RM);
 	} else if (!strcmp(commands[1], "-rm-all-from-qr")) {
-		qr_query(nb, commands, QR_RM_ALL);
+		qr_query(commands, QR_RM_ALL);
 	} else if (!strcmp(commands[1], "-get-qr-list")) {
-		qr_query(nb, commands, QR_LIST);
+		qr_query(commands, QR_LIST);
 	} else if (!strcmp(commands[1], "-get-qr-info")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to detail missing\n"
 				 "Correct syntax is: klearnel -get-qr-info <filename>\n");
 			exit(EXIT_FAILURE);
 		}
-		qr_query(nb, commands, QR_INFO);
+		qr_query(commands, QR_INFO);
 	} else if (!strcmp(commands[1], "-restore-from-qr")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to restore missing\n"
 				 "Correct syntax is: klearnel -restore-from-qr <filename>\n");
 			exit(EXIT_FAILURE);
 		}
-		qr_query(nb, commands, QR_REST);
+		qr_query(commands, QR_REST);
 	} else if (!strcmp(commands[1], "-restore-all-from-qr")) {
-		qr_query(nb, commands, QR_REST_ALL);
+		qr_query(commands, QR_REST_ALL);
 	} else if (!strcmp(commands[1], "-view-rt-log")) {
 		char date[7];
 		time_t rawtime;
@@ -228,7 +228,7 @@ void execute_commands(int nb, char **commands)
 		} else {
 			printf("Networker process successfully stopped\n");
 		}
-		if (qr_query(nb, commands, KL_EXIT) != 0) {
+		if (qr_query(commands, KL_EXIT) != 0) {
 			printf("Check Klearnel logs, Qr-Worker did not terminate correctly\n");
 		} else {
 			printf("Qr-Worker successfully stopped\n");

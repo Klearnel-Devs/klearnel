@@ -34,11 +34,10 @@
 #include <libgen.h>
 #include <ctype.h>
 #include <netinet/in.h>
-
 #ifdef __APPLE__
 #include <sys/syslimits.h>
 #endif
-
+#include <sys/wait.h>
 /*---------------------------------------------------------------------------
                                 Definitions
  ---------------------------------------------------------------------------*/

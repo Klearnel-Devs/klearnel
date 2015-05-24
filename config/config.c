@@ -217,7 +217,7 @@ void free_cfg()
 	iniparser_freedict(ini);
 }
 
-const char * get_cfg(char *section, char *key) {
+char * get_cfg(char *section, char *key) {
 	char *value;
 	char *query = malloc(strlen(section) + strlen(key) + strlen(":") + 1);
 	if (!snprintf(query, (strlen(section) + strlen(key) + strlen(":") + 1), "%s:%s", section, key)) {

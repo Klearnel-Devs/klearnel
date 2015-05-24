@@ -99,7 +99,7 @@ void init_config();
   as parameters
  */
 /*--------------------------------------------------------------------------*/
-const char * get_cfg(char *section, char *key);
+char * get_cfg(char *section, char *key);
 
 /*-------------------------------------------------------------------------*/
 /**
