@@ -72,7 +72,7 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
 /*--------------------------------------------------------------------------*/
 void _backupFiles(char* file) 
 {
-	int i = 0, childExitStatus;
+	int childExitStatus;
 	struct stat inode;
 	pid_t pid;
 	char *path, *backup_path;
@@ -119,14 +119,91 @@ void _backupFiles(char* file)
 			}
 			tmp = get_cfg("MEDIUM", "LOCATION");
 		}
-		// if(tmp[strlen(tmp)-1] != '/') {
-		// 	if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
-		// 			tmp, "/") <= 0) {
-		// 		LOG(FATAL, "Unable to print path");
-		// 		goto err;
-		// 	}
-		// }
+		if(tmp[strlen(tmp)-1] != '/') {
+			if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
+					tmp, "/") <= 0) {
+				LOG(FATAL, "Unable to print path");
+				goto err;
+			}
+		}
 	} else {
+	      	int pipe_fd[2];
+	      	int size;
+		if (pipe(pipe_fd) < 0) {
+			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+					"Scanner could not pipe");
+			return;
+		}
+
+		if ( (pid = fork() ) < 0) {
+			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+					"Scanner could not fork");
+			goto err;
+		}
+
+		if (pid == 0) {
+		      	if (chdir(file) != 0) {
+				_exit(EXIT_FAILURE);
+			}
+			close (pipe_fd[0]);
+			if (dup2 (pipe_fd[1], 1) == -1) {
+				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+						"Failed to duplicate file descriptor");
+				_exit(EXIT_FAILURE);
+			}
+			if (system("ls -lR | grep -v '^d' | awk '{total += $5} END {print total}'") == -1) {
+				LOG(WARNING, "Failed to execute ls get dir size");
+				_exit(EXIT_FAILURE);
+			}
+			close (pipe_fd[1]);
+			exit(EXIT_SUCCESS);
+		} else {
+			int i = 0;
+			char buf;
+		      	char *tmp = malloc(sizeof(char)*255);
+		      	if (tmp == NULL) {
+				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+					"Unable to allocate memory");
+				return;
+		      	}
+			close(pipe_fd[1]);
+			while (read(pipe_fd[0], &buf, 1) > 0) {
+				tmp[i] = buf;
+				i++;
+			}
+			if ((size = atoi(tmp)) < 0) {
+				write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, 
+						"atoi() failed on ", tmp);
+			}
+			close(pipe_fd[0]);
+			free(tmp);
+		}
+		if (size < atoi(get_cfg("GLOBAL", "SMALL"))) {
+			if (atoi(get_cfg("SMALL", "BACKUP")) == 0) {
+				LOG(INFO, "No backup directory configured");
+				goto err;
+			} 
+			tmp = get_cfg("SMALL", "LOCATION");
+		} else if (size > atoi(get_cfg("GLOBAL", "LARGE"))) {
+			if (atoi(get_cfg("LARGE", "BACKUP")) == 0) {
+				LOG(INFO, "No backup directory configured");
+				goto err;
+			}
+			tmp = get_cfg("LARGE", "LOCATION");
+		} else {
+			if (atoi(get_cfg("MEDIUM", "BACKUP")) == 0) {
+				LOG(INFO, "No backup directory configured");
+				goto err;
+			}
+			tmp = get_cfg("MEDIUM", "LOCATION");
+		}
+		if(tmp[strlen(tmp)-1] != '/') {
+			if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
+					tmp, "/") <= 0) {
+				LOG(FATAL, "Unable to print path");
+				goto err;
+			}
+		}
 		if(file[strlen(file)-1] == '/') {
 			file[strlen(file)-1] = '\0';
 		}
@@ -164,49 +241,31 @@ void _backupFiles(char* file)
 				goto err2;
 			}
 		}
-		path = malloc(strlen(backup_path)+strlen("/")+strlen(dirname)+strlen("/")+strlen(basename(file))+1);
-	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(dirname)+strlen("/")+strlen(basename(file))+1, 
-	  		"%s/%s/%s", backup_path, dirname, basename(file)) <= 0) {
+		path = malloc(strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+
+				strlen(basename(file))+1);
+	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+
+	  			strlen(basename(file))+1, 
+	  		"%s/%s%s/%s", backup_path, "files/",dirname, basename(file)) <= 0) {
 			LOG(FATAL, "Unable to print path");
 			goto err3;
 	  	}
 	} else {
-		path = malloc(strlen(backup_path)+strlen("/")+strlen(basename(file))+1);
-	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+1, 
-	  		"%s/%s", backup_path, basename(file)) <= 0) {
+		path = malloc(strlen(backup_path)+strlen("/")+1);
+	  	if (snprintf(path, strlen(backup_path)+strlen("/")+1, 
+	  			"%s/", backup_path) <= 0) {
 			LOG(FATAL, "Unable to print path");
 			goto err3;
 	  	}
 	}
-  	while (access(path, F_OK) == 0) {
-  		path = realloc(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+sizeof(int)+1);
-	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen(basename(file))+sizeof(int)+1, 
-	  		"%s/%s%d", backup_path, basename(file), i) <= 0) {
-			LOG(FATAL, "Unable to print path");
-			goto err3;
-	  	}
-	  	i++;
-  	}
   	pid = fork();
 	if (pid == 0) {
-		if(S_ISREG(inode.st_mode)) {
-	  		execl("/bin/cp", "/bin/cp", file, path, (char *)0);
-	  	} else {
-	  		prog1_argv[0] = "/bin/cp";
-		      	prog1_argv[1] = "";
-		      	prog1_argv[2] = "";
-		      	prog1_argv[3] = "";
-		      	prog1_argv[4] = "";
-		      	prog1_argv[5] = "";
-		      	prog1_argv[6] = "";
-		      	prog1_argv[7] = NULL;
-			if (execvp(prog1_argv[0], prog1_argv) == -1) {
-				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
-					"Failed to execute find broken symlinks");
-				close (pipe_fd[1]);
-				exit(EXIT_FAILURE);
-			}
-	  	}
+		char *prog1_argv[4];
+		prog1_argv[0] = "rsync";
+		prog1_argv[1] = "-a";
+		prog1_argv[2] = file;
+		prog1_argv[3] = path;
+		prog1_argv[4] = NULL;
+		execvp(prog1_argv[0], prog1_argv);
 	} else if ( pid < 0 ) {
 		LOG(FATAL, "Could not fork backup exec");
 		goto err3;
@@ -239,7 +298,7 @@ void _backupFiles(char* file)
   
  */
 /*--------------------------------------------------------------------------*/
-void _deleteFiles(const char* file) 
+void _deleteFiles(const char *file) 
 {
 	NOT_YET_IMP;
 }
@@ -253,7 +312,7 @@ void _deleteFiles(const char* file)
   
  */
 /*--------------------------------------------------------------------------*/
-void _permDelete(const char* file) 
+void _permDelete(const char *file) 
 {
 	struct stat new_s;
 	if (stat(file, &new_s) != 0) {
@@ -513,7 +572,6 @@ void _dupSymlinks(TWatchElement data)
 				"Unable to fork processes");
 		goto err;
 	}
-calloc
 	if (pid == 0) {
 		char *prog1_argv[5];
 
