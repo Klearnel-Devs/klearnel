@@ -15,6 +15,7 @@
 #include <logging/logging.h>
 #include <core/scanner.h>
 #include <config/config.h>
+#include <core/ui.h>
 
 static TWatchElementList* watch_list = NULL;
 static int protect_num = 2;
@@ -63,11 +64,14 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
 
 /*-------------------------------------------------------------------------*/
 /**
-  \brief        Backup of files and folders
+  \brief        Backups files and folders
   \param        file 	The file to backup
   \return       void	
 
-  
+  For files, retreives configured backup location from config file depending
+  on size of file to backup. For folders, forks & execs an ls call to
+  determine size of folders contents, then retrieves backup location like
+  for files. Uses rsync for backup. 
  */
 /*--------------------------------------------------------------------------*/
 void _backupFiles(char* file) 
@@ -298,9 +302,140 @@ void _backupFiles(char* file)
   
  */
 /*--------------------------------------------------------------------------*/
-void _deleteFiles(const char *file) 
+void _deleteFiles(char *file) 
 {
-	NOT_YET_IMP;
+	int childExitStatus, i = 0, num = 0;
+	struct stat inode;
+	pid_t pid;
+	char *tmp = malloc(sizeof(char)*255);
+	if (tmp == NULL){
+		LOG(FATAL, "Unable to allocate memory");
+		return;
+	}
+	if (stat(file, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", file);
+		goto err;
+	}
+
+	if (!S_ISREG(inode.st_mode) && !S_ISDIR(inode.st_mode)) {
+		write_to_log(INFO, "%s - %d - %s : %s", __func__, __LINE__, 
+				"Not a file or folder", file);
+		goto err;
+	}
+	if(S_ISREG(inode.st_mode)) {
+			char *commands[3] = {"klearnel", "add-to-qr", file};
+			if(qr_query(commands, 1) != 0) {
+				LOG(FATAL, "Add to QR Failed");
+			}
+	} else {
+	      	int pipe_fd[2];
+	      	char ** symArray = malloc(sizeof(char)*255);
+		if (pipe(pipe_fd) < 0) {
+			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+					"Scanner could not pipe");
+			return;
+		}
+
+		if ( (pid = fork() ) < 0) {
+			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+					"Scanner could not fork");
+			goto err;
+		}
+
+		if (pid == 0) {
+			close (pipe_fd[0]);
+			if (dup2 (pipe_fd[1], 1) == -1) {
+				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+						"Failed to duplicate file descriptor");
+				_exit(EXIT_FAILURE);
+			}
+			char *prog1_argv[7];
+			prog1_argv[0] = "find";
+			prog1_argv[1] = file;
+			prog1_argv[2] = "-type";
+			prog1_argv[3] = "f";
+			prog1_argv[4] = "!";
+			prog1_argv[5] = "-empty";
+			prog1_argv[6] = "-print0";
+			prog1_argv[7] = NULL;
+			if (execvp(prog1_argv[0], prog1_argv) == -1) {
+				LOG(WARNING, "Failed to get non-empty files from directory");
+				close (pipe_fd[1]);
+				exit(EXIT_FAILURE);
+			}
+			close (pipe_fd[1]);
+			exit(EXIT_SUCCESS);
+		} else {
+			char buf;
+		      	char *link = malloc(sizeof(char)*255);
+		      	if (link == NULL) {
+				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+					"Unable to allocate memory");
+				return;
+		      	}
+			close(pipe_fd[1]);
+			while (read(pipe_fd[0], &buf, 1) > 0) {
+				link[i] = buf;
+				i++;
+				if(buf == '\0') {
+					num++;
+					symArray = realloc(symArray, num * sizeof(*symArray));
+					if (symArray == NULL) {
+						write_to_log(WARNING, "%s - %d - %s", 
+							__func__, __LINE__, 
+							"Unable to allocate memory");
+						goto err;
+					}
+					symArray[num-1] = link;
+					link = calloc(255, sizeof(char));
+					i = 0;
+				}
+			}
+			free(link);
+			close(pipe_fd[0]);
+		}
+		for(i = 0; i < num; i++) {
+			char *commands[3] = {"klearnel", "add-to-qr", symArray[i]};
+			if(qr_query(commands, 1) != 0) {
+				LOG(FATAL, "Add to QR Failed");
+			}
+			free(symArray[i]);
+		}
+		if ( (pid = fork() ) < 0) {
+			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
+					"Scanner could not fork");
+			goto err;
+		}
+		if (pid == 0) {
+			if (dup2 (pipe_fd[1], 1) == -1) {
+				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
+						"Failed to duplicate file descriptor");
+				_exit(EXIT_FAILURE);
+			}
+			char *prog1_argv[3];
+			prog1_argv[0] = "rm";
+			prog1_argv[1] = "-rf";
+			prog1_argv[2] = symArray[i];
+			prog1_argv[3] = NULL;
+			if (execvp(prog1_argv[0], prog1_argv) == -1) {
+				close (pipe_fd[1]);
+				exit(EXIT_FAILURE);
+			}
+			exit(EXIT_SUCCESS);
+		} else {
+			pid_t ws = waitpid(pid, &childExitStatus, WNOHANG);
+			if (ws == -1) {
+		        	LOG(FATAL, "Delete Files Exec failed");
+		        }
+		        if( WIFEXITED(childExitStatus) ) {
+				LOG(INFO, "Find files successful");
+		        } else {
+		        	LOG(FATAL, "Delete Files Exec failed");
+		        }
+		}
+	}
+	err:
+		return;
 }
 
 /*-------------------------------------------------------------------------*/
