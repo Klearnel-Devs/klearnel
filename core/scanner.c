@@ -434,8 +434,9 @@ void _deleteFiles(char *file)
 		        }
 		}
 	}
-	err:
-		return;
+
+err:
+	return;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -711,7 +712,7 @@ void _dupSymlinks(TWatchElement data)
 		char *prog1_argv[5];
 
 		prog1_argv[0] = "find";
-	      	prog1_argv[1] = "/home/nuccah";
+	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[3] = "l";
 	      	prog1_argv[4] = "-print0";
@@ -920,6 +921,18 @@ void _checkFiles(TWatchElement data, int action)
 				i = 0;
 			}
 		}
+		if (action == SCAN_DEL_F_SIZE) {
+			struct stat s;
+			if (stat(data.path, &s) < 0) {
+				write_to_log(URGENT,"%s:%d: Unable to get stat of %s", __func__, 
+					__LINE__, data.path);
+				free(file);
+				goto err;
+			}
+			if (S_ISREG(s.st_mode)) {
+				remove_watch_elem(data);
+			}			
+		}
 		close(pipe_fd[0]);
 		free(file);
 		return;
@@ -1063,7 +1076,7 @@ void _cleanFolder(TWatchElement data) {
 	      	char *types[] = {"b", "c", "p", "f", "l", "s", "d"};
 	      	int returnStatus, childpid;
 		prog1_argv[0] = "find";
-	      	prog1_argv[1] = "/home";
+	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[4] = "-print0";
 	      	prog1_argv[5] = NULL;
@@ -1219,6 +1232,18 @@ void _oldFiles(TWatchElement data, int action) {
 				}
 				i = 0;
 			}
+		}
+		if (action == SCAN_DEL_F_OLD) {
+			struct stat s;
+			if (stat(data.path, &s) < 0) {
+				write_to_log(URGENT,"%s:%d: Unable to get stat of %s", __func__, 
+					__LINE__, data.path);
+				free(file);
+				goto err;
+			}
+			if (S_ISREG(s.st_mode)) {
+				remove_watch_elem(data);
+			}			
 		}
 		close(pipe_fd[0]);
 		free(file);
