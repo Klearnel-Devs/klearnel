@@ -1304,8 +1304,7 @@ int perform_event()
 						LOG_DEBUG;
 					}
 					break;
-				case SCAN_DUP_F :
-				case SCAN_FUSE : 
+				case SCAN_DUP_F : 
 					if (cur->element.options[i] == '1')
 						_handleDuplicates(cur->element, i);
 					break;

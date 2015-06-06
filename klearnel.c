@@ -56,8 +56,8 @@ void autocomplete()
 	"	prev=\"${COMP_WORDS[COMP_CWORD-1]}\"\n"
 	"	opts=\"-add-to-qr -rm-from-qr -rm-all-from-qr -get-qr-list\n"
 	"	-get-qr-info -restore-from-qr -restore-all-from-qr\n"
-	"	-add-to-scan -rm-from-scan -view-rt-log -license -start\n"
-	"	-stop -help\""
+	"	-add-to-scan -rm-from-scan -get-scan-list -view-rt-log\n" 
+	"	-license -start -stop -help\""
 	"\n"
 	"	if [[ ${cur} == -* ]] ; then\n"
 	"		COMPREPLY=( $(compgen -W \"${opts}\" -- ${cur}) )\n"
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 		       "Enter \"klearnel help\" for further information\n");
 		return EXIT_SUCCESS;
 	}
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(argv[1], "-start")) {
 		goto service;
 	} 
 	execute_commands(argc, argv);

@@ -19,7 +19,7 @@
 
 #define MD5       35
 
-#define OPTIONS   11
+#define OPTIONS   10
 
 #define SCAN_ADD	10
 #define SCAN_RM		11
@@ -30,12 +30,11 @@
 #define SCAN_BACKUP	2
 #define SCAN_DEL_F_SIZE	3
 #define SCAN_DUP_F	4
-#define SCAN_FUSE	5
-#define SCAN_INTEGRITY	6
-#define SCAN_CL_TEMP	7
-#define SCAN_DEL_F_OLD	8
-#define SCAN_BACKUP_OLD 9
-#define SCAN_OPT_END 	10 /* Need to be set to last character in the option string for \0 */
+#define SCAN_INTEGRITY	5
+#define SCAN_CL_TEMP	6
+#define SCAN_DEL_F_OLD	7
+#define SCAN_BACKUP_OLD 8
+#define SCAN_OPT_END 	9 /* Need to be set to last character in the option string for \0 */
 
 #define EMPTY_PATH	"empty"
 
@@ -54,11 +53,10 @@
 	 						if backup location is configured_
 	  Char 3 : Delete files larger than X size 	_applicable to folders and files_
 	  Char 4 : Delete duplicate files 		_only applicable to folders_
-	  Char 5 : Fuse duplicate files 		_only applicable to folders_
-	  Char 6 : Fix permissions integrity 		_only applicable to folders_
-	  Char 7 : Clean the folder at specified time 	_only applicable to temp folders_
-	  Char 8 : Delete files older than X time 	_applicable to folders and files_
-	  Char 9 : Backup files older than X time	_applicable to folders and files 
+	  Char 5 : Fix permissions integrity 		_only applicable to folders_
+	  Char 6 : Clean the folder at specified time 	_only applicable to temp folders_
+	  Char 7 : Delete files older than X time 	_applicable to folders and files_
+	  Char 8 : Backup files older than X time	_applicable to folders and files 
 	 						if backup location is configured_
 
  */

@@ -253,9 +253,11 @@ void execute_commands(int nb, char **commands)
 		printf(" - \e[1m-add-to-scan <file/folder path>\e[21m:\n\t Add the specified file or folder to the scanner watch list"
 			"\n\tNOTE: this command will prompt you for each action to apply to the new item. It can take a few minutes to complete.\n");
 		printf(" - \e[1m-rm-from-scan <file/folder path>\e[21m: \n\t Remove the specified file/folder from the scanner watch list\n");	
+		printf(" - \e[1m-get-scan-list\e[21m:\n\t Display the elements in the scanner watch list\n");
 		printf(" - \e[1m-view-rt-log\e[21m:\n\t Display the current klearnel's log in real time\n");
 		printf(" - \e[1m-license\e[21m:\n\t Display the klearnel license terms\n");
-		printf(" - \e[1m-start\e[21m:\n\t Start Klearnel service\n");
+		printf(" - \e[1m-start\e[21m:\n\t Start Klearnel service"
+			"\n\tNOTE: you need to be root to start the services\n");
 		printf(" - \e[1m-stop\e[21m:\n\t Stop Klearnel service\n");
 		printf(" - \e[1m-help\e[21m:\n\t Display this help message\n");
 		printf("\nCopyright (C) 2014, 2015 Klearnel-Devs\n\n");
