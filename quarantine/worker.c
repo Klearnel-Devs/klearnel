@@ -1,17 +1,29 @@
-/*
- * Process that associates tasks with required quarantine actions
- * Forked from Klearnel, forks to accomplish certain tasks
- * 
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	worker.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Quarantine file
+
+   Process that associates tasks with required quarantine actions
+   Forked from Klearnel, forks to accomplish certain tasks
+*/
+/*--------------------------------------------------------------------------*/
 #include <global.h>
 #include <quarantine/quarantine.h>
 #include <logging/logging.h>
 
-/*
- * Searches QR list and deletes a file who's date is older than todays date time
- * Calls to rm_file_from_qr to delete file physically, logically
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Searches & Deletes Expired Files Recursively
+  \param        list 	 	The Quarantine database list
+  \param 	listNode 	The node to search
+  \param        now 		The current system time
+  \return       void
+
+  Searches QR list and deletes a file who's date is older than todays date time
+  Calls to rm_file_from_qr to delete file physically, logically
  */
+/*--------------------------------------------------------------------------*/
 void _search_expired(QrList **list, QrListNode *listNode, time_t now)
 {
 	if (listNode == NULL) {
@@ -25,11 +37,17 @@ void _search_expired(QrList **list, QrListNode *listNode, time_t now)
 	return;
 }
 
-/*
- * Function of process who is tasked with deleting files
- * earmarked by a deletion date older than todays date time
- * Loops until no more expired files are detected
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Manages the Expired Files functionality
+  \param        list 	The quarantine list to iterate
+  \return       void
+
+  Function of process who is tasked with deleting files 
+  earmarked by a deletion date older than todays date time.
+  Loops until no more expired files are detected
  */
+/*--------------------------------------------------------------------------*/
 void _expired_files(QrList **list)
 {
 	(*list) = calloc(1, sizeof(QrList));
@@ -45,65 +63,17 @@ void _expired_files(QrList **list)
 	return;
 }
 
-/* Get data from socket "sock" and put it in buffer "buf"
- * Return number of char read if >= 0, else -1
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Call the action related to the "action" arg 
+  \param        list 	The Quarantine list
+  \param 	action  The action to take
+  \param        buf 	Command received by socket
+  \param 	s_cl 	The socket connection
+  \return       0 on success, -1 on error
+
  */
-static int _get_data(const int sock, int *action, char **buf)
-{
-	int c_len = 20;
-	char *a_type = malloc(c_len);
-	int len;
-	if (a_type == NULL) {
-		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
-		return -1;
-	}
-
-	if (read(sock, a_type, c_len) < 0) {
-		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Error while receiving data through socket");
-		return -1;
-	}
-
-	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
-		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send ack in socket");
-		free(a_type);
-		return -1;
-	}
-
-	*action = atoi(strtok(a_type, ":"));
-	len = atoi(strtok(NULL, ":"));
-	
-	if (len > 0) {
-		*buf = malloc(sizeof(char)*len);
-		if (*buf == NULL) {
-			if (SOCK_ANS(sock, SOCK_RETRY) < 0)
-				write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send retry");
-			write_to_log(FATAL,"%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
-			free(a_type);
-			return -1;
-		}
-
-		if (read(sock, *buf, len) < 0) {
-			if (SOCK_ANS(sock, SOCK_NACK) < 0)
-				write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send nack");
-			write_to_log(FATAL,"%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
-			free(a_type);
-			return -1;			
-		}
-
-		if(SOCK_ANS(sock, SOCK_ACK) < 0) {
-			write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send ack");
-			free(a_type);
-			return -1;
-		}
-	}
-	free(a_type);
-	return len;
-}
-
-/* Call the action related to the "action" arg 
- * If action has been executed correctly return the new qr_list, 
- * if not return the unchanged list or NULL
- */
+/*--------------------------------------------------------------------------*/
 int _call_related_action(QrList **list, const int action, char *buf, const int s_cl) 
 {
 	switch (action) {
@@ -115,8 +85,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case QR_RM:
 		case QR_RM_ALL:
@@ -127,9 +98,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			LOG_DEBUG;
-			SOCK_ANS(s_cl, SOCK_ACK);
 			if (action == QR_RM_ALL) {
 				return 1;
 			}
@@ -143,8 +114,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				*list = calloc(1, sizeof(QrList));
 				load_qr(list);
 				return 0;
+			} else {
+				SOCK_ANS(s_cl, SOCK_ACK);
 			}
-			SOCK_ANS(s_cl, SOCK_ACK);
 			if (action == QR_REST_ALL) {
 				return 1;
 			}
@@ -163,8 +135,9 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				return 0;
 			}
 			sprintf(path_to_list, "%s", QR_TMP);
+			int oldmask = umask(0);
 			if (access(path_to_list, F_OK) == -1) {
-				if (mkdir(path_to_list, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+				if (mkdir(path_to_list, ALL_RWX)) {
 					write_to_log(WARNING, "%s - %d - %s:%s", __func__, __LINE__, "Unable to create the tmp_stock folder", path_to_list);
 					if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
 						write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
@@ -174,7 +147,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				}
 			}
 			sprintf(file, "%s/%d", path_to_list, (int)timestamp);
-			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH);
+			tmp_stock = open(file, O_WRONLY | O_TRUNC | O_CREAT, ALL_RWX);
 			if (tmp_stock < 0) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open tmp_stock");
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0) {
@@ -186,6 +159,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 			}
 			save_qr_list(list, tmp_stock);
 			close(tmp_stock);
+			umask(oldmask);
 			write(s_cl, file, PATH_MAX);
 			free(path_to_list);
 			free(file);
@@ -197,7 +171,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
-			LOG(INFO, "Received KL_EXIT command");			
+			write_to_log(INFO, "Quarantine received stop command");		
 			clear_qr_list(list);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
@@ -205,26 +179,31 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 	}
 	return 0;
 }
+ 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Get instructions via Unix domain sockets
+  \return       void
 
-/* Get instructions via Unix domain sockets
- * and execute actions accordingly
- * 
- * For client side, follow these steps:
- * - Connect to the socket
- * - Send the action to execute (see quarantine.h)
- * with the length of second arg (format is action_num:length_sec_arg)
- * - Wait for SOCK_ARG
- * - Send the second arg (if applicable)
- * - Wait for action result
+  Get instructions via Unix domain sockets and execute actions accordingly
+  For client side, follow these steps:
+  - Connect to the socket
+  - Send the action to execute (see quarantine.h)
+  with the length of second arg (format is action_num:length_sec_arg)
+  - Wait for SOCK_ARG
+  - Send the second arg (if applicable)
+  - Wait for action result
  */
+/*--------------------------------------------------------------------------*/
 void _get_instructions()
 {
 	int len, s_srv, s_cl;
+	int c_len = 20;
 	int action = 0;
 	struct sockaddr_un server;
 	QrList *list = calloc(1, sizeof(QrList));
 	load_qr(&list);
-
+	int oldmask = umask(0);
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open the socket");
 		return;
@@ -237,6 +216,7 @@ void _get_instructions()
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to bind the socket");
 		return;
 	}
+	umask(oldmask);
 	listen(s_srv, 10);
 
 	do {
@@ -260,16 +240,19 @@ void _get_instructions()
 			if (FD_ISSET(s_srv, &fds)) {
 				len = sizeof(remote);
 				if ((s_cl = accept(s_srv, (struct sockaddr *)&remote, (socklen_t *)&len)) == -1) {
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to accept the connection");
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to accept the connection");
 					continue;
 				}
 				if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for reception operations");
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to set timeout for reception operations");
 
 				if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
-					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for sending operations");		
+					write_to_log(WARNING, "%s - %d - %s", 
+						__func__, __LINE__, "Unable to set timeout for sending operations");		
 				do {
-					if (_get_data(s_cl, &action, &buf) < 0) {
+					if (get_data(s_cl, &action, &buf, c_len) < 0) {
 						free(buf);
 						close(s_cl);
 						write_to_log(NOTIFY, "%s - %d - %s", __func__, __LINE__, "_get_data FAILED");
@@ -288,8 +271,8 @@ void _get_instructions()
 	unlink(server.sun_path);
 }
 
-/* Main function of qr-worker process */
 void qr_worker()
 {
 	_get_instructions();
+	exit(EXIT_SUCCESS);
 }

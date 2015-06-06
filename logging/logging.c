@@ -1,31 +1,31 @@
-/*
- * Creates and saves log file for the Klearnel program
- * Logs are stored in:
- * Log name format is YYmmDD, lines as HHmmSS
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	logging.c
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Logging File
+
+   TCreates and saves log file for the Klearnel program
+   Logs are stored in:
+   Log name format is YYmmDD, lines as HHmmSS
+
+*/
+/*--------------------------------------------------------------------------*/
 
 #include <global.h>
 #include <logging/logging.h>
+#include <config/config.h>
 
-/* Initializes the logging semaphore */
- void init_logging()
- {
- 	key_t sync_logging_key = ftok(IPC_RAND, IPC_LOG);
-  	int sync_logging = semget(sync_logging_key, 1, IPC_CREAT | IPC_PERMS);
+void init_logging()
+{
+	key_t sync_logging_key = ftok(IPC_RAND, IPC_LOG);
+	int sync_logging = semget(sync_logging_key, 1, IPC_CREAT | IPC_PERMS);
 	if (sync_logging < 0) {
 		perror("LOG: Unable to create the sema to sync");
 	}
 	sem_reset(sync_logging, 0);
- }
+}
 
-/* Function that iterates through the log files contained in the Klearnel
- * log directory defined in global.h. Each log files last accessed time is
- * compared to the current time, and if older than desired, deleted
- *
- * Variable desired age still needs to be implemented!
- */
-int _delete_logs()
+void delete_logs()
 {
 	struct dirent *dp;
 	DIR *dtr;
@@ -35,7 +35,7 @@ int _delete_logs()
 
 	if ((dtr = opendir(dir)) == NULL) {
 		write_to_log(URGENT, "%s - %s", __func__, "Can't open log directory");
-		return -1;
+		return;
 	}
 
 	char filename[100];
@@ -47,7 +47,7 @@ int _delete_logs()
 			write_to_log(WARNING, "%s - %s - %s", __func__, "Unable to stat file", filename);
 			continue ;
 		} else {
-			if (difftime(time(NULL), stbuf.st_atime) > OLD) {
+			if (difftime(time(NULL), stbuf.st_atime) > atof(get_cfg("GLOBAL","LOG_AGE"))) {
 				if (unlink(filename) != 0)
 					write_to_log(WARNING,"%s - %s - %s", __func__, "Unable to remove file", filename);
 				else
@@ -56,10 +56,19 @@ int _delete_logs()
 				
 		}
 	}
-	return 0;
+	return;
 }
 
-/* Verifies if log directory exists, creates if not */
+/*  */
+/*-------------------------------------------------------------------------*/
+/**
+  \brief    Verifies if log directory exists, creates if not    
+  \param    logs 	The log directory to check
+  \return   Returns 0 on success, -1 otherwise
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 int _check_log_file(char *logs)
 {
 	if (access(LOG_DIR, F_OK) == -1) {
@@ -71,7 +80,16 @@ int _check_log_file(char *logs)
 	return 0;
 }
 
-/* Translates severity level to string */
+/*  */
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Translates severity level to string
+  \param        level 	The level to translate
+  \return       The string representation of the log level
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 char *_getLevel(int level)
 {
     char *x;
@@ -87,12 +105,6 @@ char *_getLevel(int level)
 	return x;
 }
 
-/* Function for writing messages to program log files
- * Entries are preceeded by time -> severity level -> message
- * Semaphore used to guarantee that only one process may write at a time
- * Variable arguments passed by parameter
- * Returns -1 in case of error, 0 if succeeded (to be removed)
-*/
 int write_to_log(int level, const char *format, ...)
 { 
 	key_t sync_logging_key = ftok(IPC_RAND, IPC_LOG);

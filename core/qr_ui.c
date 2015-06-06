@@ -1,17 +1,17 @@
-/*
- * Contains all routines to execute actions linked to Quarantine
- * 
- * Copyright (C) 2014, 2015 Klearnel-Devs
- */
+/*-------------------------------------------------------------------------*/
+/**
+   \file	qr_ui.h
+   \author	Copyright (C) 2014, 2015 Klearnel-Devs 
+   \brief	Quarantine UI file
+
+   Contains all routines to execute actions linked to Quarantine
+*/
+/*--------------------------------------------------------------------------*/
 #include <global.h>
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
 
-/*
- * Allow to send a query to the quarantine and execute the related action
- * Return 0 on success and -1 on error
- */
-int qr_query(int nb, char **commands, int action) 
+int qr_query(char **commands, int action) 
 {
 	int len, s_cl, i;
 	char *query, *res;
@@ -49,6 +49,15 @@ int qr_query(int nb, char **commands, int action)
 	i = 2;
 	switch (action) {
 		case QR_ADD:
+			do {
+				if (access(commands[i], F_OK) == -1) {
+					printf("%s: Unable to find %s.\n"
+						"Please check if the path is correct.\n", __func__, commands[i]);
+					goto error;
+				}
+				i++;
+			} while (commands[i]);
+			i = 2;
 		case QR_RM:
 		case QR_REST:
 			do {
@@ -58,7 +67,7 @@ int qr_query(int nb, char **commands, int action)
 					perror("[UI] Unable to send query");
 					goto error;
 				}
-				if (read(s_cl, res, 2) < 0) {
+				if (read(s_cl, res, 1) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;
 				}
@@ -67,11 +76,11 @@ int qr_query(int nb, char **commands, int action)
 					perror("[UI] Unable to send args of the query");
 					goto error;
 				}
-				if (read(s_cl, res, 2) < 0) {
+				if (read(s_cl, res, 1) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;					
 				}
-				if (read(s_cl, res, 2) < 0) {
+				if (read(s_cl, res, 1) < 0) {
 					perror("[UI] Unable to get query result");
 					goto error;
 				}
@@ -121,7 +130,7 @@ int qr_query(int nb, char **commands, int action)
 				free(list_path);
 				goto error;
 			} 
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				perror("[UI] Unable to get query result");
 				goto error;
 			}
@@ -170,7 +179,7 @@ int qr_query(int nb, char **commands, int action)
 						perror("[UI] Unable to send query");
 						goto error;
 					}
-					if (read(s_cl, res, 2) < 0) {
+					if (read(s_cl, res, 1) < 0) {
 						perror("[UI] Unable to get query result");
 						goto error;
 					}
@@ -178,11 +187,11 @@ int qr_query(int nb, char **commands, int action)
 						perror("[UI] Unable to send args of the query");
 						goto error;
 					}
-					if (read(s_cl, res, 2) < 0) {
+					if (read(s_cl, res, 1) < 0) {
 						perror("[UI] Unable to get query result");
 						goto error;					
 					}
-					if (read(s_cl, res, 2) < 0) {
+					if (read(s_cl, res, 1) < 0) {
 						perror("[UI] Unable to get query result");
 						goto error;
 					}
@@ -212,11 +221,11 @@ out:
 				perror("[UI] Unable to send query");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				perror("[UI] Unable to get query result");
 				goto error;
 			}
-			if (read(s_cl, res, 2) < 0) {
+			if (read(s_cl, res, 1) < 0) {
 				perror("[UI] Unable to get query result");
 				goto error;
 			}
