@@ -703,9 +703,16 @@ error:
 	return -1;
 }
 
-int _execute_monitor_action(const char *buf, const int c_len, const int action, const int net_sock) 
+int _execute_conf_action(const char *buf, const int c_len, const int action, const int net_sock) 
 {
-	NOT_YET_IMP;
+	switch(action) {
+		case CONF_LIST:
+			NOT_YET_IMP;
+			break;
+		case CONF_MOD:
+			NOT_YET_IMP;
+			break;
+	}
 	return 0;
 }
 
@@ -731,8 +738,9 @@ int execute_action(const char *buf, const int c_len, const int action, const int
 				return -1;
 			}
 			break;
-		case NET_MONITOR:
-			if (_execute_monitor_action(buf, c_len, action, s_cl) < 0) {
+		case CONF_LIST:
+		case CONF_MOD:
+			if (_execute_conf_action(buf, c_len, action, s_cl) < 0) {
 				return -1;
 			}
 			break;
