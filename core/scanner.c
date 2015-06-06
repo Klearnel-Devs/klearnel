@@ -162,6 +162,8 @@ void _backupFiles(char* file)
 			close (pipe_fd[1]);
 			exit(EXIT_SUCCESS);
 		} else {
+			int status;
+			waitpid(pid, &status, 0);
 			int i = 0;
 			char buf;
 		      	char *tmp = malloc(sizeof(char)*255);
@@ -366,6 +368,8 @@ void _deleteFiles(char *file)
 			close (pipe_fd[1]);
 			exit(EXIT_SUCCESS);
 		} else {
+			int status;
+			waitpid(pid, &status, 0);
 			char buf;
 		      	char *link = malloc(sizeof(char)*255);
 		      	if (link == NULL) {
@@ -641,6 +645,8 @@ void _checkSymlinks(TWatchElement data)
 		close (pipe_fd[1]);
 		exit(EXIT_SUCCESS);
 	} else {
+		int status;
+		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *link = malloc(sizeof(char)*255);
@@ -729,6 +735,8 @@ void _dupSymlinks(TWatchElement data)
 		close (pipe_fd[1]);
 		exit(EXIT_SUCCESS);
 	} else {
+		int status;
+		waitpid(pid, &status, 0);
 		int i = 0, j = 0;
 		int num = 0;
 	      	char buf;
@@ -893,6 +901,8 @@ void _checkFiles(TWatchElement data, int action)
 		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
+		int status;
+		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -989,6 +999,8 @@ void _handleDuplicates(TWatchElement data, int action) {
 		close (pipe_fd[1]);
 		_exit(EXIT_FAILURE);
 	} else {
+		int status;
+		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1107,6 +1119,8 @@ void _cleanFolder(TWatchElement data) {
 		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
+		int status;
+		waitpid(pid, &status, 0);
 		i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1205,6 +1219,8 @@ void _oldFiles(TWatchElement data, int action) {
 		free(prog1_argv[6]);
 		exit(EXIT_FAILURE);
 	} else {
+		int status;
+		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1258,59 +1274,53 @@ void _oldFiles(TWatchElement data, int action) {
 int perform_event() 
 {
 	int i;
-	LOG_DEBUG;
 	if (watch_list == NULL) {
 		LOG(DEBUG, "watch_list is empty!");
 		return 0;
 	}
-	LOG_DEBUG;
+	
 	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
 		for(i = 0; i < OPTIONS; i++) {
-			LOG_DEBUG;
 			switch(i) {
 				case SCAN_BR_S :
-					LOG_DEBUG;
-					if (cur->element.options[i] == '1') 
+					if (cur->element.options[i] == '1') {
+						LOG_DEBUG;
 						_checkSymlinks(cur->element);
-					LOG_DEBUG;
+						LOG_DEBUG;
+					} 
 					break;
 				case SCAN_DUP_S : 
-				LOG_DEBUG;
-					if (cur->element.options[i] == '1') 
+					if (cur->element.options[i] == '1') { 
+						LOG_DEBUG;
 						_dupSymlinks(cur->element);
-					LOG_DEBUG;
+						LOG_DEBUG;
+					}
 					break;
 				case SCAN_BACKUP : 
 				case SCAN_DEL_F_SIZE : 
-					if (cur->element.options[i] == '1')
+					if (cur->element.options[i] == '1') {
+						LOG_DEBUG;
 						_checkFiles(cur->element, i);
-					LOG_DEBUG; 
+						LOG_DEBUG;
+					}
 					break;
 				case SCAN_DUP_F :
 				case SCAN_FUSE : 
-				LOG_DEBUG;
 					if (cur->element.options[i] == '1')
 						_handleDuplicates(cur->element, i);
-					LOG_DEBUG;
 					break;
 				case SCAN_INTEGRITY : 
-				LOG_DEBUG;
 					if (cur->element.options[i] == '1')
 						_checkPermissions(cur->element); 
-					LOG_DEBUG;
 					break;
 				case SCAN_CL_TEMP : 
-				LOG_DEBUG;
 					if (cur->element.options[i] == '1')
 						_cleanFolder(cur->element);
-					LOG_DEBUG; 
 					break;
 				case SCAN_DEL_F_OLD : 
 				case SCAN_BACKUP_OLD :
-				LOG_DEBUG; 
 					if (cur->element.options[i] == '1')
 						_oldFiles(cur->element, i); 
-					LOG_DEBUG;
 					break;
 				default: break;
 			}
@@ -1529,10 +1539,6 @@ void scanner_worker()
 	umask(oldmask);
 	listen(s_srv, 10);
 
-	if (load_watch_list() < 0) {
-		LOG(WARNING, "Unable to load the watch list");
-		return;
-	}
 
 	do {
 		struct timeval to_socket;
@@ -1549,6 +1555,14 @@ void scanner_worker()
 
 		struct sockaddr_un remote;
 		char *buf = NULL;
+
+		if (watch_list != NULL) {
+			clear_watch_list();
+		}
+		if (load_watch_list() < 0) {
+			LOG(WARNING, "Unable to load the watch list");
+			return;
+		}
 
 		res = select (s_srv + 1, &fds, NULL, NULL, &to_select);
 		if (res > 0) {
