@@ -4,7 +4,7 @@
    \author	Copyright (C) 2014, 2015 Klearnel-Devs 
    \brief	Klearnel File
 
-  This file is the main one for the klearnel module
+  This file is the main one for the Klearnel module
   Please read README.md for more information 
  
   Copyright (C) 2014, 2015 Klearnel-Devs
@@ -144,7 +144,34 @@ void _init_env()
 /*--------------------------------------------------------------------------*/
 void _daemonize()
 {
-	NOT_YET_IMP;
+	pid_t pid, sid;
+        
+        pid = fork();
+        if (pid < 0) {
+                exit(EXIT_FAILURE);
+        }
+
+        if (pid > 0) {
+                exit(EXIT_SUCCESS);
+        }
+
+        umask(0);       
+
+        sid = setsid();
+        if (sid < 0) {
+                write_to_log(FATAL, "%s: Unable to create new session id for Klearnel", __func__);
+                exit(EXIT_FAILURE);
+        }
+
+        if ((chdir("/")) < 0) {
+                write_to_log(FATAL, "%s: Unable to change root directory of Klearnel", __func__);
+                exit(EXIT_FAILURE);
+        }
+        
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+        
 }
 
 /*-------------------------------------------------------------------------*/
@@ -218,6 +245,7 @@ int main(int argc, char **argv)
 
 service:
 	_init_env();
+	_daemonize();
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");
 		return EXIT_FAILURE;
