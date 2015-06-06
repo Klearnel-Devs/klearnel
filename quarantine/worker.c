@@ -171,7 +171,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
-			LOG(INFO, "Received KL_EXIT command");			
+			write_to_log(INFO, "Quarantine received stop command");		
 			clear_qr_list(list);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;

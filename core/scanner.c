@@ -1275,8 +1275,7 @@ int perform_event()
 {
 	int i;
 	if (watch_list == NULL) {
-		LOG(DEBUG, "watch_list is empty!");
-		return 0;
+		goto out;
 	}
 	
 	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
@@ -1284,24 +1283,18 @@ int perform_event()
 			switch(i) {
 				case SCAN_BR_S :
 					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
 						_checkSymlinks(cur->element);
-						LOG_DEBUG;
 					} 
 					break;
 				case SCAN_DUP_S : 
 					if (cur->element.options[i] == '1') { 
-						LOG_DEBUG;
 						_dupSymlinks(cur->element);
-						LOG_DEBUG;
 					}
 					break;
 				case SCAN_BACKUP : 
 				case SCAN_DEL_F_SIZE : 
 					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
 						_checkFiles(cur->element, i);
-						LOG_DEBUG;
 					}
 					break;
 				case SCAN_DUP_F : 
@@ -1325,7 +1318,8 @@ int perform_event()
 			}
 		}
 	}
-	LOG_DEBUG;
+out:
+	write_to_log(INFO, "%s completed successfully", __func__);
 	return 0;
 }
 
@@ -1710,9 +1704,8 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			free(file);
 			break;
 		case KL_EXIT:
-			LOG(INFO, "Received KL_EXIT command");
+			write_to_log(INFO, "Scanner received stop command");
 			exit_scanner();
-			LOG_DEBUG;
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		default:

@@ -200,7 +200,7 @@ void networker()
 			free(buf);
 			SOCK_ANS(s_cl, SOCK_ABORTED);
 			close(s_cl);
-			write_to_log(NOTIFY, "%s - %d - %s %d", __func__, __LINE__, "Unable to execute the received action:", action);
+			write_to_log(NOTIFY, "%s:%d: %s %d", __func__, __LINE__, "Unable to execute the received action:", action);
 			continue;
 		}
 		shutdown(s_cl, SHUT_WR);

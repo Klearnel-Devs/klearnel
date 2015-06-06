@@ -737,6 +737,7 @@ int execute_action(const char *buf, const int c_len, const int action, const int
 			}
 			break;
 		case KL_EXIT:
+			write_to_log(INFO, "Networker received stop command");
 			break;
 		default:
 			LOG(WARNING, "Unknow command received");
