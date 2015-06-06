@@ -20,7 +20,7 @@
 static TWatchElementList* watch_list = NULL;
 static int protect_num = 2;
 static int exclude_num = 2;
-static const char *protect[] = {"/boot", "/proc"};
+static const char *protect[] = {"/", "/boot", "/proc"};
 static const char *exclude[] = {".git", ".svn"};
 
 /*-------------------------------------------------------------------------*/
@@ -1258,52 +1258,71 @@ void _oldFiles(TWatchElement data, int action) {
 int perform_event() 
 {
 	int i;
-	if (watch_list->first == NULL) {
+	LOG_DEBUG;
+	if (watch_list == NULL) {
+		LOG(DEBUG, "watch_list is empty!");
 		return 0;
 	}
+	LOG_DEBUG;
 	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
 		for(i = 0; i < OPTIONS; i++) {
+			LOG_DEBUG;
 			switch(i) {
 				case SCAN_BR_S :
+					LOG_DEBUG;
 					if (cur->element.options[i] == '1') 
 						_checkSymlinks(cur->element);
+					LOG_DEBUG;
 					break;
 				case SCAN_DUP_S : 
+				LOG_DEBUG;
 					if (cur->element.options[i] == '1') 
 						_dupSymlinks(cur->element);
+					LOG_DEBUG;
 					break;
 				case SCAN_BACKUP : 
 				case SCAN_DEL_F_SIZE : 
 					if (cur->element.options[i] == '1')
-						_checkFiles(cur->element, i); 
+						_checkFiles(cur->element, i);
+					LOG_DEBUG; 
 					break;
 				case SCAN_DUP_F :
 				case SCAN_FUSE : 
+				LOG_DEBUG;
 					if (cur->element.options[i] == '1')
 						_handleDuplicates(cur->element, i);
+					LOG_DEBUG;
 					break;
 				case SCAN_INTEGRITY : 
+				LOG_DEBUG;
 					if (cur->element.options[i] == '1')
 						_checkPermissions(cur->element); 
+					LOG_DEBUG;
 					break;
 				case SCAN_CL_TEMP : 
+				LOG_DEBUG;
 					if (cur->element.options[i] == '1')
-						_cleanFolder(cur->element); 
+						_cleanFolder(cur->element);
+					LOG_DEBUG; 
 					break;
 				case SCAN_DEL_F_OLD : 
-				case SCAN_BACKUP_OLD : 
+				case SCAN_BACKUP_OLD :
+				LOG_DEBUG; 
 					if (cur->element.options[i] == '1')
 						_oldFiles(cur->element, i); 
+					LOG_DEBUG;
 					break;
 				default: break;
 			}
 		}
 	}
+	LOG_DEBUG;
 	return 0;
 }
 
 int init_scanner()
 {
+	int o_mask = umask(0);
 	if (access(SCAN_DB, F_OK) == -1) {
 		if (creat(SCAN_DB, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
 			write_to_log(FATAL, "%s:%d: %s", __func__, __LINE__, "Unable to create the scanner database");
@@ -1311,11 +1330,12 @@ int init_scanner()
 		}
 	}
 	if (access(SCAN_TMP, F_OK) == -1) {
-		if (mkdir(SCAN_TMP, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+		if (mkdir(SCAN_TMP, S_IRWXU | S_IRWXG | S_IRWXO)) {
 			write_to_log(FATAL, "%s:%d: %s", __func__, __LINE__, "Unable to create the SCAN_TMP folder");
 			return -1;
 		}
 	}
+	umask(o_mask);
 	return 0;
 }
 
@@ -1509,6 +1529,11 @@ void scanner_worker()
 	umask(oldmask);
 	listen(s_srv, 10);
 
+	if (load_watch_list() < 0) {
+		LOG(WARNING, "Unable to load the watch list");
+		return;
+	}
+
 	do {
 		struct timeval to_socket;
 		to_socket.tv_sec 	= SOCK_TO;
@@ -1564,10 +1589,6 @@ void scanner_worker()
 
 int perform_task(const int task, const char *buf, const int s_cl) 
 {
-	if (load_watch_list() < 0) {
-		LOG(WARNING, "Unable to load the watch list");
-		return -1;
-	}
 	switch (task) {
 		case SCAN_ADD:
 			if (buf == NULL) {
