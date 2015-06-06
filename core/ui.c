@@ -149,34 +149,34 @@ void execute_commands(int nb, char **commands)
 				}
 			}
 		}
-		qr_query(nb, commands, QR_ADD);
+		qr_query(commands, QR_ADD);
 	} else if (!strcmp(commands[1], "-rm-from-qr")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to remove missing\n"
 				 "Correct syntax is: klearnel -rm-fom-qr <filename>\n");
 			exit(EXIT_FAILURE);
 		}
-		qr_query(nb, commands, QR_RM);
+		qr_query(commands, QR_RM);
 	} else if (!strcmp(commands[1], "-rm-all-from-qr")) {
-		qr_query(nb, commands, QR_RM_ALL);
+		qr_query(commands, QR_RM_ALL);
 	} else if (!strcmp(commands[1], "-get-qr-list")) {
-		qr_query(nb, commands, QR_LIST);
+		qr_query(commands, QR_LIST);
 	} else if (!strcmp(commands[1], "-get-qr-info")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to detail missing\n"
 				 "Correct syntax is: klearnel -get-qr-info <filename>\n");
 			exit(EXIT_FAILURE);
 		}
-		qr_query(nb, commands, QR_INFO);
+		qr_query(commands, QR_INFO);
 	} else if (!strcmp(commands[1], "-restore-from-qr")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to restore missing\n"
 				 "Correct syntax is: klearnel -restore-from-qr <filename>\n");
 			exit(EXIT_FAILURE);
 		}
-		qr_query(nb, commands, QR_REST);
+		qr_query(commands, QR_REST);
 	} else if (!strcmp(commands[1], "-restore-all-from-qr")) {
-		qr_query(nb, commands, QR_REST_ALL);
+		qr_query(commands, QR_REST_ALL);
 	} else if (!strcmp(commands[1], "-view-rt-log")) {
 		char date[7];
 		time_t rawtime;
@@ -228,7 +228,7 @@ void execute_commands(int nb, char **commands)
 		} else {
 			printf("Networker process successfully stopped\n");
 		}
-		if (qr_query(nb, commands, KL_EXIT) != 0) {
+		if (qr_query(commands, KL_EXIT) != 0) {
 			printf("Check Klearnel logs, Qr-Worker did not terminate correctly\n");
 		} else {
 			printf("Qr-Worker successfully stopped\n");
@@ -253,9 +253,11 @@ void execute_commands(int nb, char **commands)
 		printf(" - \e[1m-add-to-scan <file/folder path>\e[21m:\n\t Add the specified file or folder to the scanner watch list"
 			"\n\tNOTE: this command will prompt you for each action to apply to the new item. It can take a few minutes to complete.\n");
 		printf(" - \e[1m-rm-from-scan <file/folder path>\e[21m: \n\t Remove the specified file/folder from the scanner watch list\n");	
+		printf(" - \e[1m-get-scan-list\e[21m:\n\t Display the elements in the scanner watch list\n");
 		printf(" - \e[1m-view-rt-log\e[21m:\n\t Display the current klearnel's log in real time\n");
 		printf(" - \e[1m-license\e[21m:\n\t Display the klearnel license terms\n");
-		printf(" - \e[1m-start\e[21m:\n\t Start Klearnel service\n");
+		printf(" - \e[1m-start\e[21m:\n\t Start Klearnel service"
+			"\n\tNOTE: you need to be root to start the services\n");
 		printf(" - \e[1m-stop\e[21m:\n\t Stop Klearnel service\n");
 		printf(" - \e[1m-help\e[21m:\n\t Display this help message\n");
 		printf("\nCopyright (C) 2014, 2015 Klearnel-Devs\n\n");

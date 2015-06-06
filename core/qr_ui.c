@@ -11,7 +11,7 @@
 #include <core/ui.h>
 #include <quarantine/quarantine.h>
 
-int qr_query(int nb, char **commands, int action) 
+int qr_query(char **commands, int action) 
 {
 	int len, s_cl, i;
 	char *query, *res;
