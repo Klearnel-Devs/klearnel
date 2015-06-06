@@ -1495,9 +1495,13 @@ void print_scan(TWatchElementList **list)
 	double spent;
 	begin = clock();
 	printf("Scanner elements:\n");
-	SCAN_LIST_FOREACH((*list), first, next, cur) {
-		printf("\nElement \"%s\":\n", cur->element.path);
-		printf("\t- Options: %s\n", cur->element.options);
+	if (*list != NULL) {
+		SCAN_LIST_FOREACH((*list), first, next, cur) {
+			printf("\nElement \"%s\":\n", cur->element.path);
+			printf("\t- Options: %s\n", cur->element.options);
+		}
+	} else {
+		printf("\n\tNothing in Scanner watch list\n");
 	}
 	end = clock();
 	spent = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -1507,7 +1511,7 @@ void print_scan(TWatchElementList **list)
 void load_tmp_scan(TWatchElementList **list, int fd)
 {
 	TWatchElement tmp;
-	while (read(fd, &tmp, sizeof(struct watchElement)) != 0) {
+	while (read(fd, &tmp, sizeof(struct watchElement)) > 0) {
 		if (_add_tmp_watch_elem(tmp, list) != 0){
 			perror("Out of memory!");
 			exit(EXIT_FAILURE);

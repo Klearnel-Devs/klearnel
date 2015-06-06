@@ -347,15 +347,19 @@ void print_qr(QrList **list)
 	char expstr[50];
 	struct tm *tminfo;
 	printf("Quarantine elements:\n");
-	LIST_FOREACH(list, first, next, cur) {
-		tminfo = localtime(&cur->data.d_begin);
-		strftime(begstr, sizeof(begstr), "%c", tminfo);
-		tminfo = localtime(&cur->data.d_expire);
-		strftime(expstr, sizeof(expstr), "%c", tminfo);
-		printf("\nFile \"%s\":\n", cur->data.f_name);
-		printf("\t- Old path: %s\n", cur->data.o_path);
-		printf("\t- In QR since %s\n", begstr);
-		printf("\t- Expires on  %s\n", expstr);
+	if ((*list)->count != 0) {
+		LIST_FOREACH(list, first, next, cur) {
+			tminfo = localtime(&cur->data.d_begin);
+			strftime(begstr, sizeof(begstr), "%c", tminfo);
+			tminfo = localtime(&cur->data.d_expire);
+			strftime(expstr, sizeof(expstr), "%c", tminfo);
+			printf("\nFile \"%s\":\n", cur->data.f_name);
+			printf("\t- Old path: %s\n", cur->data.o_path);
+			printf("\t- In QR since %s\n", begstr);
+			printf("\t- Expires on  %s\n", expstr);
+		}
+	} else {
+		printf("\n\tNothing in Quarantine list\n");
 	}
 	end = clock();
 	spent = (double)(end - begin) / CLOCKS_PER_SEC;
