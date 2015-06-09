@@ -12,6 +12,7 @@
 #include <logging/logging.h>
 #include <quarantine/quarantine.h>
 #include <core/scanner.h>
+#include <config/config.h>
 #include <net/network.h>
 
 
@@ -703,17 +704,150 @@ error:
 	return -1;
 }
 
+int _send_conf_val(const int net_sock, char *section, char *key)
+{
+	char *value = get_cfg(section, key);
+	char size[20];
+	sprintf(size, "%d", (int)strlen(value));
+	write_to_log(DEBUG, "Size = %s. Original Value was : %d", size, (int)strlen(value));
+	char ack[2];
+	if (write(net_sock, size, 20) < 0) {
+		write_to_log(URGENT, "Unable to send %s:%s size", section, key);
+		return -1;
+	}
+
+	if (read(net_sock, ack, 1) < 0) {
+		write_to_log(WARNING, "Unable to read ACK");
+	}
+	if (write(net_sock, value, strlen(value)) < 0) {
+		write_to_log(URGENT, "Unable to send the value of %s:%s", section, key);
+		return -1;
+	}
+	if (read(net_sock, ack, 1) < 0) {
+		write_to_log(WARNING, "Unable to read ACK");
+	}
+	if (strcmp(ack, SOCK_ACK) == 0) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
 int _execute_conf_action(const char *buf, const int c_len, const int action, const int net_sock) 
 {
 	switch(action) {
-		case CONF_LIST:
-			NOT_YET_IMP;
-			break;
-		case CONF_MOD:
-			NOT_YET_IMP;
+		case CONF_LIST: ;
+			if (_send_conf_val(net_sock, "GLOBAL", "LOG_AGE") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "GLOBAL", "SMALL") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "GLOBAL", "MEDIUM") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "GLOBAL", "LARGE") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "SMALL", "EXP_DEF") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "SMALL", "BACKUP") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "SMALL", "LOCATION") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "MEDIUM", "EXP_DEF") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "MEDIUM", "BACKUP") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "MEDIUM", "LOCATION") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "LARGE", "EXP_DEF") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "LARGE", "BACKUP") < 0) {
+				return -1;
+			}
+			if (_send_conf_val(net_sock, "LARGE", "LOCATION") < 0) {
+				return -1;
+			}
+ 			break;
+		case CONF_MOD: ;
+			/* ------------- Section reception ----------------- */
+			char size_c[5];
+			if (read(net_sock, size_c, (sizeof(char)*5)) < 0) {
+				LOG(URGENT, "Unable to receive section size");
+				goto err;
+			}
+			int size = atoi(size_c);
+			SOCK_ANS(net_sock, SOCK_ACK);
+			unsigned char section_u[size];
+			if (read(net_sock, section_u, size) < 0) {
+				LOG(URGENT, "Unable to receive section");
+				goto err;
+			}
+			char section[size+1];
+			int i;
+			for (i = 0; i < size; i++) {
+				section[i] = section_u[i];
+			}
+			section[size] = '\0';
+			SOCK_ANS(net_sock, SOCK_ACK);
+			/* ----------------- Key reception ------------------- */
+			if (read(net_sock, size_c, (sizeof(char)*20)) < 0) {
+				LOG(URGENT, "Unable to receive key size");
+				goto err;
+			}
+			size = atoi(size_c);
+			SOCK_ANS(net_sock, SOCK_ACK);
+			unsigned char key_u[size];
+			if (read(net_sock, key_u, size) < 0) {
+				LOG(URGENT, "Unable to receive key");
+				goto err;
+			}
+			char key[size+1];
+			for (i = 0; i < size; i++) {
+				key[i] = key_u[i];
+			}
+			key[size] = '\0';
+			SOCK_ANS(net_sock, SOCK_ACK);
+			/* ----------------- Value reception ------------------- */
+			if (read(net_sock, size_c, (sizeof(char)*20)) < 0) {
+				LOG(URGENT, "Unable to receive value size");
+				goto err;
+			}
+			size = atoi(size_c);
+			SOCK_ANS(net_sock, SOCK_ACK);
+			unsigned char value_u[size];
+			if (read(net_sock, value_u, size) < 0) {
+				LOG(URGENT, "Unable to receive value");
+				goto err;
+			}
+			char value[size+1];
+			for (i = 0; i < size; i++) {
+				value[i] = value_u[i];
+			}
+			value[size] = '\0';
+			SOCK_ANS(net_sock, SOCK_ACK);
+			/* ----------------- Apply change in configuration ----- */
+			if (modify_cfg(section, key, value) < 0) {
+				LOG(URGENT, "Unable to apply conf modifications");
+				goto err;
+			}
+			save_conf();
+
+			SOCK_ANS(net_sock, SOCK_ACK);
 			break;
 	}
 	return 0;
+err:
+	SOCK_ANS(net_sock, SOCK_ABORTED);
+	return -1;
 }
 
 

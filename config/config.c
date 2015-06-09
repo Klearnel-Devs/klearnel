@@ -262,3 +262,16 @@ err:
 	free(query);
 	return -1;
 }
+
+void save_conf() 
+{
+	unlink(DEF_CFG);
+	FILE *conf_f = fopen(DEF_CFG, "w");
+	if (!conf_f) {
+		LOG(URGENT, "Unable to open the config file");
+		return;
+	}
+
+	iniparser_dump_ini(ini, conf_f);
+	fclose(conf_f);
+}
