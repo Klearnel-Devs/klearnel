@@ -34,6 +34,7 @@
 #include <libgen.h>
 #include <ctype.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #ifdef __APPLE__
 #include <sys/syslimits.h>
 #endif

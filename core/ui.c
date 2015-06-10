@@ -36,7 +36,7 @@ int net_exiter()
 
 	bzero((char *) &remote, sizeof(remote));
 	remote.sin_family = AF_INET;
-	inet_aton("127.0.0.1", &remote.sin_addr.s_addr);
+	inet_aton("127.0.0.1", &remote.sin_addr);
 	remote.sin_port = htons(SOCK_NET_PORT);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, sizeof(remote)) == -1) {

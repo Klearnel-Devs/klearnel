@@ -1283,36 +1283,54 @@ int perform_event()
 			switch(i) {
 				case SCAN_BR_S :
 					if (cur->element.options[i] == '1') {
+						LOG_DEBUG;
 						_checkSymlinks(cur->element);
+						LOG_DEBUG;
 					} 
 					break;
 				case SCAN_DUP_S : 
 					if (cur->element.options[i] == '1') { 
+						LOG_DEBUG;
 						_dupSymlinks(cur->element);
+						LOG_DEBUG;
 					}
 					break;
 				case SCAN_BACKUP : 
-				case SCAN_DEL_F_SIZE : 
+				case SCAN_DEL_F_SIZE :
 					if (cur->element.options[i] == '1') {
+						LOG_DEBUG;
 						_checkFiles(cur->element, i);
+						LOG_DEBUG;
 					}
 					break;
-				case SCAN_DUP_F : 
-					if (cur->element.options[i] == '1')
+				case SCAN_DUP_F : 					
+					if (cur->element.options[i] == '1') {
+						LOG_DEBUG;
 						_handleDuplicates(cur->element, i);
+						LOG_DEBUG;
+					}
 					break;
 				case SCAN_INTEGRITY : 
-					if (cur->element.options[i] == '1')
+					if (cur->element.options[i] == '1') {
+						LOG_DEBUG;
 						_checkPermissions(cur->element); 
+						LOG_DEBUG;
+					}
 					break;
 				case SCAN_CL_TEMP : 
-					if (cur->element.options[i] == '1')
+					if (cur->element.options[i] == '1') {
+						LOG_DEBUG;
 						_cleanFolder(cur->element);
+						LOG_DEBUG;
+					}
 					break;
 				case SCAN_DEL_F_OLD : 
 				case SCAN_BACKUP_OLD :
-					if (cur->element.options[i] == '1')
-						_oldFiles(cur->element, i); 
+					if (cur->element.options[i] == '1') {
+						LOG_DEBUG;
+						_oldFiles(cur->element, i);
+						LOG_DEBUG; 
+					}
 					break;
 				default: break;
 			}

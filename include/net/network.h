@@ -13,6 +13,7 @@
 
 #define CONF_LIST 20
 #define CONF_MOD 21
+#define NET_CONNEC 30
 
 typedef struct pairList
 {
