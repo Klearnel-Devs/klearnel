@@ -349,8 +349,8 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			strcpy(new_elem.path, buf);
 
-			unsigned char options_unsigned[10];
-			if (read(net_sock, options_unsigned, 10) < 0) {
+			unsigned char options_unsigned[OPTIONS - 1];
+			if (read(net_sock, options_unsigned, OPTIONS - 1) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to read options from socket", 
 					__func__, __LINE__);
 				goto error;
@@ -366,9 +366,10 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 
 			/* -------------------- back_limit_size reception --------------- */
 
-			unsigned char len_unsigned[255];
+			char len_unsigned[20];
+			char *end;
 			int param_len;
-			if (read(net_sock, len_unsigned, 255) < 0) {
+			if (read(net_sock, len_unsigned, 20) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to get length of params from socket",
 					__func__, __LINE__);
 				goto error;
@@ -376,12 +377,8 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			if (SOCK_ANS(net_sock, SOCK_ACK) < 0) {
 				goto error;
 			}
-			param_len = 0;
-			for (i = 0; i < 255; i++) {
-				if (len_unsigned[i] == (char) 0) 
-					break;
-				param_len += (int)len_unsigned[i];
-			}
+			param_len = atoi(len_unsigned);
+			write_to_log(DEBUG, "Back Length received: %s  | Back Length computed: %d", len_unsigned, param_len);
 			unsigned char *tmp_buf_uns = malloc(sizeof(unsigned char)*param_len);
 			if (read(net_sock, tmp_buf_uns, param_len) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to read back_limit_size from socket",
@@ -390,10 +387,11 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			char *tmp_buf = malloc(sizeof(char)*(param_len + 1));
 			for (i = 0; i < param_len; i++) {
-				tmp_buf[i] = tmp_buf_uns[i];
+				tmp_buf[i] = (char)tmp_buf_uns[i];
 			}
 			tmp_buf[param_len] = '\0';
-			sscanf(tmp_buf, "%lf", &new_elem.back_limit_size);
+			write_to_log(DEBUG, "back_limit_size received: %s", tmp_buf);
+			new_elem.back_limit_size = strtod(tmp_buf, &end);
 			
 			if (SOCK_ANS(net_sock, SOCK_ACK) < 0) {
 				goto error;
@@ -401,7 +399,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 
 			/* ------------------- del_limit_size reception ----------------------------- */
 
-			if (read(net_sock, len_unsigned, 255) < 0) {
+			if (read(net_sock, len_unsigned, 20) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to get length of params from socket",
 					__func__, __LINE__);
 				goto error;
@@ -409,12 +407,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			if (SOCK_ANS(net_sock, SOCK_ACK) < 0) {
 				goto error;
 			}
-			param_len = 0;
-			for (i = 0; i < 255; i++) {
-				if (len_unsigned[i] == (char) 0) 
-					break;
-				param_len += (int)len_unsigned[i];
-			}
+			param_len = atoi(len_unsigned);
 			
 			tmp_buf_uns = malloc(sizeof(unsigned char)*param_len);
 			if (read(net_sock, tmp_buf_uns, param_len) < 0) {
@@ -424,10 +417,11 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			tmp_buf = malloc(sizeof(char)*(param_len + 1));
 			for (i = 0; i < param_len; i++) {
-				tmp_buf[i] = tmp_buf_uns[i];
+				tmp_buf[i] = (char)tmp_buf_uns[i];
 			}
 			tmp_buf[param_len] = '\0';
-			sscanf(tmp_buf, "%lf", &new_elem.del_limit_size);
+			write_to_log(DEBUG, "del_limit_size received: %s", tmp_buf);
+			new_elem.del_limit_size = strtod(tmp_buf, &end);
 			
 			if (SOCK_ANS(net_sock, SOCK_ACK) < 0) {
 				goto error;
@@ -449,19 +443,13 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 
 			/* ----------------------- max_age reception --------------------------- */
 			
-			if (read(net_sock, len_unsigned, 255) < 0) {
+			if (read(net_sock, len_unsigned, 20) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to get length of params from socket",
 					__func__, __LINE__);
 				goto error;
 			}
 			SOCK_ANS(net_sock, SOCK_ACK);
-			param_len = 0;
-			for (i = 0; i < 255; i++) {
-				if (len_unsigned[i] == (char) 0) 
-					break;
-				param_len += (int)len_unsigned[i];
-			}
-			
+			param_len = atoi(len_unsigned);
 			tmp_buf_uns = malloc(sizeof(unsigned char)*param_len);
 			if (read(net_sock, tmp_buf_uns, param_len) < 0) {
 				write_to_log(WARNING, "%s:%d: Unable to read max_age from socket",
@@ -470,10 +458,11 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			tmp_buf = malloc(sizeof(char)*(param_len + 1));
 			for (i = 0; i < param_len; i++) {
-				tmp_buf[i] = tmp_buf_uns[i];
+				tmp_buf[i] = (char)tmp_buf_uns[i];
 			}
 			tmp_buf[param_len] = '\0';
-			sscanf(tmp_buf, "%d", &new_elem.max_age);
+			write_to_log(DEBUG, "Max age received: %s", tmp_buf);
+			new_elem.max_age = strtod(tmp_buf, &end);
 			
 			if (SOCK_ANS(net_sock, SOCK_ACK) < 0) {
 				goto error;
@@ -661,9 +650,10 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				char *tmp = malloc(50);
 				sprintf(tmp, "%.2lf", cur->element.back_limit_size);
 				sprintf(size, "%d", (int)strlen(tmp));
+				write_to_log(DEBUG, "Backup Size: %s", tmp);
 				if (write(net_sock, size, 20) < 0) {
-					char *tmp = malloc(50);
-				sprintf(tmp, "%.2lf", cur->element.back_limit_size);LOG(WARNING, "Unable to send back_limit_size length");
+					LOG(WARNING, "Unable to send back_limit_size length");
+					goto error;
 				}
 				if (read(net_sock, res, 1) < 0) {
 					LOG(WARNING, "Unable to read ACK");
@@ -680,6 +670,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 
 				sprintf(tmp, "%.2lf", cur->element.del_limit_size);
 				sprintf(size, "%d", (int)strlen(tmp));
+				write_to_log(DEBUG, "Delete Size: %s", tmp);
 				if (write(net_sock, size, 20) < 0) {
 					LOG(WARNING, "Unable to send del_limit_size length");
 					goto error;
@@ -721,6 +712,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				tmp = malloc(50);
 				sprintf(tmp, "%d", cur->element.max_age);
 				sprintf(size, "%d", (int)strlen(tmp));
+				write_to_log(DEBUG, "Max age: %s", tmp);
 				if (write(net_sock, size, 20) < 0) {
 					LOG(WARNING, "Unable to send max_age length");
 					goto error;
@@ -781,7 +773,7 @@ int _send_conf_val(const int net_sock, char *section, char *key)
 		write_to_log(WARNING, "Unable to read ACK");
 		return -1;
 	}
-	if (strcmp(ack, SOCK_ACK) == 0) {
+	if (strncmp(ack, SOCK_ACK, 1) == 0) {
 		return 0;
 	} else {
 		return -1;
