@@ -130,6 +130,13 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				free(list_path);
 				goto error;	
 			} 
+			if (strncmp(list_path, VOID_LIST, 1) == 0) {
+				if (write(net_sock, VOID_LIST, strlen(VOID_LIST)) < 0) {
+					LOG(WARNING, "Unable to send VOID_LIST through network");
+					goto error;
+				}
+				goto out;
+			}
 			if (strcmp(list_path, SOCK_ABORTED) == 0) {
 				perror("[UI] Action get-qr-list couldn't be executed");
 				free(list_path);
@@ -591,6 +598,13 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 				free(list_path);
 				goto error;	
 			} 
+			if (strncmp(list_path, VOID_LIST, 1) == 0) {
+				if (write(net_sock, VOID_LIST, strlen(VOID_LIST)) < 0) {
+					LOG(WARNING, "Unable to send VOID_LIST through network");
+					goto error;
+				}
+				goto out;
+			}
 			if (strcmp(list_path, SOCK_ABORTED) == 0) {
 				perror("[UI] Action get-scan-list couldn't be executed");
 				free(list_path);
@@ -738,6 +752,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 
 			break;
 	}
+out:
 	free(query);
 	free(res);
 	close(s_cl);

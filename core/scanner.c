@@ -1680,6 +1680,13 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case SCAN_LIST: ;
+			if (watch_list == NULL) {
+				if (write(s_cl, VOID_LIST, strlen(VOID_LIST)) < 0) {
+					LOG(WARNING, "Unable to send VOID_LIST");
+					return -1;
+				}
+				return 0;
+			}
 			time_t timestamp = time(NULL);
 			int tmp_stock;
 			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));

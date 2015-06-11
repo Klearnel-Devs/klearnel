@@ -64,6 +64,7 @@
 #define SOCK_NACK 	"2"
 #define SOCK_DENIED 	"3"
 #define SOCK_UNK	"4"
+#define VOID_LIST "5"
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
 
