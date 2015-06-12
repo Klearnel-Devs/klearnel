@@ -1389,6 +1389,27 @@ int add_watch_elem(TWatchElement elem)
 	return 0;
 }
 
+int _mod_watch_elem(TWatchElement elem)
+{
+	TWatchElementNode* item = watch_list->first;
+	if (!item) return 0;
+	int i;
+	while (item) {
+		if (strcmp(item->element.path, elem.path) == 0) {
+			for (i = 0; i < strlen(item->element.options); i++) {
+				item->element.options[i] = elem.options[i];
+			}
+			item->element.isTemp = elem.isTemp;
+			LOG_DEBUG;
+			return 0;
+		}
+		item = item->next;
+	}
+	write_to_log(FATAL, "%s:%d: Element \"%s\" to modify not found", 
+		__func__, __LINE__, elem.path);
+	return -1;
+}
+
 int remove_watch_elem(TWatchElement elem) 
 {
 	TWatchElementNode* item = watch_list->first;
@@ -1646,6 +1667,42 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			if (add_watch_elem(new) < 0) {
 				write_to_log(URGENT,"%s:%d: Unable to add %s to watch_list", 
 					__func__, __LINE__, new.path);
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to send aborted");
+				return -1;
+			}
+			unlink(buf);
+			save_watch_list(-1);
+			SOCK_ANS(s_cl, SOCK_ACK);
+			break;
+		case SCAN_MOD:
+			if (buf == NULL) {
+				LOG(URGENT, "Buffer received is empty");
+				return -1;
+			}
+			int fd_mod = open(buf, O_RDONLY);
+			if (fd_mod <= 0) {
+				write_to_log(URGENT,"%s:%d: Unable to open %s", 
+					__func__, __LINE__, buf);
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to send aborted");
+				return -1;				
+			}
+			TWatchElement mod;
+			if (read(fd_mod, &mod, sizeof(struct watchElement)) < 0) {
+				write_to_log(URGENT,"%s:%d: Unable to read data from %s", 
+					__func__, __LINE__, buf);
+				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
+					write_to_log(WARNING, "%s:%d: %s", 
+						__func__, __LINE__, "Unable to send aborted");
+				return -1;				
+			}
+			close(fd_mod);
+			if (_mod_watch_elem(mod) < 0) {
+				write_to_log(URGENT,"%s:%d: Unable to modify options of %s in watch_list", 
+					__func__, __LINE__, mod.path);
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s:%d: %s", 
 						__func__, __LINE__, "Unable to send aborted");

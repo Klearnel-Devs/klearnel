@@ -24,6 +24,7 @@
 #define SCAN_ADD	10
 #define SCAN_RM		11
 #define SCAN_LIST	12
+#define SCAN_MOD  13
 
 #define SCAN_BR_S	0
 #define SCAN_DUP_S	1
