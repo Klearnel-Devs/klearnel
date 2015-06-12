@@ -544,6 +544,126 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			free(tmp_filename);
 
 			break;
+		case SCAN_MOD:
+			if (access(buf, F_OK) == -1) {
+				write_to_log(WARNING, "%s:%d: Unable to locate %s",
+					__func__, __LINE__, buf);
+				goto error;
+			}
+			strcpy(new_elem.path, buf);
+			LOG_DEBUG;
+
+			unsigned char options_unsigned_mod[OPTIONS - 1];
+			if (read(net_sock, options_unsigned_mod, OPTIONS - 1) < 0) {
+				write_to_log(WARNING, "%s:%d: Unable to read options from socket", 
+					__func__, __LINE__);
+				goto error;
+			}
+			LOG_DEBUG;
+
+			for (i = 0; i < 10; i++) {
+				new_elem.options[i] = options_unsigned_mod[i];
+			}
+			new_elem.options[SCAN_OPT_END] = '\0';
+			if (SOCK_ANS(net_sock, SOCK_ACK) < 0) {
+				goto error;
+			}
+
+			LOG_DEBUG;
+			/* ----------------------- isTemp reception ----------------------------- */
+
+			unsigned char tmpBool_mod;
+			if (read(net_sock, &tmpBool_mod, 1) < 0) {
+				write_to_log(WARNING, "%s:%d: Unable to read back_limit_size from socket",
+					__func__, __LINE__);
+				goto error;				
+			}
+			LOG_DEBUG;
+			
+			if (tmpBool_mod == '1') new_elem.isTemp = true;
+			else new_elem.isTemp = false;
+			if (SOCK_ANS(net_sock, SOCK_ACK) < 0) {
+				goto error;
+			}
+
+			new_elem.del_limit_size = 0;
+			new_elem.back_limit_size = 0;
+			new_elem.max_age = 0;
+			LOG_DEBUG;
+
+			time_t timestamp_mod = time(NULL);
+			char *tmp_filename_mod = malloc(sizeof(char)*(sizeof(timestamp_mod)+5+strlen(SCAN_TMP)));
+			if (!tmp_filename_mod) {
+				LOG(FATAL, "Unable to allocate memory");
+				return -1;
+			}
+			if (sprintf(tmp_filename_mod, "%s/%d", SCAN_TMP, (int)timestamp_mod) < 0) {
+				LOG(URGENT, "Unable to create the filename for temp scan file");
+				free(tmp_filename_mod);
+				return -1;
+			}
+			LOG_DEBUG;
+
+			fd = open(tmp_filename_mod, O_WRONLY | O_TRUNC | O_CREAT);
+			if (fd < 0) {
+				write_to_log(URGENT, "%s:%d: Unable to create %s",
+					__func__, __LINE__, tmp_filename_mod);
+				free(tmp_filename_mod);
+				return -1;
+			}
+			LOG_DEBUG;
+			if (write(fd, &new_elem, sizeof(struct watchElement)) < 0) {
+				write_to_log(URGENT, "%s:%d: Unable to write the new item to %s", 
+					__func__, __LINE__, tmp_filename_mod);
+				free(tmp_filename_mod);
+				return -1;
+			}
+			LOG_DEBUG;
+			close(fd);
+			int path_len_mod = strlen(tmp_filename_mod)+1;
+			snprintf(query, len, "%d:%d", action, path_len_mod);
+			if (write(s_cl, query, len) < 0) {
+				LOG(URGENT, "Unable to send query");
+				free(tmp_filename_mod);
+				goto error;
+			}
+			LOG_DEBUG;
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
+				free(tmp_filename_mod);
+				goto error;
+			}
+			
+			if (write(s_cl, tmp_filename_mod, path_len_mod) < 0) {
+				LOG(URGENT, "Unable to send args of the query");
+				free(tmp_filename_mod);
+				goto error;
+			}
+			LOG_DEBUG;
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
+				free(tmp_filename_mod);
+				goto error;					
+			}
+			if (read(s_cl, res, 1) < 0) {
+				LOG(URGENT, "Unable to get query result");
+				free(tmp_filename_mod);
+				goto error;
+			}
+			LOG_DEBUG;
+
+			if (!strcmp(res, SOCK_ACK)) {
+				write_to_log(INFO, "%s has been successfully added to Scanner\n", buf);
+				SOCK_ANS(net_sock, SOCK_ACK);
+			} else if (!strcmp(res, SOCK_ABORTED)) {
+				write_to_log(INFO, "%s:%d: An error occured while adding %s to Scanner\n",
+				__func__, __LINE__, buf);
+				SOCK_ANS(net_sock, SOCK_ABORTED);
+			}
+			free(tmp_filename_mod);
+			LOG_DEBUG;
+
+			break;
 		case SCAN_RM:
 			snprintf(query, len, "%d:%d", action, c_len);
 			if (write(s_cl, query, len) < 0) {
@@ -943,6 +1063,7 @@ int execute_action(const char *buf, const int c_len, const int action, const int
 		case SCAN_ADD:
 	 	case SCAN_RM:
 		case SCAN_LIST:
+		case SCAN_MOD:
 			if (_execute_scan_action(buf, c_len, action, s_cl) < 0) {
 				return -1;
 			}
