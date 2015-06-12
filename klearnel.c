@@ -243,7 +243,17 @@ int main(int argc, char **argv)
 	execute_commands(argc, argv);
 	return EXIT_SUCCESS;
 
-service:
+service: ;
+	key_t mutex_key = ftok(IPC_RAND, IPC_MUTEX);
+	int mutex = semget(mutex_key, 1, IPC_CREAT | IPC_EXCL | IPC_PERMS);
+	if (mutex < 0) {
+		if (errno == EEXIST) {
+			printf("Klearnel is already running!\n");
+		} else {
+			printf("Unable to start Klearnel service: mutex couldn't be created\n");
+		}
+		return EXIT_FAILURE;
+	}
 	_init_env();
 	_daemonize();
 	if (_save_main_pid(getpid())) {
@@ -271,8 +281,7 @@ service:
 		return EXIT_FAILURE;
 	}
 	free_cfg();
-	 
-
-	/* will be deamonized later */
+	
+	semctl(mutex, 0, IPC_RMID, NULL);
 	return EXIT_SUCCESS;
 }
