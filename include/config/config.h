@@ -99,7 +99,7 @@ void init_config();
   as parameters
  */
 /*--------------------------------------------------------------------------*/
-char * get_cfg(char *section, char *key);
+char *get_cfg(char *section, char *key);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -138,5 +138,15 @@ int dump_cfg(char* filepath);
  */
 /*--------------------------------------------------------------------------*/
 void free_cfg();
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief  Save the current configuration to the DEF_CFG file
+  \return void
+
+  All configurations stored in the dictionary are written in DEF_CFG file.
+ */
+/*--------------------------------------------------------------------------*/
+void save_conf();
 
 #endif /* _CONFIG_H */

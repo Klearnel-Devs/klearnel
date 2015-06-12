@@ -87,7 +87,6 @@ int _check_token(const int s_cl)
 		return -1;
 	}
 	SOCK_ANS(s_cl, SOCK_ACK);
-
 	int fd = open(TOKEN_DB, O_RDONLY);
 	char inner_token[255];
 	if (read(fd, inner_token, 255) < 0) {
@@ -117,8 +116,7 @@ int _get_root(const int s_cl)
 	}
 	SOCK_ANS(s_cl, SOCK_ACK);
 	int result = check_hash(hash);
-	//unsigned char voider[255];
-	//read(s_cl, voider, 255);
+
 	if (result == 0) {
 		SOCK_ANS(s_cl, SOCK_ACK);
 		return 0;
@@ -173,15 +171,16 @@ void networker()
 		if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for sending operations");
 		
+
 		if (_check_token(s_cl) < 0) {
 			close(s_cl);
 			continue;
 		}
-		
 		if (_get_root(s_cl) < 0) {
 			close(s_cl);
 			continue;
 		}
+
 		int len;
 		if ((len = _get_data(s_cl, &action, &buf, c_len)) < 0) {
 			free(buf);
@@ -203,6 +202,8 @@ void networker()
 			write_to_log(NOTIFY, "%s:%d: %s %d", __func__, __LINE__, "Unable to execute the received action:", action);
 			continue;
 		}
+		int option = 1;
+		setsockopt(s_cl, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option, sizeof(int));
 		shutdown(s_cl, SHUT_WR);
 		free(buf);
 		close(s_cl);
