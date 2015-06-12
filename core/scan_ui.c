@@ -64,19 +64,6 @@ TWatchElement _new_elem_form(char *path)
 		else new_elem.options[SCAN_DUP_F] = '0';
 		res = -1;
 
-		if (new_elem.options[SCAN_DUP_F] == '0') {
-			while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
-				printf("\nFuse duplicate files ? (Y/N) : ");
-				if ((res = getchar()) == '\n') res = getchar();
-			}
-			if (toupper(res) == 'Y') 
-				new_elem.options[SCAN_FUSE] = '1';
-			else new_elem.options[SCAN_FUSE] = '0';
-			res = -1;
-		} else {
-			new_elem.options[SCAN_FUSE] = '0';
-		}
-
 		while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 			printf("\nScan and fix file integrity ? (Y/N) : ");
 			if ((res = getchar()) == '\n') res = getchar();
@@ -112,7 +99,6 @@ TWatchElement _new_elem_form(char *path)
 		new_elem.options[SCAN_BR_S] 		= '0';
 		new_elem.options[SCAN_DUP_S] 		= '0';
 		new_elem.options[SCAN_DUP_F] 		= '0';
-		new_elem.options[SCAN_FUSE] 		= '0';
 		new_elem.options[SCAN_INTEGRITY] 	= '0';
 		new_elem.options[SCAN_CL_TEMP]		= '0';
 		new_elem.isTemp 			= false;

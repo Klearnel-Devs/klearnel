@@ -123,6 +123,13 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 			break;
 		case QR_LIST:
 		case QR_LIST_RECALL: ;
+			if ((*list)->last == NULL) {
+				if (write(s_cl, VOID_LIST, strlen(VOID_LIST)) < 0) {
+					LOG(WARNING, "Unable to send VOID_LIST");
+					return -1;
+				}
+				return 0;
+			}
 			time_t timestamp = time(NULL);
 			int tmp_stock;
 			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));
@@ -171,7 +178,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 			NOT_YET_IMP;
 			break;
 		case KL_EXIT:
-			LOG(INFO, "Received KL_EXIT command");			
+			write_to_log(INFO, "Quarantine received stop command");		
 			clear_qr_list(list);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;

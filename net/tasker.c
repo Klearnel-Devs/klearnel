@@ -17,7 +17,7 @@
 int _get_data(const int sock, int *action, unsigned char **buf, int c_len)
 {
 	unsigned char a_type_unsigned[c_len];
-	char *a_type = malloc(c_len);
+	char *a_type = malloc(c_len + 1);
 	int len, bytes_read;
 	if (a_type == NULL) {
 		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
@@ -26,11 +26,8 @@ int _get_data(const int sock, int *action, unsigned char **buf, int c_len)
 
 	if ((bytes_read = read(sock, a_type_unsigned, c_len)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Error while receiving data through socket");
+		free(a_type);
 		return -1;
-	}
-	
-	if (strcmp(a_type, "") == 0) {
-		return -1; // Stop here if there is no information read from socket
 	}
 
 	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
@@ -41,6 +38,11 @@ int _get_data(const int sock, int *action, unsigned char **buf, int c_len)
 	int c;
 	for (c = 0; c < bytes_read; c++) {
 		a_type[c] = a_type_unsigned[c];
+	}
+	if (strcmp(a_type, "") == 0) {
+		LOG(URGENT, "No action received");
+		free(a_type);
+		return -1; // Stop here if there is no information read from socket
 	}
 	a_type[c+1] = '\0';
 	*action = atoi(strtok(a_type, ":"));
@@ -87,7 +89,6 @@ int _check_token(const int s_cl)
 		return -1;
 	}
 	SOCK_ANS(s_cl, SOCK_ACK);
-
 	int fd = open(TOKEN_DB, O_RDONLY);
 	char inner_token[255];
 	if (read(fd, inner_token, 255) < 0) {
@@ -117,8 +118,7 @@ int _get_root(const int s_cl)
 	}
 	SOCK_ANS(s_cl, SOCK_ACK);
 	int result = check_hash(hash);
-	//unsigned char voider[255];
-	//read(s_cl, voider, 255);
+
 	if (result == 0) {
 		SOCK_ANS(s_cl, SOCK_ACK);
 		return 0;
@@ -173,15 +173,16 @@ void networker()
 		if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&to_socket, sizeof(to_socket)) < 0)
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to set timeout for sending operations");
 		
+
 		if (_check_token(s_cl) < 0) {
 			close(s_cl);
 			continue;
 		}
-		
 		if (_get_root(s_cl) < 0) {
 			close(s_cl);
 			continue;
 		}
+
 		int len;
 		if ((len = _get_data(s_cl, &action, &buf, c_len)) < 0) {
 			free(buf);
@@ -200,9 +201,11 @@ void networker()
 			free(buf);
 			SOCK_ANS(s_cl, SOCK_ABORTED);
 			close(s_cl);
-			write_to_log(NOTIFY, "%s - %d - %s %d", __func__, __LINE__, "Unable to execute the received action:", action);
+			write_to_log(NOTIFY, "%s:%d: %s %d", __func__, __LINE__, "Unable to execute the received action:", action);
 			continue;
 		}
+		int option = 1;
+		setsockopt(s_cl, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option, sizeof(int));
 		shutdown(s_cl, SHUT_WR);
 		free(buf);
 		close(s_cl);

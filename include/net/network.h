@@ -11,7 +11,9 @@
 
 #define TOKEN_DB BASE_DIR "/klearnel.tk" 
 
-#define NET_MONITOR 50 /* Get all informations from the module */
+#define CONF_LIST 20
+#define CONF_MOD 21
+#define NET_CONNEC 30
 
 typedef struct pairList
 {

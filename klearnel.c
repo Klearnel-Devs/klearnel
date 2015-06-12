@@ -4,7 +4,7 @@
    \author	Copyright (C) 2014, 2015 Klearnel-Devs 
    \brief	Klearnel File
 
-  This file is the main one for the klearnel module
+  This file is the main one for the Klearnel module
   Please read README.md for more information 
  
   Copyright (C) 2014, 2015 Klearnel-Devs
@@ -56,8 +56,8 @@ void autocomplete()
 	"	prev=\"${COMP_WORDS[COMP_CWORD-1]}\"\n"
 	"	opts=\"-add-to-qr -rm-from-qr -rm-all-from-qr -get-qr-list\n"
 	"	-get-qr-info -restore-from-qr -restore-all-from-qr\n"
-	"	-add-to-scan -rm-from-scan -view-rt-log -license -start\n"
-	"	-stop -help\""
+	"	-add-to-scan -rm-from-scan -get-scan-list -view-rt-log\n" 
+	"	-license -start -stop -help\""
 	"\n"
 	"	if [[ ${cur} == -* ]] ; then\n"
 	"		COMPREPLY=( $(compgen -W \"${opts}\" -- ${cur}) )\n"
@@ -144,7 +144,34 @@ void _init_env()
 /*--------------------------------------------------------------------------*/
 void _daemonize()
 {
-	NOT_YET_IMP;
+	pid_t pid, sid;
+        
+        pid = fork();
+        if (pid < 0) {
+                exit(EXIT_FAILURE);
+        }
+
+        if (pid > 0) {
+                exit(EXIT_SUCCESS);
+        }
+
+        umask(0);       
+
+        sid = setsid();
+        if (sid < 0) {
+                write_to_log(FATAL, "%s: Unable to create new session id for Klearnel", __func__);
+                exit(EXIT_FAILURE);
+        }
+
+        if ((chdir("/")) < 0) {
+                write_to_log(FATAL, "%s: Unable to change root directory of Klearnel", __func__);
+                exit(EXIT_FAILURE);
+        }
+        
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+        
 }
 
 /*-------------------------------------------------------------------------*/
@@ -210,14 +237,25 @@ int main(int argc, char **argv)
 		       "Enter \"klearnel help\" for further information\n");
 		return EXIT_SUCCESS;
 	}
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(argv[1], "-start")) {
 		goto service;
 	} 
 	execute_commands(argc, argv);
 	return EXIT_SUCCESS;
 
-service:
+service: ;
+	key_t mutex_key = ftok(IPC_RAND, IPC_MUTEX);
+	int mutex = semget(mutex_key, 1, IPC_CREAT | IPC_EXCL | IPC_PERMS);
+	if (mutex < 0) {
+		if (errno == EEXIST) {
+			printf("Klearnel is already running!\n");
+		} else {
+			printf("Unable to start Klearnel service: mutex couldn't be created\n");
+		}
+		return EXIT_FAILURE;
+	}
 	_init_env();
+	_daemonize();
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");
 		return EXIT_FAILURE;
@@ -243,8 +281,7 @@ service:
 		return EXIT_FAILURE;
 	}
 	free_cfg();
-	 
-
-	/* will be deamonized later */
+	
+	semctl(mutex, 0, IPC_RMID, NULL);
 	return EXIT_SUCCESS;
 }

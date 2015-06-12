@@ -22,7 +22,6 @@
 /*-------------------------------------------------------------------------*/
 /**
   \brief	Allow to send a query to the quarantine
-  \param 	nb 		Number of commands
   \param 	commands 	Commands to execute
   \param 	action 		The action to take
   \return	0 on success, -1 on error	
@@ -30,7 +29,7 @@
   
  */
 /*--------------------------------------------------------------------------*/
-int qr_query(int nb, char **commands, int action);
+int qr_query(char **commands, int action);
 
 /*-------------------------------------------------------------------------*/
 /**
