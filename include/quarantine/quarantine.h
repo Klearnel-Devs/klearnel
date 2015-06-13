@@ -14,19 +14,61 @@
 /*---------------------------------------------------------------------------
                                 Definitions
  ---------------------------------------------------------------------------*/
+/**
+  \brief The folder where elements in Quarantine are stored
+ */
 #define QR_STOCK 	WORK_DIR "/qr_stock"
+/**
+  \brief Quarantine database file
+ */
 #define QR_DB 		BASE_DIR "/qr.db"
+/**
+  \brief Temporary Quarantine folder
+ */
 #define QR_TMP      TMP_DIR "/quarantine"
+/**
+  \brief Quarantine Unix Domain Socket file
+ */
 #define QR_SOCK 	TMP_DIR "/kl-qr-sck"
-#define RES_DEF     "/tmp/klearnel"
+/**
+  \brief Default restore folder
 
+  If the original location of a file to restore doesn't exist
+  anymore, the file is restored to this location
+ */
+#define RES_DEF     "/tmp/klearnel"
+/*-------------------------------------------------------------------------*/
+/**
+  \brief The "add to Quarantine" signal
+ */                                
 #define QR_ADD 		    1
+/**
+  \brief The "remove from Quarantine" signal
+ */
 #define QR_RM 		    2
+/**
+  \brief The "restore from Quarantine" signal
+ */
 #define QR_REST		    3
+/**
+  \brief The "get list from Quarantine" signal
+ */
 #define QR_LIST 	    4
+/**
+  \brief The "get information of one item in Quarantine" signal
+ */
 #define QR_INFO		    5
+/**
+  \brief The "remove all items from Quarantine" signal
+ */
 #define QR_RM_ALL       6
+/**
+  \brief The "restore all items from Quarantine" signal
+ */
 #define QR_REST_ALL     7
+/**
+  \brief Used by QR_RM_ALL & QR_REST_ALL signals to reload the list
+ */
 #define QR_LIST_RECALL  8
 
 /*---------------------------------------------------------------------------
@@ -51,7 +93,9 @@ struct qr_file {
 	time_t 		d_expire; 		//!< Date at which file will be dropped out (optional)
 };
 
-
+/**
+ \brief Define the QrData type as we use it in quarantine.c
+*/
 typedef struct qr_file QrData;
 
 struct QrListNode;
@@ -88,6 +132,9 @@ typedef struct QrList {
     QrListNode *last;   //!< Pointer to last node in list
 } QrList;
 
+/**
+  \brief Macro to traverse the list of the Quarantine
+*/
 #define LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
     QrListNode *V = NULL;\
     for(V = _node = (*L)->S; _node != NULL; V = _node = _node->M)
@@ -172,7 +219,7 @@ int add_file_to_qr(QrList **list, char *filepath);
 /**
   \brief        Removes a file from quarantine physically and logically
   \param        list        The Quarantine list
-  \param        filepath    The file to remove
+  \param        filename    The file to remove
   \return       0 on success, -1 on error
 
   

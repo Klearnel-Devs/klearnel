@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------*/
 /**
-   \file	scan_ui.h
+   \file	scan_ui.c
    \author	Copyright (C) 2014, 2015 Klearnel-Devs 
    \brief	Scanner UI file
 
@@ -14,7 +14,7 @@
 /*-------------------------------------------------------------------------*/
 /**
   \brief	The scanner form to display in command line
-  \param 	path 	??
+  \param 	path 	The path of the folder/file to add to the Scanner
   \return	TWatchElement
 
   
@@ -103,7 +103,7 @@ TWatchElement _new_elem_form(char *path)
 		new_elem.options[SCAN_CL_TEMP]		= '0';
 		new_elem.isTemp 			= false;
 	}
-	/* WARNING BACKUP NEED TO BE IMPLEMENTED */
+	
 	while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 		printf("\nBackup large file ? (Y/N) : ");
 		if ((res = getchar()) == '\n') res = getchar();
