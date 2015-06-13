@@ -63,7 +63,14 @@ int check_hash(const unsigned char *hash_to_check)
 	return 0;
 }
 
-void getPassword(char password[])
+/*-------------------------------------------------------------------------*/
+/**
+ \brief Get the password through terminal in shadow mode
+ \param password the array in which the introduced password will be stored
+ \return void
+*/
+/*-------------------------------------------------------------------------*/
+void _getPassword(char password[])
 {
     static struct termios oldt, newt;
     int i = 0;
@@ -96,14 +103,14 @@ void encrypt_root()
 		return;
 	char password[PASS_SIZE];
 	printf("Please enter a password: ");
-    	getPassword(password);
+    	_getPassword(password);
     	printf("\n");
 
     	encrypt_data(password);
 
     	printf("Please enter the password again: ");
     	char pass_check[PASS_SIZE];
-    	getPassword(pass_check);
+    	_getPassword(pass_check);
     	printf("\n");
 
     	unsigned char md[SHA256_DIGEST_LENGTH];

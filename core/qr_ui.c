@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------*/
 /**
-   \file	qr_ui.h
+   \file	qr_ui.c
    \author	Copyright (C) 2014, 2015 Klearnel-Devs 
    \brief	Quarantine UI file
 

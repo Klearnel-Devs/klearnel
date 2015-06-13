@@ -17,12 +17,19 @@
                                 Definitions
  ---------------------------------------------------------------------------*/
 
+/**
+ \brief The configuration folder
+*/ 
+#define CONFIG		BASE_DIR "/conf"
+/**
+ \brief The configuration file
+*/ 
+#define DEF_CFG	CONFIG "/klearnel.conf"
+/**
+ \brief The temporary configuration folder
+*/ 
+#define CFG_TMP	TMP_DIR "/conf"
 
- #define CONFIG		BASE_DIR "/conf"
- #define DEF_CFG	CONFIG "/klearnel.conf"
- #define CFG_TMP	TMP_DIR "/conf"
-
- #define MAX	100
 
 /*---------------------------------------------------------------------------
                                 New types

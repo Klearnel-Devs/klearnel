@@ -18,18 +18,66 @@
 /*---------------------------------------------------------------------------
                                 Definitions
  ---------------------------------------------------------------------------*/
+/**
+  \brief Define fatal level
+
+  The program has been unexpectly closed
+ */                                
 #define FATAL 		5
+/**
+  \brief Define urgent level 
+
+  The function has been aborted
+ */
 #define URGENT 		4
+/**
+  \brief Define warning level
+
+  The function is not aborted but the user is informed
+  that an error occured
+ */
 #define WARNING		3
+/**
+  \brief Define notify level
+
+  Used to notify a specific action has been performed
+ */
 #define NOTIFY		2
+/**
+  \brief Define info level
+
+  Used for normal message
+ */
 #define INFO		1
+/**
+  \brief Define debug level
+
+  Only used by developers during the development
+ */
 #define DEBUG		0
+/**
+  \brief Define the default maximum age of a log file
+ */
 #define OLD		2592000
+
+/**
+  \brief Define the IPC number of log sema
+ */
 #define IPC_LOG 48
 
+/**
+  \brief Write a debug message in log file
+
+  The message structure is:
+    Function: function_name:line_number
+ */
 #define LOG_DEBUG \
  	write_to_log(DEBUG," Function: %s:%d", __func__,__LINE__)
-
+/**
+  \brief Write a message in log file
+  \param level The level of the message
+  \param msg The message to write
+ */
 #define LOG(level, msg) \
 	write_to_log(level, "%s:%d: %s", __func__, __LINE__, msg)
 /*---------------------------------------------------------------------------

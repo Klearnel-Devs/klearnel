@@ -18,8 +18,14 @@
 #include <openssl/sha.h>
 #include <logging/logging.h>
 
-
-int net_exiter()
+/*-------------------------------------------------------------------------*/
+/**
+  \brief	Send the command KL_EXIT to the network process
+  \return	Return 0 on success, else -1
+  
+ */
+/*--------------------------------------------------------------------------*/
+int _net_exiter()
 {
 	int len, s_cl;
 	int f_tok;
@@ -223,7 +229,7 @@ void execute_commands(int nb, char **commands)
 		printf("See the LICENSE file located in /etc/klearnel\n");
 	} else if (!strcmp(commands[1], "-stop")) {
 		printf("Stopping Klearnel services\n\n");
-		if (net_exiter() != 0) {
+		if (_net_exiter() != 0) {
 			printf("Check Klearnel logs, Networker did not terminate correctly\n");
 		} else {
 			printf("Networker process successfully stopped\n");
