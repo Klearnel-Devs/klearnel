@@ -9,16 +9,24 @@
  * 
  */
 
-typedef struct pair
+#define TOKEN_DB BASE_DIR "/klearnel.tk" 
+
+#define CONF_LIST 20
+#define CONF_MOD 21
+#define NET_CONNEC 30
+
+typedef struct pairList
 {
-	int id;
-	int sec_token;
-} TPair;
+	char sec_token[255];
+	struct pairList *next;
+	struct pairList *prev;
+} TPairList;
 
 /* Execute the action received through the network socket
  * Return 0 on success and -1 on error
  */
-int execute_action(const char *buf, const int action, const int s_cl);
-int sendResult();
+int execute_action(const char *buf, const int c_len, const int action, const int s_cl);
 
 void networker();
+
+int generate_token();

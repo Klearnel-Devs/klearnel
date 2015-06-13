@@ -46,6 +46,17 @@
 void init_logging();
 /*-------------------------------------------------------------------------*/
 /**
+  \brief        Deletes old log files
+  \return       void
+
+  Function that iterates through the log files contained in the Klearnel
+  log directory defined in global.h. Each log files last accessed time is
+  compared to the current time, and if older than desired, deleted
+ */
+/*--------------------------------------------------------------------------*/
+void delete_logs();
+/*-------------------------------------------------------------------------*/
+/**
   \brief	Function for writing messages to program log files
   \param 	level 	Log Notification Level
   \param 	format 	Variable argument format

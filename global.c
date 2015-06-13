@@ -23,16 +23,18 @@ int get_data(const int sock, int *action, char **buf, int c_len)
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Error while receiving data through socket");
 		return -1;
 	}
+	
+	if (strcmp(a_type, "") == 0) {
+		return -1; // Stop here if there is no information read from socket
+	}
 
 	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send ack in socket");
 		free(a_type);
 		return -1;
 	}
-
 	*action = atoi(strtok(a_type, ":"));
 	len = atoi(strtok(NULL, ":"));
-	
 	if (len > 0) {
 		*buf = malloc(sizeof(char)*len);
 		if (*buf == NULL) {
@@ -46,7 +48,7 @@ int get_data(const int sock, int *action, char **buf, int c_len)
 		if (read(sock, *buf, len) < 0) {
 			if (SOCK_ANS(sock, SOCK_NACK) < 0)
 				write_to_log(WARNING,"%s - %d - %s", __func__, __LINE__, "Unable to send nack");
-			write_to_log(FATAL,"%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+			write_to_log(FATAL,"%s - %d - %s", __func__, __LINE__, "Unable to read data from socket");
 			free(a_type);
 			return -1;			
 		}

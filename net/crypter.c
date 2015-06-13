@@ -55,7 +55,7 @@ int check_hash(const unsigned char *hash_to_check)
 		return -1;
 	}
 	fclose(f);
-	int i;
+    int i;
 	for (i = 0; i < SHA256_DIGEST_LENGTH; i++) {
 		if (digest[i] != hash_to_check[i])
 			return 1;
@@ -95,13 +95,13 @@ void encrypt_root()
 	if (access(SECRET, F_OK) != -1) 
 		return;
 	char password[PASS_SIZE];
-	printf("Please enter the ROOT password: ");
+	printf("Please enter a password: ");
     	getPassword(password);
     	printf("\n");
 
     	encrypt_data(password);
 
-    	printf("Retype password to check: ");
+    	printf("Please enter the password again: ");
     	char pass_check[PASS_SIZE];
     	getPassword(pass_check);
     	printf("\n");
@@ -114,10 +114,15 @@ void encrypt_root()
     		printf("Error unable to check passwords\n");
     	} else if (result == 1) {
     		printf("Passwords don't seem to correspond\n");
+            unlink(SECRET);
+            printf("Press any key to continue...");
+            getchar();
+            system("clear");
+            encrypt_root();
     	} else {
     		printf("Passwords are the same!\n"
     		       "You will not be asked to enter it anymore\n"
-    		       "NOTE: If you change the root password, delete the file "
+    		       "NOTE: If you want to change the password, delete the file "
     		       "/etc/klearnel/secret.pem and restart klearnel\n");
     	}
 }

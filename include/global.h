@@ -21,7 +21,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/ipc.h>
-#include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/stat.h>
 #include <stdbool.h>
@@ -34,7 +33,11 @@
 #include <libgen.h>
 #include <ctype.h>
 #include <netinet/in.h>
-
+#include <arpa/inet.h>
+#ifdef __APPLE__
+#include <sys/syslimits.h>
+#endif
+#include <sys/wait.h>
 /*---------------------------------------------------------------------------
                                 Definitions
  ---------------------------------------------------------------------------*/
@@ -48,7 +51,9 @@
 #define LOG_DIR		"/var/log/klearnel/"
 #define TMP_DIR		"/tmp/.klearnel"
 #define PID_FILE	BASE_DIR "/klearnel.pid"
-
+#define BASH_AUTO "/etc/bash_completion.d"
+#define KLEARNEL_AUTO BASH_AUTO "/klearnel"
+#define AUTO_TMP  TMP_DIR "/ac"
 #define IPC_RAND 	"/dev/null"
 #define IPC_PERMS 	0666
 
@@ -60,11 +65,14 @@
 #define SOCK_UNK	"4"
 #define SOCK_ABORTED 	"8"
 #define SOCK_RETRY 	"9"
+#define VOID_LIST "EOF"                                
 
 #define KL_EXIT 	-1
 
 #define SOCK_TO 	15 /* Define the timeout applied to sockets */
 #define SEL_TO 		600 /* Define the timeout waiting on sockets */
+
+#define IPC_MUTEX 49
 
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))

@@ -10,6 +10,8 @@
 
 #define SECRET BASE_DIR "/secret.pem"
 #define PASS_SIZE 100
+
+bool simpleSHA256(void* input, unsigned long length, unsigned char* md);
 /*-------------------------------------------------------------------------*/
 /**
  \brief Encrypt pwd_to_encrypt with SHA256 and store it in SECRET file

@@ -13,6 +13,7 @@
 
 #include <global.h>
 #include <logging/logging.h>
+#include <config/config.h>
 
 void init_logging()
 {
@@ -24,17 +25,7 @@ void init_logging()
 	sem_reset(sync_logging, 0);
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  \brief        Deletes old log files
-  \return       Returns 0 on success, -1 otherwise
-
-  Function that iterates through the log files contained in the Klearnel
-  log directory defined in global.h. Each log files last accessed time is
-  compared to the current time, and if older than desired, deleted
- */
-/*--------------------------------------------------------------------------*/
-int _delete_logs()
+void delete_logs()
 {
 	struct dirent *dp;
 	DIR *dtr;
@@ -44,7 +35,7 @@ int _delete_logs()
 
 	if ((dtr = opendir(dir)) == NULL) {
 		write_to_log(URGENT, "%s - %s", __func__, "Can't open log directory");
-		return -1;
+		return;
 	}
 
 	char filename[100];
@@ -56,7 +47,7 @@ int _delete_logs()
 			write_to_log(WARNING, "%s - %s - %s", __func__, "Unable to stat file", filename);
 			continue ;
 		} else {
-			if (difftime(time(NULL), stbuf.st_atime) > OLD) {
+			if (difftime(time(NULL), stbuf.st_atime) > atof(get_cfg("GLOBAL","LOG_AGE"))) {
 				if (unlink(filename) != 0)
 					write_to_log(WARNING,"%s - %s - %s", __func__, "Unable to remove file", filename);
 				else
@@ -65,7 +56,7 @@ int _delete_logs()
 				
 		}
 	}
-	return 0;
+	return;
 }
 
 /*  */

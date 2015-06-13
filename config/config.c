@@ -217,7 +217,7 @@ void free_cfg()
 	iniparser_freedict(ini);
 }
 
-const char * get_cfg(char *section, char *key) {
+char * get_cfg(char *section, char *key) {
 	char *value;
 	char *query = malloc(strlen(section) + strlen(key) + strlen(":") + 1);
 	if (!snprintf(query, (strlen(section) + strlen(key) + strlen(":") + 1), "%s:%s", section, key)) {
@@ -261,4 +261,17 @@ int modify_cfg(char *section, char *key, char *value)
 err:
 	free(query);
 	return -1;
+}
+
+void save_conf() 
+{
+	unlink(DEF_CFG);
+	FILE *conf_f = fopen(DEF_CFG, "w");
+	if (!conf_f) {
+		LOG(URGENT, "Unable to open the config file");
+		return;
+	}
+
+	iniparser_dump_ini(ini, conf_f);
+	fclose(conf_f);
 }
