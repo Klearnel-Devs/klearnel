@@ -20,7 +20,7 @@
 static TWatchElementList* watch_list = NULL;
 static int protect_num = 2;
 static int exclude_num = 2;
-static const char *protect[] = {"/", "/boot", "/proc"};
+static const char *protect[] = {"/boot", "/proc"};
 static const char *exclude[] = {".git", ".svn"};
 
 /*-------------------------------------------------------------------------*/
@@ -162,8 +162,6 @@ void _backupFiles(char* file)
 			close (pipe_fd[1]);
 			exit(EXIT_SUCCESS);
 		} else {
-			int status;
-			waitpid(pid, &status, 0);
 			int i = 0;
 			char buf;
 		      	char *tmp = malloc(sizeof(char)*255);
@@ -368,8 +366,6 @@ void _deleteFiles(char *file)
 			close (pipe_fd[1]);
 			exit(EXIT_SUCCESS);
 		} else {
-			int status;
-			waitpid(pid, &status, 0);
 			char buf;
 		      	char *link = malloc(sizeof(char)*255);
 		      	if (link == NULL) {
@@ -482,7 +478,6 @@ void _permDelete(const char *file)
   \brief        Compares two files to determine original
   \param        file 	The file currently being treated
   \param 	prev 	The previous file
-  \param 	path 	The base path
   \return       char* 	The original file	
 
   The current file is crosschecked for exclusion, then the md5 sums
@@ -604,6 +599,15 @@ char *_returnOrig(char *file, char *prev, char *path)
 /*--------------------------------------------------------------------------*/
 void _checkSymlinks(TWatchElement data) 
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		goto err;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
@@ -646,8 +650,6 @@ void _checkSymlinks(TWatchElement data)
 		close (pipe_fd[1]);
 		exit(EXIT_SUCCESS);
 	} else {
-		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *link = malloc(sizeof(char)*255);
@@ -699,6 +701,15 @@ void _checkSymlinks(TWatchElement data)
 /*--------------------------------------------------------------------------*/
 void _dupSymlinks(TWatchElement data)
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		goto err;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
       	int pid;
       	int pipe_fd[2];
 
@@ -736,8 +747,6 @@ void _dupSymlinks(TWatchElement data)
 		close (pipe_fd[1]);
 		exit(EXIT_SUCCESS);
 	} else {
-		int status;
-		waitpid(pid, &status, 0);
 		int i = 0, j = 0;
 		int num = 0;
 	      	char buf;
@@ -846,6 +855,15 @@ void _dupSymlinks(TWatchElement data)
 /*--------------------------------------------------------------------------*/
 void _checkFiles(TWatchElement data, int action)
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		goto err;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
@@ -902,8 +920,6 @@ void _checkFiles(TWatchElement data, int action)
 		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
-		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -965,6 +981,15 @@ void _checkFiles(TWatchElement data, int action)
  */
 /*--------------------------------------------------------------------------*/
 void _handleDuplicates(TWatchElement data, int action) {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		goto err;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 	if (pipe(pipe_fd) < 0) {
@@ -1000,8 +1025,6 @@ void _handleDuplicates(TWatchElement data, int action) {
 		close (pipe_fd[1]);
 		_exit(EXIT_FAILURE);
 	} else {
-		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1069,6 +1092,15 @@ void _cleanFolder(TWatchElement data) {
 	if (!data.isTemp) {
 		return;
 	}
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		goto err;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
       	int i;
@@ -1120,8 +1152,6 @@ void _cleanFolder(TWatchElement data) {
 		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
-		int status;
-		waitpid(pid, &status, 0);
 		i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1168,6 +1198,15 @@ void _cleanFolder(TWatchElement data) {
  */
 /*--------------------------------------------------------------------------*/
 void _oldFiles(TWatchElement data, int action) {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		goto err;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
@@ -1220,8 +1259,6 @@ void _oldFiles(TWatchElement data, int action) {
 		free(prog1_argv[6]);
 		exit(EXIT_FAILURE);
 	} else {
-		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1272,80 +1309,54 @@ void _oldFiles(TWatchElement data, int action) {
 		return;
 }
 
-
 int perform_event() 
 {
 	int i;
-	if (watch_list == NULL) {
-		goto out;
+	if (watch_list->first == NULL) {
+		return 0;
 	}
-	
 	SCAN_LIST_FOREACH(watch_list, first, next, cur) {
 		for(i = 0; i < OPTIONS; i++) {
 			switch(i) {
 				case SCAN_BR_S :
-					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
+					if (cur->element.options[i] == '1') 
 						_checkSymlinks(cur->element);
-						LOG_DEBUG;
-					} 
 					break;
 				case SCAN_DUP_S : 
-					if (cur->element.options[i] == '1') { 
-						LOG_DEBUG;
+					if (cur->element.options[i] == '1') 
 						_dupSymlinks(cur->element);
-						LOG_DEBUG;
-					}
 					break;
 				case SCAN_BACKUP : 
-				case SCAN_DEL_F_SIZE :
-					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
-						_checkFiles(cur->element, i);
-						LOG_DEBUG;
-					}
+				case SCAN_DEL_F_SIZE : 
+					if (cur->element.options[i] == '1')
+						_checkFiles(cur->element, i); 
 					break;
-				case SCAN_DUP_F : 					
-					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
+				case SCAN_DUP_F :
+					if (cur->element.options[i] == '1')
 						_handleDuplicates(cur->element, i);
-						LOG_DEBUG;
-					}
 					break;
 				case SCAN_INTEGRITY : 
-					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
+					if (cur->element.options[i] == '1')
 						_checkPermissions(cur->element); 
-						LOG_DEBUG;
-					}
 					break;
 				case SCAN_CL_TEMP : 
-					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
-						_cleanFolder(cur->element);
-						LOG_DEBUG;
-					}
+					if (cur->element.options[i] == '1')
+						_cleanFolder(cur->element); 
 					break;
 				case SCAN_DEL_F_OLD : 
-				case SCAN_BACKUP_OLD :
-					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
-						_oldFiles(cur->element, i);
-						LOG_DEBUG; 
-					}
+				case SCAN_BACKUP_OLD : 
+					if (cur->element.options[i] == '1')
+						_oldFiles(cur->element, i); 
 					break;
 				default: break;
 			}
 		}
 	}
-out:
-	write_to_log(INFO, "%s completed successfully", __func__);
 	return 0;
 }
 
 int init_scanner()
 {
-	int o_mask = umask(0);
 	if (access(SCAN_DB, F_OK) == -1) {
 		if (creat(SCAN_DB, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
 			write_to_log(FATAL, "%s:%d: %s", __func__, __LINE__, "Unable to create the scanner database");
@@ -1353,12 +1364,11 @@ int init_scanner()
 		}
 	}
 	if (access(SCAN_TMP, F_OK) == -1) {
-		if (mkdir(SCAN_TMP, S_IRWXU | S_IRWXG | S_IRWXO)) {
+		if (mkdir(SCAN_TMP, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 			write_to_log(FATAL, "%s:%d: %s", __func__, __LINE__, "Unable to create the SCAN_TMP folder");
 			return -1;
 		}
 	}
-	umask(o_mask);
 	return 0;
 }
 
@@ -1389,35 +1399,6 @@ int add_watch_elem(TWatchElement elem)
 	watch_list->last = node;
 	watch_list->count++;
 	return 0;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  \brief    Modify the given element in the watch_list
-  \param elem The element in the watch_list to modify
-  \return   Return 0 on success and -1 on error	
-
- */
-/*--------------------------------------------------------------------------*/
-int _mod_watch_elem(TWatchElement elem)
-{
-	TWatchElementNode* item = watch_list->first;
-	if (!item) return 0;
-	int i;
-	while (item) {
-		if (strcmp(item->element.path, elem.path) == 0) {
-			for (i = 0; i < strlen(item->element.options); i++) {
-				item->element.options[i] = elem.options[i];
-			}
-			item->element.isTemp = elem.isTemp;
-			LOG_DEBUG;
-			return 0;
-		}
-		item = item->next;
-	}
-	write_to_log(FATAL, "%s:%d: Element \"%s\" to modify not found", 
-		__func__, __LINE__, elem.path);
-	return -1;
 }
 
 int remove_watch_elem(TWatchElement elem) 
@@ -1467,6 +1448,12 @@ int load_watch_list()
 	return 0;
 }
 
+int get_watch_list()
+{
+	NOT_YET_IMP;
+	return 0;
+}
+
 void clear_watch_list()
 {
 	if (watch_list->first != NULL) {
@@ -1480,14 +1467,6 @@ void clear_watch_list()
 	watch_list = NULL;
 }
 
-/*-------------------------------------------------------------------------*/
-/**
-  \brief	Get the watch element containing the path given in parameter
-  \param 	path the path of the element to obtain
-  \return	Return the matched TWatchElement
-  
- */
-/*--------------------------------------------------------------------------*/
 TWatchElement get_watch_elem(const char* path) 
 {
 	TWatchElement tmp;
@@ -1540,13 +1519,9 @@ void print_scan(TWatchElementList **list)
 	double spent;
 	begin = clock();
 	printf("Scanner elements:\n");
-	if (*list != NULL) {
-		SCAN_LIST_FOREACH((*list), first, next, cur) {
-			printf("\nElement \"%s\":\n", cur->element.path);
-			printf("\t- Options: %s\n", cur->element.options);
-		}
-	} else {
-		printf("\n\tNothing in Scanner watch list\n");
+	SCAN_LIST_FOREACH((*list), first, next, cur) {
+		printf("\nElement \"%s\":\n", cur->element.path);
+		printf("\t- Options: %s\n", cur->element.options);
 	}
 	end = clock();
 	spent = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -1556,7 +1531,7 @@ void print_scan(TWatchElementList **list)
 void load_tmp_scan(TWatchElementList **list, int fd)
 {
 	TWatchElement tmp;
-	while (read(fd, &tmp, sizeof(struct watchElement)) > 0) {
+	while (read(fd, &tmp, sizeof(struct watchElement)) != 0) {
 		if (_add_tmp_watch_elem(tmp, list) != 0){
 			perror("Out of memory!");
 			exit(EXIT_FAILURE);
@@ -1567,6 +1542,7 @@ void load_tmp_scan(TWatchElementList **list, int fd)
 void scanner_worker()
 {
 	int len, s_srv, s_cl;
+	// CHECK WITH ANTOINE
 	int c_len = 20;
 	int task = 0;
 	struct sockaddr_un server;
@@ -1586,7 +1562,6 @@ void scanner_worker()
 	umask(oldmask);
 	listen(s_srv, 10);
 
-
 	do {
 		struct timeval to_socket;
 		to_socket.tv_sec 	= SOCK_TO;
@@ -1602,14 +1577,6 @@ void scanner_worker()
 
 		struct sockaddr_un remote;
 		char *buf = NULL;
-
-		if (watch_list != NULL) {
-			clear_watch_list();
-		}
-		if (load_watch_list() < 0) {
-			LOG(WARNING, "Unable to load the watch list");
-			return;
-		}
 
 		res = select (s_srv + 1, &fds, NULL, NULL, &to_select);
 		if (res > 0) {
@@ -1650,6 +1617,10 @@ void scanner_worker()
 
 int perform_task(const int task, const char *buf, const int s_cl) 
 {
+	if (load_watch_list() < 0) {
+		LOG(WARNING, "Unable to load the watch list");
+		return -1;
+	}
 	switch (task) {
 		case SCAN_ADD:
 			if (buf == NULL) {
@@ -1687,42 +1658,6 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			save_watch_list(-1);
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
-		case SCAN_MOD:
-			if (buf == NULL) {
-				LOG(URGENT, "Buffer received is empty");
-				return -1;
-			}
-			int fd_mod = open(buf, O_RDONLY);
-			if (fd_mod <= 0) {
-				write_to_log(URGENT,"%s:%d: Unable to open %s", 
-					__func__, __LINE__, buf);
-				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
-					write_to_log(WARNING, "%s:%d: %s", 
-						__func__, __LINE__, "Unable to send aborted");
-				return -1;				
-			}
-			TWatchElement mod;
-			if (read(fd_mod, &mod, sizeof(struct watchElement)) < 0) {
-				write_to_log(URGENT,"%s:%d: Unable to read data from %s", 
-					__func__, __LINE__, buf);
-				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
-					write_to_log(WARNING, "%s:%d: %s", 
-						__func__, __LINE__, "Unable to send aborted");
-				return -1;				
-			}
-			close(fd_mod);
-			if (_mod_watch_elem(mod) < 0) {
-				write_to_log(URGENT,"%s:%d: Unable to modify options of %s in watch_list", 
-					__func__, __LINE__, mod.path);
-				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
-					write_to_log(WARNING, "%s:%d: %s", 
-						__func__, __LINE__, "Unable to send aborted");
-				return -1;
-			}
-			unlink(buf);
-			save_watch_list(-1);
-			SOCK_ANS(s_cl, SOCK_ACK);
-			break;
 		case SCAN_RM:
 			if (buf == NULL) {
 				LOG(URGENT, "Buffer received is empty");
@@ -1748,13 +1683,6 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		case SCAN_LIST: ;
-			if (watch_list == NULL) {
-				if (write(s_cl, VOID_LIST, strlen(VOID_LIST)) < 0) {
-					LOG(WARNING, "Unable to send VOID_LIST");
-					return -1;
-				}
-				return 0;
-			}
 			time_t timestamp = time(NULL);
 			int tmp_stock;
 			char *path_to_list = malloc(sizeof(char)*(sizeof(timestamp)+20));
@@ -1797,8 +1725,9 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			free(file);
 			break;
 		case KL_EXIT:
-			write_to_log(INFO, "Scanner received stop command");
+			LOG(INFO, "Received KL_EXIT command");
 			exit_scanner();
+			LOG_DEBUG;
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		default:
