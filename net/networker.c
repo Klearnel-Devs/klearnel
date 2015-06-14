@@ -1,6 +1,6 @@
  /**
  * \file networker.c
- * \brief Networker File
+ * \brief Network features file
  * \author Copyright (C) 2014, 2015 Klearnel-Devs 
  * 
  * This file contains all functions that are needed
@@ -17,7 +17,16 @@
 
 
 
-
+/*-------------------------------------------------------------------------*/
+/**
+ \brief Execute the Quarantine action
+ \param buf the buffer received through network socket
+ \param c_len the length of the command
+ \param action the action to execute
+ \param net_sock the client socket to send result or receive further information
+ \return Returns 0 on success or -1 on error
+*/
+/*-------------------------------------------------------------------------*/
 int _execute_qr_action(const char *buf, const int c_len, const int action, const int net_sock) 
 {
 	int len, s_cl;
@@ -311,6 +320,16 @@ error:
 	return -1;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+ \brief Execute the Scanner action
+ \param buf the buffer received through network socket
+ \param c_len the length of the command
+ \param action the action to execute
+ \param net_sock the client socket to send result or receive further information
+ \return Returns 0 on success or -1 on error
+*/
+/*-------------------------------------------------------------------------*/
 int _execute_scan_action(const char *buf, const int c_len, const int action, const int net_sock)
 {
 	int len, s_cl, fd, i;
@@ -899,6 +918,15 @@ error:
 	return -1;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+ \brief Send the configuration entry through network socket
+ \param net_sock the client socket in which the entry will be sent
+ \param section the section of the configuration entry to send
+ \param key the key of the configuration entry to send
+ \return Returns 0 on success or -1 on error
+*/
+/*-------------------------------------------------------------------------*/
 int _send_conf_val(const int net_sock, char *section, char *key)
 {
 	char *value = get_cfg(section, key);
@@ -929,6 +957,17 @@ int _send_conf_val(const int net_sock, char *section, char *key)
 	}
 }
 
+
+/*-------------------------------------------------------------------------*/
+/**
+ \brief Execute the Configuration action
+ \param buf the buffer received through network socket
+ \param c_len the length of the command
+ \param action the action to execute
+ \param net_sock the client socket to send result or receive further information
+ \return Returns 0 on success or -1 on error
+*/
+/*-------------------------------------------------------------------------*/
 int _execute_conf_action(const char *buf, const int c_len, const int action, const int net_sock) 
 {
 	switch(action) {

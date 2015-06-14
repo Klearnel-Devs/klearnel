@@ -1,4 +1,8 @@
- /*
+ /**
+ * \file tasker.c
+ * \brief Network agent
+ * \author Copyright (C) 2014, 2015 Klearnel-Devs
+ * 
  * This file contains all functions that are needed
  * for the network communication with the manager
  *
@@ -14,6 +18,18 @@
 #include <logging/logging.h>
 #include <net/network.h>
 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief	Get data from network socket
+  \param 	sock 	Socket to retrieve data from
+  \param 	action 	Action to take
+  \param 	buf 	Buffer to store data from socket
+  \param  	c_len 	Length of data
+  \return	Return number of char read if >= 0, else -1
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 int _get_data(const int sock, int *action, unsigned char **buf, int c_len)
 {
 	unsigned char a_type_unsigned[c_len];
@@ -75,6 +91,15 @@ int _get_data(const int sock, int *action, unsigned char **buf, int c_len)
 	return len;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief	Check if the token received through network socket matches 
+  		the one stored in Klearnel folder
+  \param 	s_cl	Socket to retrieve data from
+  \return	Return 0 oif the token match, else -1
+
+ */
+/*--------------------------------------------------------------------------*/
 int _check_token(const int s_cl) 
 {
 	char *token = malloc(sizeof(char)*255);
@@ -109,6 +134,16 @@ int _check_token(const int s_cl)
 
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief	Check if the Klearnel password received through network
+  		socket matches the one stored in Klearnel folder.
+  \param 	s_cl 	Socket to retrieve data from
+  \return	Return 0 if the passwords match, else -1
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 int _get_root(const int s_cl)
 {
 	unsigned char hash[SHA256_DIGEST_LENGTH];

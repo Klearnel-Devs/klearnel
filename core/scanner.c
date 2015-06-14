@@ -482,6 +482,7 @@ void _permDelete(const char *file)
   \brief        Compares two files to determine original
   \param        file 	The file currently being treated
   \param 	prev 	The previous file
+  \param 	path 	The base path
   \return       char* 	The original file	
 
   The current file is crosschecked for exclusion, then the md5 sums
@@ -1271,6 +1272,7 @@ void _oldFiles(TWatchElement data, int action) {
 		return;
 }
 
+
 int perform_event() 
 {
 	int i;
@@ -1389,6 +1391,14 @@ int add_watch_elem(TWatchElement elem)
 	return 0;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief    Modify the given element in the watch_list
+  \param elem The element in the watch_list to modify
+  \return   Return 0 on success and -1 on error	
+
+ */
+/*--------------------------------------------------------------------------*/
 int _mod_watch_elem(TWatchElement elem)
 {
 	TWatchElementNode* item = watch_list->first;
@@ -1457,12 +1467,6 @@ int load_watch_list()
 	return 0;
 }
 
-int get_watch_list()
-{
-	NOT_YET_IMP;
-	return 0;
-}
-
 void clear_watch_list()
 {
 	if (watch_list->first != NULL) {
@@ -1476,6 +1480,14 @@ void clear_watch_list()
 	watch_list = NULL;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief	Get the watch element containing the path given in parameter
+  \param 	path the path of the element to obtain
+  \return	Return the matched TWatchElement
+  
+ */
+/*--------------------------------------------------------------------------*/
 TWatchElement get_watch_elem(const char* path) 
 {
 	TWatchElement tmp;
@@ -1555,7 +1567,6 @@ void load_tmp_scan(TWatchElementList **list, int fd)
 void scanner_worker()
 {
 	int len, s_srv, s_cl;
-	// CHECK WITH ANTOINE
 	int c_len = 20;
 	int task = 0;
 	struct sockaddr_un server;
