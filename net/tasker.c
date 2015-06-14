@@ -240,7 +240,9 @@ void networker()
 			continue;
 		}
 		int option = 1;
+#ifdef SO_REUSEPORT
 		setsockopt(s_cl, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option, sizeof(int));
+#endif
 		shutdown(s_cl, SHUT_WR);
 		free(buf);
 		close(s_cl);
