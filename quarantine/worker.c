@@ -107,9 +107,7 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 			break;
 		case QR_REST:
 		case QR_REST_ALL:
-			LOG_DEBUG;
 			if (restore_file(list, buf) < 0) {
-				LOG(DEBUG, "restore_file failed");
 				if (SOCK_ANS(s_cl, SOCK_ABORTED) < 0)
 					write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send aborted");
 				clear_qr_list(list);
@@ -117,7 +115,6 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				load_qr(list);
 				return 0;
 			} else {
-				LOG_DEBUG;
 				SOCK_ANS(s_cl, SOCK_ACK);
 			}
 			if (action == QR_REST_ALL) {

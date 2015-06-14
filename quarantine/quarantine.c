@@ -462,16 +462,16 @@ int restore_file(QrList **list, char *filename)
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to find file to restore");
 		goto out;
 	}
-	LOG_DEBUG;
+
 	if (_rm_from_qr_list(list, res_file) != 0) {
 		goto out;
 	}
-	LOG_DEBUG;
+
 	if (snprintf(p_res, (strlen(QR_STOCK)+strlen(filename)+3), "%s/%s", QR_STOCK, filename) < 0) {
 		write_to_log(WARNING, "%s - %d - %s %s/%s", __func__, __LINE__, "Unable to create path to restore", QR_STOCK, filename);
 		goto out;
 	}
-	LOG_DEBUG;
+
 	if (rename(p_res, res_file->data.o_path) != 0) {
 		write_to_log(URGENT, "%s - %d - %s - %s to %s", __func__, __LINE__, "Restore aborted: Unable to move the file ", filename, res_file->data.o_path);
 		if (snprintf(x_res, (strlen(RES_DEF)+strlen(filename)+2), "%s/%s", RES_DEF, filename) < 0) {
@@ -483,7 +483,6 @@ int restore_file(QrList **list, char *filename)
 			goto out;
 		}
 	}
-	LOG_DEBUG;
 	if (save_qr_list(list, -1) == 0) {
 		write_to_log(INFO, "File %s removed from QR and restored to %s", filename, res_file->data.o_path);
 	}
