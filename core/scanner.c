@@ -35,6 +35,11 @@ static const char *exclude[] = {".git", ".svn"};
 /*--------------------------------------------------------------------------*/
 int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
 {
+	for(i = 0; i < protect_num; i++) {
+  		if(strncmp(elem.path, protect[i], strlen(protect[i])) == 0)
+  			LOG(WARNING, "Path is protected, not adding: %s", elem.path)
+  			return -1;
+  	}
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
 	if (!node) {
 		LOG(FATAL, "Unable to allocate memory");
@@ -143,7 +148,7 @@ void _backupFiles(char* file_bu)
 		if (pipe(pipe_fd) < 0) {
 			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
 					"Scanner could not pipe");
-			return;
+			goto err;
 		}
 
 		if ( (pid = fork() ) < 0) {
@@ -177,7 +182,9 @@ void _backupFiles(char* file_bu)
 		      	if (tmp2 == NULL) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 					"Unable to allocate memory");
-				return;
+				close(pipe_fd[0]);
+				close(pipe_fd[1]);
+				goto err;
 		      	}
 			close(pipe_fd[1]);
 			while (read(pipe_fd[0], &buf, 1) > 0) {
@@ -187,6 +194,9 @@ void _backupFiles(char* file_bu)
 			if ((size = atoi(tmp2)) < 0) {
 				write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, 
 						"atoi() failed on ", tmp2);
+				free(tmp2);
+				close(pipe_fd[0]);
+				goto err;
 			}
 			close(pipe_fd[0]);
 			free(tmp2);
@@ -261,7 +271,7 @@ void _backupFiles(char* file_bu)
 	  		"%s/%s", backup_path, "files/") <= 0) {
 			LOG(FATAL, "Unable to print path");
 			free(bu_path);
-			goto err3;
+			goto err2;
 	  	}
 		if (access(bu_path, F_OK) == -1) {
 			if (mkdir(bu_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
@@ -273,6 +283,11 @@ void _backupFiles(char* file_bu)
 		}
 		path = malloc(strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+
 				strlen(basename(file))+1);
+		if (path == NULL) {
+			free(bu_path);
+			LOG(FATAL, "Unable to allocate memory");
+			goto err2;
+		}
 	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+1, 
 	  		"%s/%s%s", backup_path, "files/",dirname) <= 0) {
 			LOG(FATAL, "Unable to print path");
