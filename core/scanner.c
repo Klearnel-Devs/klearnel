@@ -716,11 +716,8 @@ void _checkSymlinks(TWatchElement data)
 			close (pipe_fd[1]);
 			exit(EXIT_FAILURE);
 		}
-		close (pipe_fd[1]);
-		exit(EXIT_SUCCESS);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *link = malloc(sizeof(char)*255);
@@ -747,6 +744,7 @@ void _checkSymlinks(TWatchElement data)
 				i = 0;
 			}
 		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(link);
 		return;
@@ -815,11 +813,8 @@ void _dupSymlinks(TWatchElement data)
 			close (pipe_fd[1]);
 			exit(EXIT_FAILURE);
 		}
-		close (pipe_fd[1]);
-		exit(EXIT_SUCCESS);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		int i = 0, j = 0;
 		int num = 0;
 	      	char buf;
@@ -903,6 +898,7 @@ void _dupSymlinks(TWatchElement data)
 			}
 
 		}
+		waitpid(pid, &status, 0);
 	err3:
 		for ( j = 0; j < num-1; j++ ) {
 			free(symArray[j]);
@@ -1000,16 +996,12 @@ void _checkFiles(TWatchElement data, int action)
 				"Failed to execute find broken symlinks");
 			goto childDeath;
 		}
-		close (pipe_fd[1]);
-		free(prog1_argv[5]);
-		exit(EXIT_SUCCESS);
 	childDeath:
 		close (pipe_fd[1]);
 		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1038,6 +1030,7 @@ void _checkFiles(TWatchElement data, int action)
 				i = 0;
 			}
 		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(file);
 		return;
@@ -1098,14 +1091,11 @@ void _handleDuplicates(TWatchElement data, int action)
 					"Failed to execute find duplicates");
 			goto childDeath;
 		}
-		close (pipe_fd[1]);
-		exit(EXIT_SUCCESS);
 	childDeath:
 		close (pipe_fd[1]);
 		_exit(EXIT_FAILURE);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1137,6 +1127,7 @@ void _handleDuplicates(TWatchElement data, int action)
 			}
 			tmp_buf = buf;
 		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(file);
 		free(prev);
@@ -1210,12 +1201,12 @@ void _cleanFolder(TWatchElement data)
 	      	prog1_argv[4] = "-print0";
 	      	prog1_argv[5] = NULL;
 	      	close (pipe_fd[0]);
-	      	if (dup2 (pipe_fd[1], 1) == -1) {
+	      	if (dup2(pipe_fd[1], 1) == -1) {
 	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 					"Failed to duplicate file descriptor");
 			goto childDeath;
 		}
-		for(i = 0; i < (sizeof(types)/sizeof(char)); i++) {
+		for(i = 0; i < 7; i++) {
 			prog1_argv[3] = types[i];
 			childpid = fork();
 			if(childpid == 0) {
@@ -1228,16 +1219,12 @@ void _cleanFolder(TWatchElement data)
     				waitpid(childpid, &returnStatus, 0);
 			}
 	      	}
-		close (pipe_fd[1]);
-		free(prog1_argv[5]);
-		exit(EXIT_SUCCESS);
 	childDeath:
 		close (pipe_fd[1]);
 		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1251,7 +1238,9 @@ void _cleanFolder(TWatchElement data)
 			file[i] = buf;
 			i++;
 			if(buf == '\0') {
-				_permDelete(file);
+				if (strcmp(file, data.path) != 0) {
+					_permDelete(file);
+				}
 				free(file);
 				file = malloc(sizeof(char)*255);
 				if (file == NULL) {
@@ -1262,6 +1251,7 @@ void _cleanFolder(TWatchElement data)
 				i = 0;
 			}
 		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(file);
 		return;
@@ -1291,7 +1281,15 @@ void _oldFiles(TWatchElement data, int action)
 		return;
 	}
 
-	if (!S_ISDIR(inode.st_mode)) {
+	if (S_ISREG(inode.st_mode)) {
+		if ( action == SCAN_BACKUP_OLD ) {
+			_backupFiles(data.path);
+		} else {
+			_deleteFiles(data.path);
+			remove_watch_elem(data);
+		}
+		return;
+	} else if (!S_ISDIR(inode.st_mode)) {
 		return;
 	}
 	int pid;
@@ -1338,9 +1336,6 @@ void _oldFiles(TWatchElement data, int action)
 				"Failed to execute find broken symlinks");
 			goto childDeath;
 		}
-		close (pipe_fd[1]);
-		free(prog1_argv[6]);
-		exit(EXIT_SUCCESS);
 	childDeath:
 		close (pipe_fd[1]);
 		free(prog1_argv[6]);
@@ -1376,18 +1371,7 @@ void _oldFiles(TWatchElement data, int action)
 				i = 0;
 			}
 		}
-		if (action == SCAN_DEL_F_OLD) {
-			struct stat s;
-			if (stat(data.path, &s) < 0) {
-				write_to_log(URGENT,"%s:%d: Unable to get stat of %s", __func__, 
-					__LINE__, data.path);
-				free(file);
-				goto err;
-			}
-			if (S_ISREG(s.st_mode)) {
-				remove_watch_elem(data);
-			}
-		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(file);
 		return;
