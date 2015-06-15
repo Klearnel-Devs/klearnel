@@ -239,8 +239,9 @@ void networker()
 			write_to_log(NOTIFY, "%s:%d: %s %d", __func__, __LINE__, "Unable to execute the received action:", action);
 			continue;
 		}
-		int option = 1;
+
 #ifdef SO_REUSEPORT
+		int option = 1;
 		setsockopt(s_cl, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option, sizeof(int));
 #endif
 		shutdown(s_cl, SHUT_WR);
