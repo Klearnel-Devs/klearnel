@@ -35,9 +35,10 @@ static const char *exclude[] = {".git", ".svn"};
 /*--------------------------------------------------------------------------*/
 int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
 {
+	int i;
 	for(i = 0; i < protect_num; i++) {
   		if(strncmp(elem.path, protect[i], strlen(protect[i])) == 0)
-  			LOG(WARNING, "Path is protected, not adding: %s", elem.path)
+  			LOG(WARNING, "Path is protected, not adding");
   			return -1;
   	}
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
@@ -349,11 +350,6 @@ void _deleteFiles(char *file)
 	int childExitStatus, i = 0, num = 0;
 	struct stat inode;
 	pid_t pid;
-	char *tmp = malloc(sizeof(char)*255);
-	if (tmp == NULL){
-		LOG(FATAL, "Unable to allocate memory");
-		return;
-	}
 	if (stat(file, &inode) != 0) {
 		write_to_log(FATAL, "Unable to stat file : %s", file);
 		goto err;
@@ -375,12 +371,16 @@ void _deleteFiles(char *file)
 		if (pipe(pipe_fd) < 0) {
 			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
 					"Scanner could not pipe");
+			free(symArray);
 			return;
 		}
 
 		if ( (pid = fork() ) < 0) {
 			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
 					"Scanner could not fork");
+			close (pipe_fd[0]);
+			close (pipe_fd[1]);
+			free(symArray);
 			goto err;
 		}
 
@@ -415,6 +415,7 @@ void _deleteFiles(char *file)
 		      	if (link == NULL) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 					"Unable to allocate memory");
+				free(symArray);
 				return;
 		      	}
 			close(pipe_fd[1]);
@@ -428,6 +429,8 @@ void _deleteFiles(char *file)
 						write_to_log(WARNING, "%s - %d - %s", 
 							__func__, __LINE__, 
 							"Unable to allocate memory");
+						free(link);
+						close(pipe_fd[0]);
 						goto err;
 					}
 					symArray[num-1] = link;
@@ -451,30 +454,21 @@ void _deleteFiles(char *file)
 			goto err;
 		}
 		if (pid == 0) {
-			if (dup2 (pipe_fd[1], 1) == -1) {
-				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
-						"Failed to duplicate file descriptor");
-				_exit(EXIT_FAILURE);
-			}
 			char *prog1_argv[3];
 			prog1_argv[0] = "rm";
 			prog1_argv[1] = "-rf";
-			prog1_argv[2] = symArray[i];
+			prog1_argv[2] = file;
 			prog1_argv[3] = NULL;
 			if (execvp(prog1_argv[0], prog1_argv) == -1) {
-				close (pipe_fd[1]);
 				exit(EXIT_FAILURE);
 			}
 			exit(EXIT_SUCCESS);
 		} else {
 			pid_t ws = waitpid(pid, &childExitStatus, WNOHANG);
 			if (ws == -1) {
-		        	LOG(FATAL, "Delete Files Exec failed");
-		        }
-		        if( WIFEXITED(childExitStatus) ) {
-				LOG(INFO, "Find files successful");
+	        		LOG(FATAL, "Folder failed to be deleted");
 		        } else {
-		        	LOG(FATAL, "Delete Files Exec failed");
+		        	LOG(INFO, "Folder successfully deleted");
 		        }
 		}
 	}
