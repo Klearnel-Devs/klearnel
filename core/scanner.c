@@ -1651,7 +1651,7 @@ void scanner_worker()
 int perform_task(const int task, const char *buf, const int s_cl) 
 {
 	switch (task) {
-		case SCAN_ADD:
+		case SCAN_ADD: 
 			if (buf == NULL) {
 				LOG(URGENT, "Buffer received is empty");
 				return -1;

@@ -24,15 +24,16 @@ int get_data(const int sock, int *action, char **buf, int c_len)
 		return -1;
 	}
 	
-	if (strcmp(a_type, "") == 0) {
-		return -1; // Stop here if there is no information read from socket
-	}
-
 	if (SOCK_ANS(sock, SOCK_ACK) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to send ack in socket");
 		free(a_type);
 		return -1;
 	}
+
+	if (strncmp(a_type, VOID_LIST, strlen(VOID_LIST)) == 0) {
+		return -1; // Stop here if there was no information read from socket
+	}
+
 	*action = atoi(strtok(a_type, ":"));
 	len = atoi(strtok(NULL, ":"));
 	if (len > 0) {

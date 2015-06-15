@@ -67,6 +67,14 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 			if (access(buf, F_OK) == -1) {
 				write_to_log(WARNING, "%s: Unable to find %s.\n"
 					"Please check if the path is correct.\n", __func__, buf);
+				sprintf(query, "%s", VOID_LIST);
+				if (write(s_cl, query, strlen(query)) < 0) {
+					LOG(URGENT, "Unable to send file location state");
+					goto error;
+				}
+				if (read(s_cl, res, 1) < 0) {
+					LOG(WARNING, "Unable to get location result");
+				}
 				goto error;
 			}
 		case QR_RM:
@@ -385,8 +393,17 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			if (access(buf, F_OK) == -1) {
 				write_to_log(WARNING, "%s:%d: Unable to locate %s",
 					__func__, __LINE__, buf);
+				sprintf(query, "%s", VOID_LIST);
+				if (write(s_cl, query, strlen(query)) < 0) {
+					LOG(URGENT, "Unable to send file location state");
+					goto error;
+				}
+				if (read(s_cl, res, 1) < 0) {
+					LOG(WARNING, "Unable to get location result");
+				}
 				goto error;
 			}
+			
 			strcpy(new_elem.path, buf);
 
 			unsigned char options_unsigned[OPTIONS - 1];
