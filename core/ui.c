@@ -120,7 +120,7 @@ int _net_exiter()
 	}
 
 	if (read(s_cl, res, 1) < 0) {
-		perror("[UI] Unable to get query result");
+		perror("[UI] Unable to get command result");
 		goto error;
 	}
 
