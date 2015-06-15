@@ -555,12 +555,12 @@ char *_returnOrig(char *file, char *prev, char *path)
 	 	if (full_file == NULL){
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to allocate memory");
-			return file;
+			goto out;
 	      	}
 	 	if (snprintf(full_file, strlen(path)+strlen(token)+1, "%s%s", path, token) <= 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to print to new variable");
-			return file;
+			goto err;
 	 	}
 
 	 	for(i = 35; i < strlen(prev); i++) {
@@ -570,32 +570,58 @@ char *_returnOrig(char *file, char *prev, char *path)
 	 	if (full_prev == NULL){
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to allocate memory");
-			return file;
+			goto err;
 	      	}
 	 	if (snprintf(full_prev, strlen(path)+strlen(token_prv)+1, "%s%s", path, token_prv) < 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to print to new variable");
-			return file;
+			goto err2;
 	 	}
 	 	if(stat(full_file, &file_stat) != 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to stat file: %s", full_prev);
-			return file;
+			goto err2;
 	 	}
 	 	if(stat(full_prev, &prev_stat) != 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to stat file: %s", full_prev);
-			return file;
+			goto err2;
 	 	}
 	 	if ((int)file_stat.st_ctime < (int)prev_stat.st_ctime) {
 	 		_deleteFiles(full_prev);
-	 		return file;
+			goto out_f;
 	 	} else {
 	 		_deleteFiles(full_file);
-	 		return prev;
+			goto out_p;
 	 	}
 	}
+out:
+	free(token);
+	free(token_prv);
 	return file;
+err:
+	free(token);
+	free(token_prv);
+	free(full_file);
+	return file;
+err2:
+	free(token);
+	free(token_prv);
+	free(full_file);
+	free(full_prev);
+	return file;
+out_f:
+	free(token);
+	free(token_prv);
+	free(full_file);
+	free(full_prev);
+	return file;
+out_p:
+	free(token);
+	free(token_prv);
+	free(full_file);
+	free(full_prev);
+	return prev;
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -915,7 +941,15 @@ void _checkFiles(TWatchElement data, int action)
 		return;
 	}
 
-	if (!S_ISDIR(inode.st_mode)) {
+	if (S_ISREG(inode.st_mode)) {
+		if ( action == SCAN_BACKUP ) {
+			_backupFiles(data.path);
+		} else {
+			_deleteFiles(data.path);
+			remove_watch_elem(data);
+		}
+		return;
+	} else if (!S_ISDIR(inode.st_mode)) {
 		return;
 	}
 	int pid;
@@ -1003,18 +1037,6 @@ void _checkFiles(TWatchElement data, int action)
 				}
 				i = 0;
 			}
-		}
-		if (action == SCAN_DEL_F_SIZE) {
-			struct stat s;
-			if (stat(data.path, &s) < 0) {
-				write_to_log(URGENT,"%s:%d: Unable to get stat of %s", __func__, 
-					__LINE__, data.path);
-				free(file);
-				goto err;
-			}
-			if (S_ISREG(s.st_mode)) {
-				remove_watch_elem(data);
-			}			
 		}
 		close(pipe_fd[0]);
 		free(file);
@@ -1116,6 +1138,8 @@ void _handleDuplicates(TWatchElement data, int action)
 			tmp_buf = buf;
 		}
 		close(pipe_fd[0]);
+		free(file);
+		free(prev);
 		return;
 	}
 	err:
@@ -1362,7 +1386,7 @@ void _oldFiles(TWatchElement data, int action)
 			}
 			if (S_ISREG(s.st_mode)) {
 				remove_watch_elem(data);
-			}			
+			}
 		}
 		close(pipe_fd[0]);
 		free(file);
