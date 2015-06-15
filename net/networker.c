@@ -122,20 +122,20 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 			QrList *qr_list = calloc(1, sizeof(QrList));
 			int fd;
 			if (!list_path) {
-				perror("[UI] Unable to allocate memory");
+				LOG(FATAL, "Unable to allocate memory");
 				goto error;
 			}
 			if (write(s_cl, query, len) < 0) {
-				perror("[UI] Unable to send query");
+				LOG(WARNING, "Unable to send query");
 				free(list_path);
 				goto error;
 			} 
 			if (read(s_cl, res, 1) < 0) {
-				perror("[UI] Unable to get query result");
+				LOG(WARNING, "Unable to get query result");
 				goto error;
 			}
 			if (read(s_cl, list_path, PATH_MAX) < 0) {
-				perror("[UI] Unable to get query result");
+				LOG(WARNING, "Unable to get query result");
 				free(list_path);
 				goto error;	
 			} 
@@ -147,14 +147,14 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				goto out;
 			}
 			if (strcmp(list_path, SOCK_ABORTED) == 0) {
-				perror("[UI] Action get-qr-list couldn't be executed");
+				LOG(WARNING, "Action get-qr-list couldn't be executed");
 				free(list_path);
 				goto error;
 			} 
 
 			fd = open(list_path, O_RDONLY, S_IRUSR);
 			if (fd < 0) {
-				perror("[UI] Unable to open qr list file");
+				LOG(WARNING, "Unable to open qr list file");
 				free(list_path);
 				goto error;
 			}
@@ -253,7 +253,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				LIST_FOREACH(&qr_list, first, next, cur) {
 					char *next_query = malloc(len);
 					if (next_query == NULL) {
-						perror("[UI] Unable to allocate memory");
+						LOG(FATAL, "Unable to allocate memory");
 						goto error;
 					}
 					int c_len = strlen(cur->data.f_name) + 1;
@@ -267,37 +267,37 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 						snprintf(next_query, len, "%d:%d", action, c_len);
 					}
 					if (write(s_cl, next_query, len) < 0) {
-						perror("[UI] Unable to send query");
+						LOG(WARNING, "Unable to send query");
 						goto error;
 					}
 					if (read(s_cl, res, 1) < 0) {
-						perror("[UI] Unable to get query result");
+						LOG(WARNING, "Unable to get query result");
 						goto error;
 					}
 					if (write(s_cl, cur->data.f_name, c_len) < 0) {
-						perror("[UI] Unable to send args of the query");
+						LOG(WARNING, "Unable to send args of the query");
 						goto error;
 					}
 					if (read(s_cl, res, 1) < 0) {
-						perror("[UI] Unable to get query result");
+						LOG(WARNING, "Unable to get query result");
 						goto error;					
 					}
 					if (read(s_cl, res, 1) < 0) {
-						perror("[UI] Unable to get query result");
+						LOG(WARNING, "Unable to get query result");
 						goto error;
 					}
 					if (!strcmp(res, SOCK_ACK)) {
 						switch (action) {
-							case QR_RM_ALL: printf("File %s successfully deleted from QR\n", cur->data.f_name); break;
-							case QR_REST_ALL: printf("File %s successfully restored\n", cur->data.f_name); break;
+							case QR_RM_ALL: write_to_log(INFO, "File %s successfully deleted from QR\n", cur->data.f_name); break;
+							case QR_REST_ALL: write_to_log(INFO, "File %s successfully restored\n", cur->data.f_name); break;
 						}
 					} else if (!strcmp(res, SOCK_ABORTED)) {
 						switch (action) {
-							case QR_RM_ALL: printf("File %s could not be deleted from QR\n", cur->data.f_name); break;
-							case QR_REST_ALL: printf("File %s could not be restored\n", cur->data.f_name); break;
+							case QR_RM_ALL: write_to_log(INFO, "File %s could not be deleted from QR\n", cur->data.f_name); break;
+							case QR_REST_ALL: write_to_log(INFO, "File %s could not be restored\n", cur->data.f_name); break;
 						}
 					} else if (!strcmp(res, SOCK_UNK)) {
-						fprintf(stderr, "File not found in quarantine\n");
+						write_to_log(WARNING, "File not found in quarantine\n");
 					}
 					free(next_query);
 				}
@@ -309,11 +309,11 @@ out:
 		case RELOAD_CONF:
 			snprintf(query, len, "%d:0", RELOAD_CONF);
 			if (write(s_cl, query, len) < 0) {
-				perror("[UI] Unable to send query");
+				LOG(WARNING, "Unable to send query");
 				goto error;
 			} 
 			if (read(s_cl, res, 1) < 0) {
-				perror("[UI] Unable to get query result");
+				LOG(WARNING, "Unable to get query result");
 				goto error;
 			}
 			if (read(s_cl, res, 1) < 0) {
