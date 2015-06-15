@@ -18,7 +18,7 @@
 #include <core/ui.h>
 
 static TWatchElementList* watch_list = NULL;
-static int protect_num = 2;
+static int protect_num = 3;
 static int exclude_num = 2;
 static const char *protect[] = {"/", "/boot", "/proc"};
 static const char *exclude[] = {".git", ".svn"};
@@ -74,25 +74,26 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
   for files. Uses rsync for backup. 
  */
 /*--------------------------------------------------------------------------*/
-void _backupFiles(char* file) 
+void _backupFiles(char* file_bu) 
 {
 	int childExitStatus;
 	struct stat inode;
 	pid_t pid;
 	char *path, *backup_path;
 	char *backup = malloc(sizeof(char)*255);
-	char *tmp = malloc(sizeof(char)*255);
-	char *dirname = malloc(sizeof(char)*255);
+	char *file = malloc(strlen(file_bu)+1);
+	char *tmp;
 	char date[7];
 	time_t rawtime;
 	struct tm * timeinfo;
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 	strftime(date, sizeof(date), "%y", timeinfo);
-	if ((backup == NULL) || (tmp == NULL)){
+	if ((backup == NULL) || (file == NULL)){
 		LOG(FATAL, "Unable to allocate memory");
 		return;
 	}
+	strcpy(file, file_bu);
 	if (stat(file, &inode) != 0) {
 		write_to_log(FATAL, "Unable to stat file : %s", file);
 		goto err;
@@ -127,6 +128,12 @@ void _backupFiles(char* file)
 			if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
 					tmp, "/") <= 0) {
 				LOG(FATAL, "Unable to print path");
+				goto err;
+			}
+		} else {
+			if (snprintf(backup, strlen(tmp)+1, "%s", 
+					tmp) <= 0) {
+				printf("%d\n", __LINE__);
 				goto err;
 			}
 		}
@@ -166,23 +173,23 @@ void _backupFiles(char* file)
 			waitpid(pid, &status, 0);
 			int i = 0;
 			char buf;
-		      	char *tmp = malloc(sizeof(char)*255);
-		      	if (tmp == NULL) {
+		      	char *tmp2 = malloc(sizeof(char)*255);
+		      	if (tmp2 == NULL) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 					"Unable to allocate memory");
 				return;
 		      	}
 			close(pipe_fd[1]);
 			while (read(pipe_fd[0], &buf, 1) > 0) {
-				tmp[i] = buf;
+				tmp2[i] = buf;
 				i++;
 			}
-			if ((size = atoi(tmp)) < 0) {
+			if ((size = atoi(tmp2)) < 0) {
 				write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, 
-						"atoi() failed on ", tmp);
+						"atoi() failed on ", tmp2);
 			}
 			close(pipe_fd[0]);
-			free(tmp);
+			free(tmp2);
 		}
 		if (size < atoi(get_cfg("GLOBAL", "SMALL"))) {
 			if (atoi(get_cfg("SMALL", "BACKUP")) == 0) {
@@ -207,6 +214,12 @@ void _backupFiles(char* file)
 			if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
 					tmp, "/") <= 0) {
 				LOG(FATAL, "Unable to print path");
+				goto err;
+			}
+		} else {
+			if (snprintf(backup, strlen(tmp)+1, "%s", 
+					tmp) <= 0) {
+				printf("%d\n", __LINE__);
 				goto err;
 			}
 		}
@@ -237,26 +250,42 @@ void _backupFiles(char* file)
 		}
 	}
 	if(S_ISREG(inode.st_mode)) {
-		tmp = calloc(255, sizeof(char));
 		tmp = basename(file);
-		dirname = basename(tmp);
-		if (access(backup_path, F_OK) == -1) {
-			if (mkdir(backup_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+		char *dirname = basename(tmp);
+		char *bu_path = malloc(strlen(backup_path) + strlen("/") + strlen("files/") +1);
+		if (bu_path == NULL) {
+			LOG(FATAL, "Unable to allocate memory");
+			goto err2;
+		}
+		if (snprintf(bu_path, strlen(backup_path)+strlen("/")+strlen("files/"), 
+	  		"%s/%s", backup_path, "files/") <= 0) {
+			LOG(FATAL, "Unable to print path");
+			free(bu_path);
+			goto err3;
+	  	}
+		if (access(bu_path, F_OK) == -1) {
+			if (mkdir(bu_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 				write_to_log(FATAL, "Unable to create backup subdirectory : %s", 
 					backup_path);
+				free(bu_path);
 				goto err2;
 			}
 		}
 		path = malloc(strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+
 				strlen(basename(file))+1);
-	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+
-	  			strlen(basename(file))+1, 
-	  		"%s/%s%s/%s", backup_path, "files/",dirname, basename(file)) <= 0) {
+	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+1, 
+	  		"%s/%s%s", backup_path, "files/",dirname) <= 0) {
 			LOG(FATAL, "Unable to print path");
+			free(bu_path);
 			goto err3;
 	  	}
+	  	free(bu_path);
 	} else {
 		path = malloc(strlen(backup_path)+strlen("/")+1);
+	  	if (path == NULL) {
+			LOG(FATAL, "Unable to allocate memory");
+			goto err2;
+		}
 	  	if (snprintf(path, strlen(backup_path)+strlen("/")+1, 
 	  			"%s/", backup_path) <= 0) {
 			LOG(FATAL, "Unable to print path");
@@ -276,14 +305,11 @@ void _backupFiles(char* file)
 		LOG(FATAL, "Could not fork backup exec");
 		goto err3;
 	} else {
-		pid_t ws = waitpid(pid, &childExitStatus, WNOHANG);
+		pid_t ws = waitpid(pid, &childExitStatus, 0);
 		if (ws == -1) {
 	        	LOG(FATAL, "Backup Exec failed");
-	        }
-	        if( WIFEXITED(childExitStatus)) {
-			LOG(INFO, "Backup performed successfully");
 	        } else {
-	        	LOG(FATAL, "Backup Exec failed");
+	        	LOG(INFO, "Backup performed successfully");
 	        }
 	}
 	err3:
@@ -291,9 +317,8 @@ void _backupFiles(char* file)
 	err2:
 	free(backup_path);
 	err:
-	free(tmp);
 	free(backup);
-	free(dirname);
+	free(file);
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -604,6 +629,15 @@ char *_returnOrig(char *file, char *prev, char *path)
 /*--------------------------------------------------------------------------*/
 void _checkSymlinks(TWatchElement data) 
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
@@ -699,6 +733,15 @@ void _checkSymlinks(TWatchElement data)
 /*--------------------------------------------------------------------------*/
 void _dupSymlinks(TWatchElement data)
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
       	int pid;
       	int pipe_fd[2];
 
@@ -846,6 +889,15 @@ void _dupSymlinks(TWatchElement data)
 /*--------------------------------------------------------------------------*/
 void _checkFiles(TWatchElement data, int action)
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
@@ -964,7 +1016,17 @@ void _checkFiles(TWatchElement data, int action)
   version.
  */
 /*--------------------------------------------------------------------------*/
-void _handleDuplicates(TWatchElement data, int action) {
+void _handleDuplicates(TWatchElement data, int action) 
+{
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 	if (pipe(pipe_fd) < 0) {
@@ -1065,8 +1127,18 @@ void _checkPermissions(TWatchElement data) {
   pipe. Files are then deleted followed by folders.
  */
 /*--------------------------------------------------------------------------*/
-void _cleanFolder(TWatchElement data) {
+void _cleanFolder(TWatchElement data) 
+{
 	if (!data.isTemp) {
+		return;
+	}
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
 		return;
 	}
 	int pid;
@@ -1167,7 +1239,17 @@ void _cleanFolder(TWatchElement data) {
   or _backupFiles depending on action parameter
  */
 /*--------------------------------------------------------------------------*/
-void _oldFiles(TWatchElement data, int action) {
+void _oldFiles(TWatchElement data, int action) 
+{
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
