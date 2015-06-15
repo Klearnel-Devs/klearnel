@@ -53,6 +53,14 @@ int qr_query(char **commands, int action)
 				if (access(commands[i], F_OK) == -1) {
 					printf("%s: Unable to find %s.\n"
 						"Please check if the path is correct.\n", __func__, commands[i]);
+					sprintf(query, "%s", VOID_LIST);
+					if (write(s_cl, query, strlen(query)) < 0) {
+						perror("QR-UI: Unable to send file location state");
+						goto error;
+					}
+					if (read(s_cl, res, 1) < 0) {
+						perror("QR-UI: Unable to get location result");
+					}
 					goto error;
 				}
 				i++;

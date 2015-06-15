@@ -9,6 +9,7 @@
 */
 /*--------------------------------------------------------------------------*/
 #include <global.h>
+#include <config/config.h>
 #include <quarantine/quarantine.h>
 #include <logging/logging.h>
 
@@ -86,7 +87,10 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				load_qr(list);
 				return 0;
 			} else {
-				SOCK_ANS(s_cl, SOCK_ACK);
+				if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+					LOG(URGENT, "Unable to send ACK");
+					return -1;
+				}
 			}
 			break;
 		case QR_RM:
@@ -99,7 +103,10 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				load_qr(list);
 				return 0;
 			} else {
-				SOCK_ANS(s_cl, SOCK_ACK);
+				if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+					LOG(URGENT, "Unable to send ACK");
+					return -1;
+				}
 			}
 			if (action == QR_RM_ALL) {
 				return 1;
@@ -115,7 +122,10 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 				load_qr(list);
 				return 0;
 			} else {
-				SOCK_ANS(s_cl, SOCK_ACK);
+				if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+					LOG(URGENT, "Unable to send ACK");
+					return -1;
+				}
 			}
 			if (action == QR_REST_ALL) {
 				return 1;
@@ -180,7 +190,17 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 		case KL_EXIT:
 			write_to_log(INFO, "Quarantine received stop command");		
 			clear_qr_list(list);
-			SOCK_ANS(s_cl, SOCK_ACK);
+			if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+				LOG(URGENT, "Unable to send ACK");
+				return -1;
+			}
+			break;
+		case RELOAD_CONF:
+			reload_config();
+			if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+				LOG(URGENT, "Unable to send ACK");
+				return -1;
+			}
 			break;
 		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");
 	}

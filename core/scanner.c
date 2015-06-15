@@ -1651,7 +1651,7 @@ void scanner_worker()
 int perform_task(const int task, const char *buf, const int s_cl) 
 {
 	switch (task) {
-		case SCAN_ADD:
+		case SCAN_ADD: 
 			if (buf == NULL) {
 				LOG(URGENT, "Buffer received is empty");
 				return -1;
@@ -1685,7 +1685,10 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			}
 			unlink(buf);
 			save_watch_list(-1);
-			SOCK_ANS(s_cl, SOCK_ACK);
+			if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+				LOG(URGENT, "Unable to send ACK");
+				return -1;
+			}
 			break;
 		case SCAN_MOD:
 			if (buf == NULL) {
@@ -1721,7 +1724,10 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			}
 			unlink(buf);
 			save_watch_list(-1);
-			SOCK_ANS(s_cl, SOCK_ACK);
+			if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+				LOG(URGENT, "Unable to send ACK");
+				return -1;
+			}
 			break;
 		case SCAN_RM:
 			if (buf == NULL) {
@@ -1745,7 +1751,10 @@ int perform_task(const int task, const char *buf, const int s_cl)
 				return -1;				
 			}
 			save_watch_list(-1);
-			SOCK_ANS(s_cl, SOCK_ACK);
+			if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+				LOG(URGENT, "Unable to send ACK");
+				return -1;
+			}
 			break;
 		case SCAN_LIST: ;
 			if (watch_list == NULL) {
@@ -1799,7 +1808,17 @@ int perform_task(const int task, const char *buf, const int s_cl)
 		case KL_EXIT:
 			write_to_log(INFO, "Scanner received stop command");
 			exit_scanner();
-			SOCK_ANS(s_cl, SOCK_ACK);
+			if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+				LOG(URGENT, "Unable to send ACK");
+				return -1;
+			}
+			break;
+		case RELOAD_CONF:
+			reload_config();
+			if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
+				LOG(URGENT, "Unable to send ACK");
+				return -1;
+			}
 			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");

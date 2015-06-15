@@ -23,17 +23,18 @@
 TWatchElement _new_elem_form(char *path)
 {
 	TWatchElement new_elem;
-	strcpy(new_elem.path, path);
+	strcpy(new_elem.path,  VOID_LIST);
 	new_elem.back_limit_size = -1;
 	new_elem.del_limit_size = -1;
 	new_elem.max_age = -1;
 	int res = -1;
 	int isDir = -1;
 	struct stat s;
-	if (stat(new_elem.path, &s) < 0) {
+	if (stat(path, &s) < 0) {
 		perror("SCAN-UI: Unable to find the specified file/folder");
 		return new_elem;
 	}
+	strcpy(new_elem.path, path);
 	if (s.st_mode & S_IFDIR) isDir = 1;
 	else isDir = 0;
 	if (isDir) {
@@ -209,28 +210,39 @@ int scan_query(int nb, char **commands, int action)
 	}
 	switch (action) {
 		case SCAN_ADD: ;
+			if (!strncmp(new_elem.path, VOID_LIST, strlen(VOID_LIST))) {
+				sprintf(query, "%s", VOID_LIST);
+				if (write(s_cl, query, strlen(query)) < 0) {
+					perror("SCAN-UI: Unable to send file location state");
+					goto error;
+				}
+				if (read(s_cl, res, 1) < 0) {
+					perror("SCAN-UI: Unable to get location result");
+				}
+				goto error;
+			}
 			time_t timestamp = time(NULL);
 			char *tmp_filename = malloc(sizeof(char)*(sizeof(timestamp)+5+strlen(SCAN_TMP)));
 			if (!tmp_filename) {
 				perror("SCAN-UI: Unable to allocate memory");
-				return -1;
+				goto error;
 			}
 			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, (int)timestamp) < 0) {
 				perror("SCAN-UI: Unable to create the filename for temp scan file");
 				free(tmp_filename);
-				return -1;
+				goto error;
 			}
 			fd = open(tmp_filename, O_WRONLY | O_TRUNC | O_CREAT);
 			if (fd < 0) {
 				fprintf(stderr, "SCAN-UI: Unable to create %s", tmp_filename);
 				free(tmp_filename);
-				return -1;
+				goto error;
 			}
 
 			if (write(fd, &new_elem, sizeof(struct watchElement)) < 0) {
 				fprintf(stderr, "SCAN-UI: Unable to write the new item to %s", tmp_filename);
 				free(tmp_filename);
-				return -1;
+				goto error;
 			}
 			close(fd);
 

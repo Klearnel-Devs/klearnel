@@ -29,7 +29,6 @@ int encrypt_data(char *pwd_to_encrypt)
 {
 	unsigned char md[SHA256_DIGEST_LENGTH];
 	if (simpleSHA256(pwd_to_encrypt, strlen(pwd_to_encrypt), md)) {
-		LOG(INFO, "Password encrypted successfully");
 		FILE *f = fopen(SECRET, "wb");
 		if (fwrite(md, 1, SHA256_DIGEST_LENGTH, f) < 0) {
 			LOG(WARNING, "Unable to store encrypted password in secret.pem");
