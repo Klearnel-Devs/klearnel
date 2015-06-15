@@ -137,6 +137,23 @@ error:
 	return -1;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+ \brief Remove the mutex in case of crash
+ \return Returns 0 on success, else -1
+
+*/
+/*-------------------------------------------------------------------------*/
+int _kill_mutex()
+{
+	key_t mutex_key = ftok(IPC_RAND, IPC_MUTEX);
+	int mutex = semget(mutex_key, 1, IPC_CREAT | IPC_EXCL | IPC_PERMS);
+
+	if (semctl(mutex, 0, IPC_RMID, NULL) < 0) {
+		return -1;
+	}
+	return 0;
+}
 
 void execute_commands(int nb, char **commands)
 {
@@ -245,6 +262,13 @@ void execute_commands(int nb, char **commands)
 			printf("Scanner process successfully stopped\n");
 		}
 		printf("\nKlearnel services are stopped and the module will now be shutted down\n");
+	} else if (!strcmp(commands[1], "-flush")) {
+		if (_kill_mutex() < 0) {
+			printf("Unable to flush Klearnel mutex\n");
+		} else {
+			printf("Klearnel mutex is flushed\n"
+				"You can restart it normally\n");
+		}
 	} else if (!strcmp(commands[1], "-help")) {
 		printf("\n\e[4mKlearnel commands:\e[24m\n\n");
 		printf(" - \e[1m-add-to-qr <path-to-file>\e[21m:\n\t Add a new file to the quarantine\n");

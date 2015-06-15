@@ -261,7 +261,7 @@ service: ;
 		}
 		return EXIT_FAILURE;
 	}
-
+	LOG_DEBUG;
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");
 		return EXIT_FAILURE;
