@@ -413,7 +413,6 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 			char *tmp_buf = malloc(sizeof(char)*(param_len + 1));
 			for (i = 0; i < param_len; i++) {
-				write_to_log(DEBUG, "Unigned Char %d: %c", i, tmp_buf_uns[i]);
 				tmp_buf[i] = (char)tmp_buf_uns[i];
 			}
 			tmp_buf[param_len] = '\0';
