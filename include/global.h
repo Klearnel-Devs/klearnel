@@ -134,6 +134,10 @@
   \brief  Signal to say: stop the service
  */
 #define KL_EXIT 	-1
+/**
+  \brief Signal to say: reload the configuration in memory
+*/
+#define RELOAD_CONF 40
 /*-------------------------------------------------------------------------*/
 /**
   \brief Define the timeout applied to sockets
@@ -145,9 +149,13 @@
 #define SEL_TO 		600
 /*-------------------------------------------------------------------------*/
 /**
-  \brief Number of the IPC for mutex
+  \brief ID of the IPC for mutex
  */
 #define IPC_MUTEX 49
+/**
+ \brief ID of the IPC for configuration
+*/
+#define IPC_CONF 50
 /*-------------------------------------------------------------------------*/
 /**
   \brief Macro to send acknowledgement

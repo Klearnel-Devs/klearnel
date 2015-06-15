@@ -9,6 +9,7 @@
 */
 /*--------------------------------------------------------------------------*/
 #include <global.h>
+#include <config/config.h>
 #include <quarantine/quarantine.h>
 #include <logging/logging.h>
 
@@ -180,6 +181,10 @@ int _call_related_action(QrList **list, const int action, char *buf, const int s
 		case KL_EXIT:
 			write_to_log(INFO, "Quarantine received stop command");		
 			clear_qr_list(list);
+			SOCK_ANS(s_cl, SOCK_ACK);
+			break;
+		case RELOAD_CONF:
+			reload_config();
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
 		default: write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "DEFAULT ACTION");

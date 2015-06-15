@@ -250,23 +250,30 @@ int main(int argc, char **argv)
 service: ;
 	_init_env();
 	_daemonize();
-
+	/* ---------------- KEARNEL MUTEX INIT --------------------- */
 	key_t mutex_key = ftok(IPC_RAND, IPC_MUTEX);
 	int mutex = semget(mutex_key, 1, IPC_CREAT | IPC_EXCL | IPC_PERMS);
 	if (mutex < 0) {
 		if (errno == EEXIST) {
-			printf("Klearnel is already running!\n");
+			printf("Klearnel is already running!\n"
+				"If you think that Klearnel services are not running, "
+				"please execute: klearnel -flush and try to start the services again\n");
 		} else {
 			printf("Unable to start Klearnel service: mutex couldn't be created\n");
 		}
 		return EXIT_FAILURE;
 	}
-	LOG_DEBUG;
+	/* --------------- CONF_MUTEX INIT ------------------------ */
+	key_t conf_mutex_key = ftok(IPC_RAND, IPC_CONF);
+	int conf_mutex = semget(conf_mutex_key, 1, IPC_CREAT | IPC_PERMS);
+	sem_reset(conf_mutex, 0);
+
+
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");
 		return EXIT_FAILURE;
 	}
-	
+	/* --------------- SERVICES START -------------------------- */
 	pid = fork();
 	if (pid == 0) {
 		qr_worker();
@@ -288,6 +295,7 @@ service: ;
 	}
 	free_cfg();
 	
+	semctl(conf_mutex, 0, IPC_RMID, NULL);
 	semctl(mutex, 0, IPC_RMID, NULL);
 	return EXIT_SUCCESS;
 }

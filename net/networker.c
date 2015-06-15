@@ -306,6 +306,20 @@ out:
 			clear_qr_list(&qr_list);
 			free(list_path);
 			break;
+		case RELOAD_CONF:
+			snprintf(query, len, "%d:0", RELOAD_CONF);
+			if (write(s_cl, query, len) < 0) {
+				perror("[UI] Unable to send query");
+				goto error;
+			} 
+			if (read(s_cl, res, 1) < 0) {
+				perror("[UI] Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, res, 1) < 0) {
+				LOG(WARNING, "Unable to get command result");
+				goto error;
+			}
 	} 
 
 	free(query);
@@ -904,6 +918,20 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 			}
 
 			break;
+		case RELOAD_CONF:
+			snprintf(query, len, "%d:0", RELOAD_CONF);
+			if (write(s_cl, query, len) < 0) {
+				LOG(WARNING, "Unable to send query");
+				goto error;
+			} 
+			if (read(s_cl, res, 1) < 0) {
+				LOG(WARNING, "Unable to get query result");
+				goto error;
+			}
+			if (read(s_cl, res, 1) < 0) {
+				LOG(WARNING, "Unable to get command result");
+				goto error;
+			}
 	}
 out:
 	free(query);
@@ -1085,6 +1113,8 @@ int _execute_conf_action(const char *buf, const int c_len, const int action, con
 			}
 			save_conf();
 
+			_execute_qr_action(buf, c_len, RELOAD_CONF, net_sock);
+			_execute_scan_action(buf, c_len, RELOAD_CONF, net_sock);
 			SOCK_ANS(net_sock, SOCK_ACK);
 			break;
 	}

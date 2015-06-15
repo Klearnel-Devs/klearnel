@@ -275,3 +275,15 @@ void save_conf()
 	iniparser_dump_ini(ini, conf_f);
 	fclose(conf_f);
 }
+
+void reload_config() 
+{
+	key_t conf_mutex_key = ftok(IPC_RAND, IPC_CONF);
+	int conf_mutex = semget(conf_mutex_key, 1, IPC_CREAT | IPC_PERMS);
+
+	wait_crit_area(conf_mutex, 0);
+	sem_down(conf_mutex, 0);
+	free_cfg();
+	init_config();
+	sem_up(conf_mutex, 0);
+}

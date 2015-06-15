@@ -1801,6 +1801,10 @@ int perform_task(const int task, const char *buf, const int s_cl)
 			exit_scanner();
 			SOCK_ANS(s_cl, SOCK_ACK);
 			break;
+		case RELOAD_CONF:
+			reload_config();
+			SOCK_ANS(s_cl, SOCK_ACK);
+			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");
 	}
