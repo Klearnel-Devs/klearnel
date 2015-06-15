@@ -20,7 +20,7 @@
 static TWatchElementList* watch_list = NULL;
 static int protect_num = 3;
 static int exclude_num = 2;
-static const char *protect[] = {"/", "/boot", "/proc"};
+static const char *protect[] = {"/boot", "/proc", "/mnt", "/media"};
 static const char *exclude[] = {".git", ".svn"};
 
 /*-------------------------------------------------------------------------*/
@@ -40,6 +40,10 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
   		if(strncmp(elem.path, protect[i], strlen(protect[i])) == 0)
   			LOG(WARNING, "Path is protected, not adding");
   			return -1;
+  	}
+  	if (strlen(elem.path) <= 1) {
+  		LOG(WARNING, "Path is protected, not adding");
+  		return -1;
   	}
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
 	if (!node) {
@@ -829,6 +833,8 @@ void _dupSymlinks(TWatchElement data)
 						write_to_log(WARNING, "%s - %d - %s", 
 							__func__, __LINE__, 
 							"Unable to allocate memory");
+						free(link);
+						free(dir);
 						goto err;
 					}
 					memcpy(base_path, dir, strlen(dir));
