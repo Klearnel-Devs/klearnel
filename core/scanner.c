@@ -798,7 +798,7 @@ void _dupSymlinks(TWatchElement data)
 		char *base_path = malloc(sizeof(char)*255);
 	      	char *link = malloc(sizeof(char)*255);
 	      	char *dir  = malloc(sizeof(char)*255);
-	      	if (base_path == NULL || link == NULL) {
+	      	if (base_path == NULL || link == NULL || dir == NULL) {
 	      		write_to_log(WARNING, "%s - %d - %s", 
 						__func__, __LINE__, 
 						"Unable to allocate memory");
@@ -851,10 +851,16 @@ void _dupSymlinks(TWatchElement data)
 						"Unable to allocate memory");
 					goto err3;
 				}
-				symArray[num-1] = "";
-				for(j = 0; j < num; j++) {
+				for(j = 0; j < num-1; j++) {
 					if (strcmp(symArray[j], file) == 0) {
-						_deleteSym(link);
+						if (unlink(link) != 0) {
+				  			write_to_log(WARNING, "%s - %d - %s - %s", 
+				  				__func__, __LINE__, 
+				  				"Unable to destroy duplicate symlink", 
+				  				link);
+				  		} else {
+				  			write_to_log(INFO, "Symlink Deleted : %s",link);
+				  		}
 						num--; 
 						goto out; 
 					}
@@ -866,14 +872,13 @@ void _dupSymlinks(TWatchElement data)
 
 		}
 	err3:
-		for ( j = 0; j < num; j++ ) {
+		for ( j = 0; j < num-1; j++ ) {
 			free(symArray[j]);
 		}
 	err2:
 		free(base_path);
 		free(link);
 		free(dir);
-		free(file);
 		close(pipe_fd[0]);
 		return;
 	}
