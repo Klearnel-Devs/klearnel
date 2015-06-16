@@ -35,16 +35,6 @@ static const char *exclude[] = {".git", ".svn"};
 /*--------------------------------------------------------------------------*/
 int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
 {
-	int i;
-	for(i = 0; i < protect_num; i++) {
-  		if(strncmp(elem.path, protect[i], strlen(protect[i])) == 0)
-  			LOG(WARNING, "Path is protected, not adding");
-  			return -1;
-  	}
-  	if (strlen(elem.path) <= 1) {
-  		LOG(WARNING, "Path is protected, not adding");
-  		return -1;
-  	}
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
 	if (!node) {
 		LOG(FATAL, "Unable to allocate memory");
@@ -1474,6 +1464,17 @@ int init_scanner()
 
 int add_watch_elem(TWatchElement elem) 
 {
+	int i;
+	for(i = 0; i < protect_num; i++) {
+  		if(strncmp(elem.path, protect[i], strlen(protect[i])) == 0) {
+  			LOG(WARNING, "Path is protected, not adding");
+  			return -1;
+		}
+  	}
+  	if (strlen(elem.path) <= 1) {
+  		LOG(WARNING, "Path is protected, not adding");
+  		return -1;
+  	}
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
 	if (!node) {
 		LOG(FATAL, "Unable to allocate memory");
