@@ -18,9 +18,9 @@
 #include <core/ui.h>
 
 static TWatchElementList* watch_list = NULL;
-static int protect_num = 2;
+static int protect_num = 3;
 static int exclude_num = 2;
-static const char *protect[] = {"/", "/boot", "/proc"};
+static const char *protect[] = {"/boot", "/proc", "/mnt", "/media"};
 static const char *exclude[] = {".git", ".svn"};
 
 /*-------------------------------------------------------------------------*/
@@ -35,6 +35,16 @@ static const char *exclude[] = {".git", ".svn"};
 /*--------------------------------------------------------------------------*/
 int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list) 
 {
+	int i;
+	for(i = 0; i < protect_num; i++) {
+  		if(strncmp(elem.path, protect[i], strlen(protect[i])) == 0)
+  			LOG(WARNING, "Path is protected, not adding");
+  			return -1;
+  	}
+  	if (strlen(elem.path) <= 1) {
+  		LOG(WARNING, "Path is protected, not adding");
+  		return -1;
+  	}
 	TWatchElementNode* node = malloc(sizeof(struct watchElementNode));
 	if (!node) {
 		LOG(FATAL, "Unable to allocate memory");
@@ -74,25 +84,26 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
   for files. Uses rsync for backup. 
  */
 /*--------------------------------------------------------------------------*/
-void _backupFiles(char* file) 
+void _backupFiles(char* file_bu) 
 {
 	int childExitStatus;
 	struct stat inode;
 	pid_t pid;
 	char *path, *backup_path;
 	char *backup = malloc(sizeof(char)*255);
-	char *tmp = malloc(sizeof(char)*255);
-	char *dirname = malloc(sizeof(char)*255);
+	char *file = malloc(strlen(file_bu)+1);
+	char *tmp;
 	char date[7];
 	time_t rawtime;
 	struct tm * timeinfo;
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 	strftime(date, sizeof(date), "%y", timeinfo);
-	if ((backup == NULL) || (tmp == NULL)){
+	if ((backup == NULL) || (file == NULL)){
 		LOG(FATAL, "Unable to allocate memory");
 		return;
 	}
+	strcpy(file, file_bu);
 	if (stat(file, &inode) != 0) {
 		write_to_log(FATAL, "Unable to stat file : %s", file);
 		goto err;
@@ -129,6 +140,12 @@ void _backupFiles(char* file)
 				LOG(FATAL, "Unable to print path");
 				goto err;
 			}
+		} else {
+			if (snprintf(backup, strlen(tmp)+1, "%s", 
+					tmp) <= 0) {
+				printf("%d\n", __LINE__);
+				goto err;
+			}
 		}
 	} else {
 	      	int pipe_fd[2];
@@ -136,7 +153,7 @@ void _backupFiles(char* file)
 		if (pipe(pipe_fd) < 0) {
 			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
 					"Scanner could not pipe");
-			return;
+			goto err;
 		}
 
 		if ( (pid = fork() ) < 0) {
@@ -166,23 +183,28 @@ void _backupFiles(char* file)
 			waitpid(pid, &status, 0);
 			int i = 0;
 			char buf;
-		      	char *tmp = malloc(sizeof(char)*255);
-		      	if (tmp == NULL) {
+		      	char *tmp2 = malloc(sizeof(char)*255);
+		      	if (tmp2 == NULL) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 					"Unable to allocate memory");
-				return;
+				close(pipe_fd[0]);
+				close(pipe_fd[1]);
+				goto err;
 		      	}
 			close(pipe_fd[1]);
 			while (read(pipe_fd[0], &buf, 1) > 0) {
-				tmp[i] = buf;
+				tmp2[i] = buf;
 				i++;
 			}
-			if ((size = atoi(tmp)) < 0) {
+			if ((size = atoi(tmp2)) < 0) {
 				write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, 
-						"atoi() failed on ", tmp);
+						"atoi() failed on ", tmp2);
+				free(tmp2);
+				close(pipe_fd[0]);
+				goto err;
 			}
 			close(pipe_fd[0]);
-			free(tmp);
+			free(tmp2);
 		}
 		if (size < atoi(get_cfg("GLOBAL", "SMALL"))) {
 			if (atoi(get_cfg("SMALL", "BACKUP")) == 0) {
@@ -207,6 +229,12 @@ void _backupFiles(char* file)
 			if (snprintf(backup, strlen(tmp)+strlen("/")+1, "%s%s", 
 					tmp, "/") <= 0) {
 				LOG(FATAL, "Unable to print path");
+				goto err;
+			}
+		} else {
+			if (snprintf(backup, strlen(tmp)+1, "%s", 
+					tmp) <= 0) {
+				printf("%d\n", __LINE__);
 				goto err;
 			}
 		}
@@ -237,26 +265,47 @@ void _backupFiles(char* file)
 		}
 	}
 	if(S_ISREG(inode.st_mode)) {
-		tmp = calloc(255, sizeof(char));
 		tmp = basename(file);
-		dirname = basename(tmp);
-		if (access(backup_path, F_OK) == -1) {
-			if (mkdir(backup_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+		char *dirname = basename(tmp);
+		char *bu_path = malloc(strlen(backup_path) + strlen("/") + strlen("files/") +1);
+		if (bu_path == NULL) {
+			LOG(FATAL, "Unable to allocate memory");
+			goto err2;
+		}
+		if (snprintf(bu_path, strlen(backup_path)+strlen("/")+strlen("files/"), 
+	  		"%s/%s", backup_path, "files/") <= 0) {
+			LOG(FATAL, "Unable to print path");
+			free(bu_path);
+			goto err2;
+	  	}
+		if (access(bu_path, F_OK) == -1) {
+			if (mkdir(bu_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 				write_to_log(FATAL, "Unable to create backup subdirectory : %s", 
 					backup_path);
+				free(bu_path);
 				goto err2;
 			}
 		}
 		path = malloc(strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+
 				strlen(basename(file))+1);
-	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+
-	  			strlen(basename(file))+1, 
-	  		"%s/%s%s/%s", backup_path, "files/",dirname, basename(file)) <= 0) {
+		if (path == NULL) {
+			free(bu_path);
+			LOG(FATAL, "Unable to allocate memory");
+			goto err2;
+		}
+	  	if (snprintf(path, strlen(backup_path)+strlen("/")+strlen("files/")+strlen(dirname)+strlen("/")+1, 
+	  		"%s/%s%s", backup_path, "files/",dirname) <= 0) {
 			LOG(FATAL, "Unable to print path");
+			free(bu_path);
 			goto err3;
 	  	}
+	  	free(bu_path);
 	} else {
 		path = malloc(strlen(backup_path)+strlen("/")+1);
+	  	if (path == NULL) {
+			LOG(FATAL, "Unable to allocate memory");
+			goto err2;
+		}
 	  	if (snprintf(path, strlen(backup_path)+strlen("/")+1, 
 	  			"%s/", backup_path) <= 0) {
 			LOG(FATAL, "Unable to print path");
@@ -276,14 +325,11 @@ void _backupFiles(char* file)
 		LOG(FATAL, "Could not fork backup exec");
 		goto err3;
 	} else {
-		pid_t ws = waitpid(pid, &childExitStatus, WNOHANG);
+		pid_t ws = waitpid(pid, &childExitStatus, 0);
 		if (ws == -1) {
 	        	LOG(FATAL, "Backup Exec failed");
-	        }
-	        if( WIFEXITED(childExitStatus)) {
-			LOG(INFO, "Backup performed successfully");
 	        } else {
-	        	LOG(FATAL, "Backup Exec failed");
+	        	LOG(INFO, "Backup performed successfully");
 	        }
 	}
 	err3:
@@ -291,9 +337,8 @@ void _backupFiles(char* file)
 	err2:
 	free(backup_path);
 	err:
-	free(tmp);
 	free(backup);
-	free(dirname);
+	free(file);
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -309,11 +354,6 @@ void _deleteFiles(char *file)
 	int childExitStatus, i = 0, num = 0;
 	struct stat inode;
 	pid_t pid;
-	char *tmp = malloc(sizeof(char)*255);
-	if (tmp == NULL){
-		LOG(FATAL, "Unable to allocate memory");
-		return;
-	}
 	if (stat(file, &inode) != 0) {
 		write_to_log(FATAL, "Unable to stat file : %s", file);
 		goto err;
@@ -335,12 +375,16 @@ void _deleteFiles(char *file)
 		if (pipe(pipe_fd) < 0) {
 			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
 					"Scanner could not pipe");
+			free(symArray);
 			return;
 		}
 
 		if ( (pid = fork() ) < 0) {
 			write_to_log(WARNING, "%s - %d - %s",__func__, __LINE__, 
 					"Scanner could not fork");
+			close (pipe_fd[0]);
+			close (pipe_fd[1]);
+			free(symArray);
 			goto err;
 		}
 
@@ -375,6 +419,7 @@ void _deleteFiles(char *file)
 		      	if (link == NULL) {
 				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 					"Unable to allocate memory");
+				free(symArray);
 				return;
 		      	}
 			close(pipe_fd[1]);
@@ -388,6 +433,8 @@ void _deleteFiles(char *file)
 						write_to_log(WARNING, "%s - %d - %s", 
 							__func__, __LINE__, 
 							"Unable to allocate memory");
+						free(link);
+						close(pipe_fd[0]);
 						goto err;
 					}
 					symArray[num-1] = link;
@@ -411,30 +458,21 @@ void _deleteFiles(char *file)
 			goto err;
 		}
 		if (pid == 0) {
-			if (dup2 (pipe_fd[1], 1) == -1) {
-				write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
-						"Failed to duplicate file descriptor");
-				_exit(EXIT_FAILURE);
-			}
 			char *prog1_argv[3];
 			prog1_argv[0] = "rm";
 			prog1_argv[1] = "-rf";
-			prog1_argv[2] = symArray[i];
+			prog1_argv[2] = file;
 			prog1_argv[3] = NULL;
 			if (execvp(prog1_argv[0], prog1_argv) == -1) {
-				close (pipe_fd[1]);
 				exit(EXIT_FAILURE);
 			}
 			exit(EXIT_SUCCESS);
 		} else {
 			pid_t ws = waitpid(pid, &childExitStatus, WNOHANG);
 			if (ws == -1) {
-		        	LOG(FATAL, "Delete Files Exec failed");
-		        }
-		        if( WIFEXITED(childExitStatus) ) {
-				LOG(INFO, "Find files successful");
+	        		LOG(FATAL, "Folder failed to be deleted");
 		        } else {
-		        	LOG(FATAL, "Delete Files Exec failed");
+		        	LOG(INFO, "Folder successfully deleted");
 		        }
 		}
 	}
@@ -517,12 +555,12 @@ char *_returnOrig(char *file, char *prev, char *path)
 	 	if (full_file == NULL){
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to allocate memory");
-			return file;
+			goto out;
 	      	}
 	 	if (snprintf(full_file, strlen(path)+strlen(token)+1, "%s%s", path, token) <= 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to print to new variable");
-			return file;
+			goto err;
 	 	}
 
 	 	for(i = 35; i < strlen(prev); i++) {
@@ -532,32 +570,58 @@ char *_returnOrig(char *file, char *prev, char *path)
 	 	if (full_prev == NULL){
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to allocate memory");
-			return file;
+			goto err;
 	      	}
 	 	if (snprintf(full_prev, strlen(path)+strlen(token_prv)+1, "%s%s", path, token_prv) < 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to print to new variable");
-			return file;
+			goto err2;
 	 	}
 	 	if(stat(full_file, &file_stat) != 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to stat file: %s", full_prev);
-			return file;
+			goto err2;
 	 	}
 	 	if(stat(full_prev, &prev_stat) != 0) {
 	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to stat file: %s", full_prev);
-			return file;
+			goto err2;
 	 	}
 	 	if ((int)file_stat.st_ctime < (int)prev_stat.st_ctime) {
 	 		_deleteFiles(full_prev);
-	 		return file;
+			goto out_f;
 	 	} else {
 	 		_deleteFiles(full_file);
-	 		return prev;
+			goto out_p;
 	 	}
 	}
+out:
+	free(token);
+	free(token_prv);
 	return file;
+err:
+	free(token);
+	free(token_prv);
+	free(full_file);
+	return file;
+err2:
+	free(token);
+	free(token_prv);
+	free(full_file);
+	free(full_prev);
+	return file;
+out_f:
+	free(token);
+	free(token_prv);
+	free(full_file);
+	free(full_prev);
+	return file;
+out_p:
+	free(token);
+	free(token_prv);
+	free(full_file);
+	free(full_prev);
+	return prev;
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -604,6 +668,15 @@ char *_returnOrig(char *file, char *prev, char *path)
 /*--------------------------------------------------------------------------*/
 void _checkSymlinks(TWatchElement data) 
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
@@ -643,11 +716,8 @@ void _checkSymlinks(TWatchElement data)
 			close (pipe_fd[1]);
 			exit(EXIT_FAILURE);
 		}
-		close (pipe_fd[1]);
-		exit(EXIT_SUCCESS);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *link = malloc(sizeof(char)*255);
@@ -674,6 +744,7 @@ void _checkSymlinks(TWatchElement data)
 				i = 0;
 			}
 		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(link);
 		return;
@@ -699,6 +770,15 @@ void _checkSymlinks(TWatchElement data)
 /*--------------------------------------------------------------------------*/
 void _dupSymlinks(TWatchElement data)
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
       	int pid;
       	int pipe_fd[2];
 
@@ -733,11 +813,8 @@ void _dupSymlinks(TWatchElement data)
 			close (pipe_fd[1]);
 			exit(EXIT_FAILURE);
 		}
-		close (pipe_fd[1]);
-		exit(EXIT_SUCCESS);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		int i = 0, j = 0;
 		int num = 0;
 	      	char buf;
@@ -746,7 +823,7 @@ void _dupSymlinks(TWatchElement data)
 		char *base_path = malloc(sizeof(char)*255);
 	      	char *link = malloc(sizeof(char)*255);
 	      	char *dir  = malloc(sizeof(char)*255);
-	      	if (base_path == NULL || link == NULL) {
+	      	if (base_path == NULL || link == NULL || dir == NULL) {
 	      		write_to_log(WARNING, "%s - %d - %s", 
 						__func__, __LINE__, 
 						"Unable to allocate memory");
@@ -777,6 +854,8 @@ void _dupSymlinks(TWatchElement data)
 						write_to_log(WARNING, "%s - %d - %s", 
 							__func__, __LINE__, 
 							"Unable to allocate memory");
+						free(link);
+						free(dir);
 						goto err;
 					}
 					memcpy(base_path, dir, strlen(dir));
@@ -799,10 +878,16 @@ void _dupSymlinks(TWatchElement data)
 						"Unable to allocate memory");
 					goto err3;
 				}
-				symArray[num-1] = "";
-				for(j = 0; j < num; j++) {
+				for(j = 0; j < num-1; j++) {
 					if (strcmp(symArray[j], file) == 0) {
-						_deleteSym(link);
+						if (unlink(link) != 0) {
+				  			write_to_log(WARNING, "%s - %d - %s - %s", 
+				  				__func__, __LINE__, 
+				  				"Unable to destroy duplicate symlink", 
+				  				link);
+				  		} else {
+				  			write_to_log(INFO, "Symlink Deleted : %s",link);
+				  		}
 						num--; 
 						goto out; 
 					}
@@ -813,15 +898,15 @@ void _dupSymlinks(TWatchElement data)
 			}
 
 		}
+		waitpid(pid, &status, 0);
 	err3:
-		for ( j = 0; j < num; j++ ) {
+		for ( j = 0; j < num-1; j++ ) {
 			free(symArray[j]);
 		}
 	err2:
 		free(base_path);
 		free(link);
 		free(dir);
-		free(file);
 		close(pipe_fd[0]);
 		return;
 	}
@@ -846,6 +931,23 @@ void _dupSymlinks(TWatchElement data)
 /*--------------------------------------------------------------------------*/
 void _checkFiles(TWatchElement data, int action)
 {
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (S_ISREG(inode.st_mode)) {
+		if ( action == SCAN_BACKUP ) {
+			_backupFiles(data.path);
+		} else {
+			_deleteFiles(data.path);
+			remove_watch_elem(data);
+		}
+		return;
+	} else if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
@@ -894,16 +996,12 @@ void _checkFiles(TWatchElement data, int action)
 				"Failed to execute find broken symlinks");
 			goto childDeath;
 		}
-		close (pipe_fd[1]);
-		free(prog1_argv[5]);
-		exit(EXIT_SUCCESS);
 	childDeath:
 		close (pipe_fd[1]);
 		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -932,18 +1030,7 @@ void _checkFiles(TWatchElement data, int action)
 				i = 0;
 			}
 		}
-		if (action == SCAN_DEL_F_SIZE) {
-			struct stat s;
-			if (stat(data.path, &s) < 0) {
-				write_to_log(URGENT,"%s:%d: Unable to get stat of %s", __func__, 
-					__LINE__, data.path);
-				free(file);
-				goto err;
-			}
-			if (S_ISREG(s.st_mode)) {
-				remove_watch_elem(data);
-			}			
-		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(file);
 		return;
@@ -964,7 +1051,17 @@ void _checkFiles(TWatchElement data, int action)
   version.
  */
 /*--------------------------------------------------------------------------*/
-void _handleDuplicates(TWatchElement data, int action) {
+void _handleDuplicates(TWatchElement data, int action) 
+{
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 	if (pipe(pipe_fd) < 0) {
@@ -994,14 +1091,11 @@ void _handleDuplicates(TWatchElement data, int action) {
 					"Failed to execute find duplicates");
 			goto childDeath;
 		}
-		close (pipe_fd[1]);
-		exit(EXIT_SUCCESS);
 	childDeath:
 		close (pipe_fd[1]);
 		_exit(EXIT_FAILURE);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		int i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1033,7 +1127,10 @@ void _handleDuplicates(TWatchElement data, int action) {
 			}
 			tmp_buf = buf;
 		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
+		free(file);
+		free(prev);
 		return;
 	}
 	err:
@@ -1065,8 +1162,18 @@ void _checkPermissions(TWatchElement data) {
   pipe. Files are then deleted followed by folders.
  */
 /*--------------------------------------------------------------------------*/
-void _cleanFolder(TWatchElement data) {
+void _cleanFolder(TWatchElement data) 
+{
 	if (!data.isTemp) {
+		return;
+	}
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (!S_ISDIR(inode.st_mode)) {
 		return;
 	}
 	int pid;
@@ -1094,12 +1201,12 @@ void _cleanFolder(TWatchElement data) {
 	      	prog1_argv[4] = "-print0";
 	      	prog1_argv[5] = NULL;
 	      	close (pipe_fd[0]);
-	      	if (dup2 (pipe_fd[1], 1) == -1) {
+	      	if (dup2(pipe_fd[1], 1) == -1) {
 	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 					"Failed to duplicate file descriptor");
 			goto childDeath;
 		}
-		for(i = 0; i < (sizeof(types)/sizeof(char)); i++) {
+		for(i = 0; i < 7; i++) {
 			prog1_argv[3] = types[i];
 			childpid = fork();
 			if(childpid == 0) {
@@ -1112,16 +1219,12 @@ void _cleanFolder(TWatchElement data) {
     				waitpid(childpid, &returnStatus, 0);
 			}
 	      	}
-		close (pipe_fd[1]);
-		free(prog1_argv[5]);
-		exit(EXIT_SUCCESS);
 	childDeath:
 		close (pipe_fd[1]);
 		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
 		int status;
-		waitpid(pid, &status, 0);
 		i = 0;
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
@@ -1135,7 +1238,9 @@ void _cleanFolder(TWatchElement data) {
 			file[i] = buf;
 			i++;
 			if(buf == '\0') {
-				_permDelete(file);
+				if (strcmp(file, data.path) != 0) {
+					_permDelete(file);
+				}
 				free(file);
 				file = malloc(sizeof(char)*255);
 				if (file == NULL) {
@@ -1146,6 +1251,7 @@ void _cleanFolder(TWatchElement data) {
 				i = 0;
 			}
 		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(file);
 		return;
@@ -1167,7 +1273,25 @@ void _cleanFolder(TWatchElement data) {
   or _backupFiles depending on action parameter
  */
 /*--------------------------------------------------------------------------*/
-void _oldFiles(TWatchElement data, int action) {
+void _oldFiles(TWatchElement data, int action) 
+{
+	struct stat inode;
+	if (stat(data.path, &inode) != 0) {
+		write_to_log(FATAL, "Unable to stat file : %s", data.path);
+		return;
+	}
+
+	if (S_ISREG(inode.st_mode)) {
+		if ( action == SCAN_BACKUP_OLD ) {
+			_backupFiles(data.path);
+		} else {
+			_deleteFiles(data.path);
+			remove_watch_elem(data);
+		}
+		return;
+	} else if (!S_ISDIR(inode.st_mode)) {
+		return;
+	}
 	int pid;
       	int pipe_fd[2];
 
@@ -1212,9 +1336,6 @@ void _oldFiles(TWatchElement data, int action) {
 				"Failed to execute find broken symlinks");
 			goto childDeath;
 		}
-		close (pipe_fd[1]);
-		free(prog1_argv[6]);
-		exit(EXIT_SUCCESS);
 	childDeath:
 		close (pipe_fd[1]);
 		free(prog1_argv[6]);
@@ -1250,18 +1371,7 @@ void _oldFiles(TWatchElement data, int action) {
 				i = 0;
 			}
 		}
-		if (action == SCAN_DEL_F_OLD) {
-			struct stat s;
-			if (stat(data.path, &s) < 0) {
-				write_to_log(URGENT,"%s:%d: Unable to get stat of %s", __func__, 
-					__LINE__, data.path);
-				free(file);
-				goto err;
-			}
-			if (S_ISREG(s.st_mode)) {
-				remove_watch_elem(data);
-			}			
-		}
+		waitpid(pid, &status, 0);
 		close(pipe_fd[0]);
 		free(file);
 		return;
