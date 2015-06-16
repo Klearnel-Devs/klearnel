@@ -18,7 +18,7 @@
 #include <core/ui.h>
 
 static TWatchElementList* watch_list = NULL;
-static int protect_num = 3;
+static int protect_num = 4;
 static int exclude_num = 2;
 static const char *protect[] = {"/boot", "/proc", "/mnt", "/media"};
 static const char *exclude[] = {".git", ".svn"};
