@@ -46,8 +46,8 @@ int _net_exiter()
 	remote.sin_port = htons(SOCK_NET_PORT);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
-		perror("[UI] Unable to connect the qr_sock");
-		goto error;
+		perror("[UI] Unable to bind the network socket");
+		return -1;
 	}
 	
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)

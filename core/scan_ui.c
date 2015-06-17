@@ -206,7 +206,7 @@ int scan_query(int nb, char **commands, int action)
 	query = malloc(len);
 	if ((query == NULL) || (res == NULL)) {
 		perror("[UI] Unable to allocate memory");
-		return -1;
+		goto error;
 	}
 	switch (action) {
 		case SCAN_ADD: ;
