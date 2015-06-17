@@ -171,7 +171,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 			if (unlink(list_path))
 				printf("Unable to remove temporary quarantine file: %s", list_path);
 			if (action == QR_LIST) {
-				LIST_FOREACH(&qr_list, first, next, cur) {
+				TMP_LIST_FOREACH(&qr_list, first, next, cur) {
 					char size[20];
 					sprintf(size, "%d", (int)strlen(cur->data.f_name));
 					if (write(net_sock, size, 20) < 0) {
@@ -258,7 +258,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 
 				goto out;
 			} else {
-				LIST_FOREACH(&qr_list, first, next, cur) {
+				TMP_LIST_FOREACH(&qr_list, first, next, cur) {
 					char *next_query = malloc(len);
 					if (next_query == NULL) {
 						LOG(FATAL, "Unable to allocate memory");

@@ -137,6 +137,10 @@ typedef struct QrList {
 */
 #define LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
     QrListNode *V = NULL;\
+    for(V = _node = L->S; _node != NULL; V = _node = _node->M)
+
+#define TMP_LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
+    QrListNode *V = NULL;\
     for(V = _node = (*L)->S; _node != NULL; V = _node = _node->M)
 
 /*---------------------------------------------------------------------------
@@ -150,6 +154,8 @@ typedef struct QrList {
   
  */
 /*--------------------------------------------------------------------------*/
+int is_empty();
+
 void init_qr();
 /*-------------------------------------------------------------------------*/
 /**
@@ -161,7 +167,7 @@ void init_qr();
   Used principally to allow users to list QR files
  */
 /*--------------------------------------------------------------------------*/
-void load_tmp_qr(QrList **list, int fd);
+void load_tmp_qr(QrList** list, int fd);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Load quarantine with content of QR_DB  
@@ -171,7 +177,7 @@ void load_tmp_qr(QrList **list, int fd);
   
  */
 /*--------------------------------------------------------------------------*/
-void load_qr(QrList **list);
+void load_qr();
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Frees associated memory and clears QR List
@@ -181,7 +187,7 @@ void load_qr(QrList **list);
   
  */
 /*--------------------------------------------------------------------------*/
-void clear_qr_list(QrList **list);
+void clear_qr_list();
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Function to find a file in the Quarantine
@@ -192,7 +198,7 @@ void clear_qr_list(QrList **list);
   
  */
 /*--------------------------------------------------------------------------*/
-QrListNode* search_in_qr(QrList *list, char *filename);
+QrListNode* search_in_qr(char *filename);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Saves the Quarantine List
@@ -203,7 +209,7 @@ QrListNode* search_in_qr(QrList *list, char *filename);
   
  */
 /*--------------------------------------------------------------------------*/
-int save_qr_list(QrList **list, int custom);
+int save_qr_list(int custom);
 /*-------------------------------------------------------------------------*/
 /**
   \brief            Add a file to the Quarantine, physically and logically
@@ -214,7 +220,7 @@ int save_qr_list(QrList **list, int custom);
   
  */
 /*--------------------------------------------------------------------------*/
-int add_file_to_qr(QrList **list, char *filepath);
+int add_file_to_qr(char *filepath);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Removes a file from quarantine physically and logically
@@ -225,7 +231,7 @@ int add_file_to_qr(QrList **list, char *filepath);
   
  */
 /*--------------------------------------------------------------------------*/
-int rm_file_from_qr(QrList **list, char *filename);
+int rm_file_from_qr(char *filename);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Restore file to its anterior state and place
@@ -236,7 +242,7 @@ int rm_file_from_qr(QrList **list, char *filename);
   
  */
 /*--------------------------------------------------------------------------*/
-int restore_file(QrList **list, char *filename);
+int restore_file(char *filename);
 /*-------------------------------------------------------------------------*/
 /**
   \brief    Main function of qr-worker process
@@ -255,6 +261,19 @@ void qr_worker();
   
  */
 /*--------------------------------------------------------------------------*/
-void print_qr(QrList **list);
+void print_qr();
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Manages the Expired Files functionality
+  \param        list  The quarantine list to iterate
+  \return       void
+
+  Function of process who is tasked with deleting files 
+  earmarked by a deletion date older than todays date time.
+  Loops until no more expired files are detected
+ */
+/*--------------------------------------------------------------------------*/
+void expired_files();
 
 #endif /* _KLEARNEL_QUARANTINE_H */

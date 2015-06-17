@@ -171,7 +171,7 @@ int qr_query(char **commands, int action)
 				print_qr(&qr_list);
 				goto out;
 			} else {
-				LIST_FOREACH(&qr_list, first, next, cur) {
+				TMP_LIST_FOREACH(&qr_list, first, next, cur) {
 					char *next_query = malloc(len);
 					if (next_query == NULL) {
 						perror("[UI] Unable to allocate memory");
