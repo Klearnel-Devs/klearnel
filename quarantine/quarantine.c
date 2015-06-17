@@ -403,6 +403,17 @@ void clear_qr_list()
 	}
 }
 
+void clear_tmp_qr_list(QrList** list)
+{
+	if ((*list)->first != NULL) {
+		TMP_LIST_FOREACH(list, first, next, cur) {
+			if (cur->prev) {
+			    	free(cur->prev);
+			}
+		}
+	}
+}
+
 void load_tmp_qr(QrList** list, int fd)
 {
 	QrData tmp;

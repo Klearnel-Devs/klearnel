@@ -224,7 +224,7 @@ int qr_query(char **commands, int action)
 				}
 			}
 out:
-			clear_qr_list(&qr_list);
+			clear_tmp_qr_list(&qr_list);
 			free(list_path);
 			break;
 		case KL_EXIT:

@@ -190,6 +190,16 @@ void load_qr();
 void clear_qr_list();
 /*-------------------------------------------------------------------------*/
 /**
+  \brief        Frees associated memory and clears QR List
+  \param        list    The Quarantine list to clear
+  \return       void
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void clear_tmp_qr_list(QrList** list);
+/*-------------------------------------------------------------------------*/
+/**
   \brief        Function to find a file in the Quarantine
   \param        list        The quarantine list
   \param        filename    The file to find

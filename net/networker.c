@@ -311,7 +311,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 				}
 			}
 out:
-			clear_qr_list(&qr_list);
+			clear_tmp_qr_list(&qr_list);
 			free(list_path);
 			break;
 		case RELOAD_CONF:
