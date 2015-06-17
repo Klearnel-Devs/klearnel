@@ -330,6 +330,106 @@ void _backupFiles(char* file_bu)
 	free(backup);
 	free(file);
 }
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Add a file to quarantine
+  \param        buf 	The file to add
+  \return       Returns 0 on success, else -1
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+int _add_file_qr(char *buf)
+{
+	int len, s_cl;
+	char *query, *res;
+	struct sockaddr_un remote;
+	struct timeval timeout;
+	timeout.tv_sec 	= SOCK_TO;
+	timeout.tv_usec	= 0;
+
+	if ((s_cl = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+		LOG(FATAL, "Unable to create socket");
+		return -1;
+	}
+
+	remote.sun_family = AF_UNIX;
+	strncpy(remote.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
+	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
+
+	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
+		LOG(FATAL, "Unable to connect the qr_sock");
+		goto error;
+	}
+	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
+		LOG(WARNING, "Unable to set timeout for reception operations");
+
+	if (setsockopt(s_cl, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+		LOG(WARNING, "Unable to set timeout for sending operations");
+
+	len = 20;
+	res = malloc(2);
+	query = malloc(len);
+	if ((query == NULL) || (res == NULL)) {
+		LOG(FATAL, "Unable to allocate memory");
+		goto error;
+	}
+
+	if (access(buf, F_OK) == -1) {
+		write_to_log(WARNING, "%s: Unable to find %s.\n"
+			"Please check if the path is correct.\n", __func__, buf);
+		sprintf(query, "%s", VOID_LIST);
+		if (write(s_cl, query, strlen(query)) < 0) {
+			LOG(URGENT, "Unable to send file location state");
+			goto error;
+		}
+		if (read(s_cl, res, 1) < 0) {
+			LOG(WARNING, "Unable to get location result");
+		}
+		goto error;
+	}
+
+	snprintf(query, len, "%d:%d", QR_ADD, (int)strlen(buf));
+	if (write(s_cl, query, len) < 0) {
+		LOG(URGENT, "Unable to send query");
+		goto error;
+	}
+	if (read(s_cl, res, 1) < 0) {
+		LOG(URGENT, "Unable to get query result");
+		goto error;
+	}
+
+	if (write(s_cl, buf, strlen(buf)) < 0) {
+		LOG(URGENT, "Unable to send args of the query");
+		goto error;
+	}
+	if (read(s_cl, res, 1) < 0) {
+		LOG(URGENT, "Unable to get query result");
+		goto error;					
+	}
+	if (read(s_cl, res, 1) < 0) {
+		LOG(URGENT, "Unable to get query result");
+		goto error;
+	}
+	if (!strcmp(res, SOCK_ACK)) {
+		write_to_log(INFO, "File %s successfully added to QR\n", buf);
+	} else if (!strcmp(res, SOCK_ABORTED)) {
+		write_to_log(INFO, "File %s could not be added to QR\n", buf);
+	} 
+
+	free(query);
+	free(res);
+	close(s_cl);
+	return 0;
+
+error:
+	free(query);
+	free(res);
+	close(s_cl);
+	return -1;	
+}
+
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Delete files and folders to Quarantine
@@ -345,7 +445,7 @@ void _deleteFiles(char *file)
 	struct stat inode;
 	pid_t pid;
 	if (stat(file, &inode) != 0) {
-		write_to_log(FATAL, "Unable to stat file : %s", file);
+		write_to_log(URGENT, "Unable to stat file : %s", file);
 		goto err;
 	}
 
@@ -355,9 +455,8 @@ void _deleteFiles(char *file)
 		goto err;
 	}
 	if(S_ISREG(inode.st_mode)) {
-			char *commands[3] = {"klearnel", "add-to-qr", file};
-			if(qr_query(commands, 1) != 0) {
-				LOG(FATAL, "Add to QR Failed");
+			if(_add_file_qr(file) != 0) {
+				LOG(URGENT, "Add to QR Failed");
 			}
 	} else {
 	      	int pipe_fd[2];
@@ -436,8 +535,8 @@ void _deleteFiles(char *file)
 			close(pipe_fd[0]);
 		}
 		for(i = 0; i < num; i++) {
-			char *commands[3] = {"klearnel", "add-to-qr", symArray[i]};
-			if(qr_query(commands, 1) != 0) {
+			char *commands[3] = {"klearnel", "-add-to-qr", symArray[i]};
+			if(qr_query(commands, QR_ADD) != 0) {
 				LOG(FATAL, "Add to QR Failed");
 			}
 			free(symArray[i]);
@@ -541,6 +640,8 @@ char *_returnOrig(char *file, char *prev, char *path)
 	 	for(i = 35; i < strlen(file); i++) {
 	 		token[i-35] = file[i];
 	 	}
+	 	if (strlen(token) > 0) write_to_log(DEBUG, "token = %s", token);
+	 	else write_to_log(DEBUG, "Token is empty");
 	 	full_file = malloc(strlen(path)+strlen(token)+1);
 	 	if (full_file == NULL){
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -552,7 +653,8 @@ char *_returnOrig(char *file, char *prev, char *path)
 				"Unable to print to new variable");
 			goto err;
 	 	}
-
+	 	if (strlen(full_file) > 0) write_to_log(DEBUG, "Full file = %s", full_file);
+	 	else write_to_log(DEBUG, "Full file is empty");
 	 	for(i = 35; i < strlen(prev); i++) {
 	 		token_prv[i-35] = prev[i];
 	 	}
@@ -1048,7 +1150,6 @@ void _handleDuplicates(TWatchElement data, int action)
 		write_to_log(FATAL, "Unable to stat file : %s", data.path);
 		return;
 	}
-
 	if (!S_ISDIR(inode.st_mode)) {
 		return;
 	}
@@ -1090,21 +1191,26 @@ void _handleDuplicates(TWatchElement data, int action)
 		char buf;
 	      	char *file = malloc(sizeof(char)*255);
 	      	char *prev = malloc(sizeof(char)*255);
+
 	      	if ((file == NULL) || (prev == NULL)) {
 	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
 				"Unable to allocate memory");
 			return;
 	      	}
-	      	prev = " ";
+	      	strcpy(prev, " ");
 		close(pipe_fd[1]);
 		char tmp_buf;
 		while (read(pipe_fd[0], &buf, 1) > 0) {
-			if(buf != '\n')
+			if(buf != '\n') 
 				file[i] = buf;
 			i++;
+
 			if(buf == '\n') {
 				if (tmp_buf != '\n') {
-					prev = _returnOrig(file, prev, data.path);
+					char prev_tmp[255];
+					strcpy(prev_tmp, prev);
+					prev = calloc(255, sizeof(char));
+					strcpy(prev, _returnOrig(file, prev_tmp, data.path));
 				}
 				file = calloc(255, sizeof(char));
 				if (file == NULL) {
