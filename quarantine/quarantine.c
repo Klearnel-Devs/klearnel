@@ -21,7 +21,6 @@ static QrList* qr_list = NULL;
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Searches & Deletes Expired Files Recursively
-  \param        list 	 	The Quarantine database list
   \param 	listNode 	The node to search
   \param        now 		The current system time
   \return       void
@@ -43,38 +42,9 @@ void _search_expired(QrListNode *listNode, time_t now)
 	return;
 }
 
-int is_empty()
-{
-	return qr_list->count;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  \brief        Manages the Expired Files functionality
-  \param        list 	The quarantine list to iterate
-  \return       void
-
-  Function of process who is tasked with deleting files 
-  earmarked by a deletion date older than todays date time.
-  Loops until no more expired files are detected
- */
-/*--------------------------------------------------------------------------*/
-void expired_files()
-{
-	if(qr_list->count == 0) {
-		write_to_log(NOTIFY, "%s - Quarantine List is empty", __func__);
-		return;
-	}
-	time_t now = time(NULL);
-	_search_expired(qr_list->first, now);
-	write_to_log(DEBUG, "%s successfully completed", __func__);
-	return;
-}
-
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Add a file to the quarantine list 
-  \param        list 	The Quarantine list
   \param        new_f 	The QrData to add to the new node
   \return       0 on success, -1 on error
 
@@ -117,6 +87,16 @@ int _add_to_qr_list(QrData new_f)
 	return 0;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Add a file to the temporary quarantine list (get qr list)
+  \param 	list 	The temporary QR list 
+  \param        new_f 	The QrData to add to the new node
+  \return       0 on success, -1 on error
+
+  
+ */
+/*--------------------------------------------------------------------------*/
 int _add_to_tmp_qr_list(QrList **list, QrData new_f)
 {
 	QrListNode *node = calloc(1, sizeof(QrListNode));
@@ -176,7 +156,6 @@ QrListNode* _find_QRNode(QrListNode *node, int num)
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Removes QrListNode from QrList
-  \param        list 	The quarantine list
   \param        node 	The Node to remove
   \return       0 on success, -1 on error
 
@@ -409,6 +388,23 @@ void clear_tmp_qr_list(QrList** list)
 			}
 		}
 	}
+}
+
+int is_empty()
+{
+	return qr_list->count;
+}
+
+void expired_files()
+{
+	if(qr_list->count == 0) {
+		write_to_log(NOTIFY, "%s - Quarantine List is empty", __func__);
+		return;
+	}
+	time_t now = time(NULL);
+	_search_expired(qr_list->first, now);
+	write_to_log(DEBUG, "%s successfully completed", __func__);
+	return;
 }
 
 void load_tmp_qr(QrList** list, int fd)

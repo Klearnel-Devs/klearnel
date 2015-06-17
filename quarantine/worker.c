@@ -13,7 +13,7 @@
 #include <quarantine/quarantine.h>
 #include <logging/logging.h>
 
-/*-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
 /**
   \brief        Call the action related to the "action" arg 
   \param        list 	The Quarantine list
