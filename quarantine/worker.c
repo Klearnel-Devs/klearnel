@@ -135,7 +135,7 @@ int _call_related_action(const int action, char *buf, const int s_cl)
 			break;
 		case KL_EXIT:
 			write_to_log(INFO, "Quarantine received stop command");		
-			clear_qr_list();
+			exit_quarantine();
 			if (SOCK_ANS(s_cl, SOCK_ACK) < 0) {
 				LOG(URGENT, "Unable to send ACK");
 				return -1;

@@ -286,4 +286,6 @@ void print_qr();
 /*--------------------------------------------------------------------------*/
 void expired_files();
 
+void exit_quarantine();
+
 #endif /* _KLEARNEL_QUARANTINE_H */

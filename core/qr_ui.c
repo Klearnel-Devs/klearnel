@@ -159,7 +159,7 @@ int qr_query(char **commands, int action)
 
 			fd = open(list_path, O_RDONLY, S_IRUSR);
 			if (fd < 0) {
-				perror("[UI] Unable to open qr list file");
+				printf("The Quarantine doesn't contain any file\n");
 				free(list_path);
 				goto error;
 			}

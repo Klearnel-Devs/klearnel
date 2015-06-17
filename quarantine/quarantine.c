@@ -604,3 +604,9 @@ out:
 	free(p_res);
 	return -1;
 }
+
+void exit_quarantine()
+{
+	clear_qr_list();
+	free(qr_list);
+}
