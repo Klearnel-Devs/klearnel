@@ -313,6 +313,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 out:
 			clear_tmp_qr_list(&qr_list);
 			free(list_path);
+			free(qr_list);
 			break;
 		case RELOAD_CONF:
 			snprintf(query, len, "%d:0", RELOAD_CONF);
