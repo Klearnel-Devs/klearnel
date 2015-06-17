@@ -146,7 +146,7 @@
 /**
   \brief Define the timeout waiting on sockets
  */
-#define SEL_TO 		60
+#define SEL_TO 		600
 /*-------------------------------------------------------------------------*/
 /**
   \brief ID of the IPC for mutex

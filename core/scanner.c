@@ -65,7 +65,7 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Backups files and folders
-  \param        file 	The file to backup
+  \param        file_bu 	The file to backup
   \return       void	
 
   For files, retreives configured backup location from config file depending
