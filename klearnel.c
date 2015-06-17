@@ -280,15 +280,15 @@ service: ;
 			scanner_worker();
 		} else {
 			perror("KL: Unable to fork for Network & Scanner processes");
-			free_cfg();
+			free_cfg(1);
 			return EXIT_FAILURE;
 		}
 	} else {
 		perror("KL: Unable to fork for Quarantine & Scanner processes");
-		free_cfg();
+		free_cfg(1);
 		return EXIT_FAILURE;
 	}
-	free_cfg();
+	free_cfg(1);
 
 	semctl(mutex, 0, IPC_RMID, NULL);
 	return EXIT_SUCCESS;

@@ -204,7 +204,7 @@ err:
 	return -1;
 }
 
-void free_cfg()
+void free_cfg(int stop_kl)
 {
 	int i;
 	TSection* node = malloc(sizeof(struct section));
@@ -214,6 +214,7 @@ void free_cfg()
 		section_list->first = node;
 	}
 	section_list->count = 0;
+	if (stop_kl == 1) free(section_list);
 	iniparser_freedict(ini);
 }
 
@@ -278,7 +279,7 @@ void save_conf()
 
 void reload_config() 
 {
-	free_cfg();
+	free_cfg(0);
 	ini = iniparser_load(DEF_CFG);
 	if (ini==NULL) {
 		write_to_log(FATAL, "cannot parse file: %s\n", DEF_CFG);
