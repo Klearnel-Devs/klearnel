@@ -637,9 +637,16 @@ char *_returnOrig(char *file, char *prev, char *path)
 	char *full_prev;
 	struct stat file_stat, prev_stat;
 	if(strncmp(file, prev, MD5) == 0) {
-	 	for(i = 35; i < strlen(file); i++) {
-	 		token[i-35] = file[i];
-	 	}
+		if (path[strlen(path)-1] == '/') { 
+			for(i = 36; i < strlen(file); i++) {
+	 			token[i-36] = file[i];
+	 		}
+		} else {
+			for(i = 35; i < strlen(file); i++) {
+	 			token[i-35] = file[i];
+	 		}
+		}
+	 	
 	 	if (strlen(token) > 0) write_to_log(DEBUG, "token = %s", token);
 	 	else write_to_log(DEBUG, "Token is empty");
 	 	full_file = malloc(strlen(path)+strlen(token)+1);
