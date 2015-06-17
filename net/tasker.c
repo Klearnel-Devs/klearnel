@@ -185,6 +185,14 @@ void networker()
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to bind the socket");
 		return;
 	}
+
+	int option = 1;
+#ifdef SO_REUSEPORT		
+	setsockopt(s_srv, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option, sizeof(int));
+#else 
+	setsockopt(s_srv, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
+#endif
+
 	umask(oldmask);
 	listen(s_srv, 10);
 
@@ -240,10 +248,7 @@ void networker()
 			continue;
 		}
 
-#ifdef SO_REUSEPORT
-		int option = 1;
-		setsockopt(s_cl, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option, sizeof(int));
-#endif
+
 		shutdown(s_cl, SHUT_WR);
 		free(buf);
 		close(s_cl);

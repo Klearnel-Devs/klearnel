@@ -126,7 +126,7 @@ int _get_sections()
 }
 
 void init_config()
-{  
+{
 	if (access(CONFIG, F_OK) == -1) {
 		if (mkdir(CONFIG, S_IRWXU | S_IRGRP | S_IROTH) < 0) {
 			write_to_log(FATAL, "%s - %d - %s - %s", __func__, __LINE__, "Unable to create the config folder", CONFIG);
@@ -167,7 +167,7 @@ void init_config()
 		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Section List could not be filled");
 		goto err;
 	}
-	write_to_log(INFO, "%s", "Configuration Initialized without error");
+	write_to_log(INFO, "%s", "Configuration initialized without error");
 	return;
 	err:
 		exit(EXIT_FAILURE);
@@ -204,7 +204,7 @@ err:
 	return -1;
 }
 
-void free_cfg()
+void free_cfg(int stop_kl)
 {
 	int i;
 	TSection* node = malloc(sizeof(struct section));
@@ -213,7 +213,8 @@ void free_cfg()
 		free(section_list->first);
 		section_list->first = node;
 	}
-	free(section_list);
+	section_list->count = 0;
+	if (stop_kl == 1) free(section_list);
 	iniparser_freedict(ini);
 }
 
@@ -278,12 +279,29 @@ void save_conf()
 
 void reload_config() 
 {
-	key_t conf_mutex_key = ftok(IPC_RAND, IPC_CONF);
-	int conf_mutex = semget(conf_mutex_key, 1, IPC_CREAT | IPC_PERMS);
+	free_cfg(0);
+	ini = iniparser_load(DEF_CFG);
+	if (ini==NULL) {
+		write_to_log(FATAL, "cannot parse file: %s\n", DEF_CFG);
+		goto err;
+	}
 
-	wait_crit_area(conf_mutex, 0);
-	sem_down(conf_mutex, 0);
-	free_cfg();
-	init_config();
-	sem_up(conf_mutex, 0);
+	if (!section_list) {
+		section_list = malloc(sizeof(struct sectionList));
+		if(!section_list) {
+			write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Unable to allocate memory");
+			goto err;
+		}
+	}
+
+	if (_get_sections() != 0) {
+		write_to_log(FATAL, "%s - %d - %s", __func__, __LINE__, "Section List could not be filled");
+		goto err;
+	}
+
+	write_to_log(INFO, "%s", "Configuration reloaded without error");
+
+	return;
+	err:
+		exit(EXIT_FAILURE);
 }

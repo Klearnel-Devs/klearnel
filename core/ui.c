@@ -149,11 +149,6 @@ int _kill_mutex()
 	key_t mutex_key = ftok(IPC_RAND, IPC_MUTEX);
 	int mutex = semget(mutex_key, 1, IPC_CREAT | IPC_EXCL | IPC_PERMS);
 
-	key_t conf_mutex_key = ftok(IPC_RAND, IPC_CONF);
-	int conf_mutex = semget(conf_mutex_key, 1, IPC_CREAT | IPC_PERMS);
-
-	semctl(conf_mutex, 0, IPC_RMID, NULL);
-
 	if (semctl(mutex, 0, IPC_RMID, NULL) < 0) {
 		return -1;
 	}
