@@ -384,6 +384,7 @@ void init_qr()
 		}
 		umask(oldmask);		
 	}
+	qr_list = calloc(1, sizeof(struct QrList));
 	write_to_log(INFO, "%s", "QR Initialized without error");
 }
 
