@@ -229,6 +229,7 @@ void _get_instructions()
 	int action = 0;
 	struct sockaddr_un server;
 	QrList *list = calloc(1, sizeof(QrList));
+	write_to_log(DEBUG, "Count value: %d", list->count);
 	load_qr(&list);
 	int oldmask = umask(0);
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {

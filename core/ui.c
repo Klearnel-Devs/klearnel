@@ -272,6 +272,13 @@ void execute_commands(int nb, char **commands)
 			printf("\nKlearnel services are stopped and the module will now be shutted down\n");
 		} else if ((scan_res == -2) && (qr_res == -2) && (net_res == -2)) {
 			printf("\nKlearnel services are currently not running\n");
+		} else {
+			printf("\nAt least on service is not running\n"
+				"It is often mean that a service has crashed\n"
+				"To check it, run the following command as root: ps faux | grep klearnel\n"
+				"If should show 3 processes. If one of it is marked <defunct> or is missing,\n"
+				"Run the command \"pkill klearnel\" as root and restart it\n"
+				"If any process is running, you can restart Klearnel safely\n");
 		}
 
 	} else if (!strcmp(commands[1], "-flush")) {
