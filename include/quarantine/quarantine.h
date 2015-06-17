@@ -138,7 +138,9 @@ typedef struct QrList {
 #define LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
     QrListNode *V = NULL;\
     for(V = _node = L->S; _node != NULL; V = _node = _node->M)
-
+/**
+  \brief Macro to traverse the (temp) list of the Quarantine
+*/
 #define TMP_LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
     QrListNode *V = NULL;\
     for(V = _node = (*L)->S; _node != NULL; V = _node = _node->M)
@@ -272,7 +274,7 @@ void qr_worker();
   
  */
 /*--------------------------------------------------------------------------*/
-void print_qr();
+void print_qr(QrList **list);
 
 /*-------------------------------------------------------------------------*/
 /**

@@ -16,7 +16,6 @@
 /*------------------------------------------------------------------------*/
 /**
   \brief        Call the action related to the "action" arg 
-  \param        list 	The Quarantine list
   \param 	action  The action to take
   \param        buf 	Command received by socket
   \param 	s_cl 	The socket connection
