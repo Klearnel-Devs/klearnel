@@ -390,7 +390,7 @@ int _add_file_qr(char *buf)
 		goto error;
 	}
 
-	snprintf(query, len, "%d:%d", QR_ADD, (int)strlen(buf));
+	snprintf(query, len, "%d:%d", QR_ADD, (int)strlen(buf)+1);
 	if (write(s_cl, query, len) < 0) {
 		LOG(URGENT, "Unable to send query");
 		goto error;
@@ -400,7 +400,7 @@ int _add_file_qr(char *buf)
 		goto error;
 	}
 
-	if (write(s_cl, buf, strlen(buf)) < 0) {
+	if (write(s_cl, buf, strlen(buf)+1) < 0) {
 		LOG(URGENT, "Unable to send args of the query");
 		goto error;
 	}
