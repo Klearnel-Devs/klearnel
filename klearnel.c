@@ -263,11 +263,6 @@ service: ;
 		}
 		return EXIT_FAILURE;
 	}
-	/* --------------- CONF_MUTEX INIT ------------------------ */
-	key_t conf_mutex_key = ftok(IPC_RAND, IPC_CONF);
-	int conf_mutex = semget(conf_mutex_key, 1, IPC_CREAT | IPC_PERMS);
-	sem_reset(conf_mutex, 0);
-
 
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");
@@ -294,8 +289,7 @@ service: ;
 		return EXIT_FAILURE;
 	}
 	free_cfg();
-	
-	semctl(conf_mutex, 0, IPC_RMID, NULL);
+
 	semctl(mutex, 0, IPC_RMID, NULL);
 	return EXIT_SUCCESS;
 }

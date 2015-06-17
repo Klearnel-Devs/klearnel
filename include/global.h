@@ -152,10 +152,6 @@
   \brief ID of the IPC for mutex
  */
 #define IPC_MUTEX 49
-/**
- \brief ID of the IPC for configuration
-*/
-#define IPC_CONF 50
 /*-------------------------------------------------------------------------*/
 /**
   \brief Macro to send acknowledgement
