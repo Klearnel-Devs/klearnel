@@ -360,7 +360,7 @@ int _add_file_qr(char *buf)
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
 		LOG(FATAL, "Unable to connect the qr_sock");
-		goto error;
+		return -1;
 	}
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
 		LOG(WARNING, "Unable to set timeout for reception operations");

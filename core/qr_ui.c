@@ -31,7 +31,7 @@ int qr_query(char **commands, int action)
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
 		perror("[UI] Unable to connect the qr_sock");
-		goto error;
+		return -1;
 	}
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
 		perror("[UI] Unable to set timeout for reception operations");

@@ -47,7 +47,7 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
 		LOG(FATAL, "Unable to connect the qr_sock");
-		goto error;
+		return -1;
 	}
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
 		LOG(WARNING, "Unable to set timeout for reception operations");
@@ -386,7 +386,7 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 	query = malloc(len);
 	if ((query == NULL) || (res == NULL)) {
 		LOG(FATAL, "Unable to allocate memory");
-		return -1;
+		goto error;
 	}
 	switch (action) {
 		case SCAN_ADD:
