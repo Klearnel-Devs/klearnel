@@ -192,6 +192,10 @@ int scan_query(int nb, char **commands, int action)
 	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
+		if (action == KL_EXIT) {
+			printf("Scanner service is not running\n");
+			return -2;
+		}
 		perror("[UI] Unable to connect the scan_sock");
 		return -1;
 	}

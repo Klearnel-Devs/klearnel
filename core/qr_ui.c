@@ -30,6 +30,10 @@ int qr_query(char **commands, int action)
 	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
+		if (action == KL_EXIT) {
+			printf("Quarantine service is not running\n");
+			return -2;
+		}
 		perror("[UI] Unable to connect the qr_sock");
 		return -1;
 	}
