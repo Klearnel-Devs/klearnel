@@ -637,11 +637,12 @@ char *_returnOrig(char *file, char *prev, char *path)
 	char *full_prev;
 	struct stat file_stat, prev_stat;
 	if(strncmp(file, prev, MD5) == 0) {
-		if (path[strlen(path)-1] == '/') { 
+		if (!strcmp(&path[strlen(path)-1], "/")) {
 			for(i = 36; i < strlen(file); i++) {
 	 			token[i-36] = file[i];
 	 		}
 		} else {
+			LOG_DEBUG;
 			for(i = 35; i < strlen(file); i++) {
 	 			token[i-35] = file[i];
 	 		}
