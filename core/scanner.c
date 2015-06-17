@@ -678,13 +678,13 @@ char *_returnOrig(char *file, char *prev, char *path)
 			goto err2;
 	 	}
 	 	if(stat(full_file, &file_stat) != 0) {
-	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
-				"Unable to stat file: %s", full_prev);
+	 		write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, 
+				"Unable to stat file", full_prev);
 			goto err2;
 	 	}
 	 	if(stat(full_prev, &prev_stat) != 0) {
-	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
-				"Unable to stat file: %s", full_prev);
+	 		write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, 
+				"Unable to stat file", full_prev);
 			goto err2;
 	 	}
 	 	if ((int)file_stat.st_ctime < (int)prev_stat.st_ctime) {
