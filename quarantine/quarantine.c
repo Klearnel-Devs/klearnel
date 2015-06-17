@@ -61,16 +61,13 @@ int is_empty()
 /*--------------------------------------------------------------------------*/
 void expired_files()
 {
-	qr_list = calloc(1, sizeof(QrList));
-	load_qr();
-	if(qr_list == NULL) {
+	if(qr_list->count == 0) {
 		write_to_log(NOTIFY, "%s - Quarantine List is empty", __func__);
 		return;
 	}
 	time_t now = time(NULL);
 	_search_expired(qr_list->first, now);
 	write_to_log(DEBUG, "%s successfully completed", __func__);
-	clear_qr_list();
 	return;
 }
 
