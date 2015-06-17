@@ -140,12 +140,14 @@ int write_to_log(int level, const char *format, ...)
 		perror("LOG: Error when checking log file");
 		goto err;
 	} 
+	int old_mask = umask(0);
 	wait_crit_area(sync_logging, 0);
 	sem_down(sync_logging, 0);
 	FILE *fd;
 	/* Open a file descriptor to the file.  */
 	if ((fd = fopen(logs, "a+")) == NULL) {
 		perror("LOG: Unable to open/create");
+		sem_reset(sync_logging, 0);
 		goto err;
 	}
 	/* Write to file */
@@ -158,6 +160,7 @@ int write_to_log(int level, const char *format, ...)
 	// Free memory, close files, reset sema
 	fclose(fd);
 	sem_reset(sync_logging, 0);
+	umask(old_mask);
 	free(logs);
 	free(msg_level);
   	return 0;

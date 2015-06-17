@@ -29,6 +29,7 @@
 int _add_to_qr_list(QrList **list, QrData new_f)
 {
 	QrListNode *node = calloc(1, sizeof(QrListNode));
+	write_to_log(DEBUG, "Count value before add: %d", (*list)->count);
 	if (!node) {
 		return -1;
 	}
@@ -57,6 +58,7 @@ int _add_to_qr_list(QrList **list, QrData new_f)
 		tmp_prev->next = node;
 	}
 	(*list)->count++;
+	write_to_log(DEBUG, "Count value after add: %d", (*list)->count);
 	return 0;
 }
 /*-------------------------------------------------------------------------*/
@@ -293,10 +295,13 @@ void init_qr()
 
 void clear_qr_list(QrList **list)
 {
-	if ((*list)->first != NULL) {
-		LIST_FOREACH(list, first, next, cur) {
-			if (cur->prev) {
-			    	free(cur->prev);
+	write_to_log(DEBUG, "Count value before free: %d", (*list)->count);
+	if ((*list)->count != 0) {
+		if ((*list)->first != NULL) {
+			LIST_FOREACH(list, first, next, cur) {
+				if (cur->prev) {
+				    	free(cur->prev);
+				}
 			}
 		}
 	}
