@@ -663,9 +663,15 @@ char *_returnOrig(char *file, char *prev, char *path)
 	 	}
 	 	if (strlen(full_file) > 0) write_to_log(DEBUG, "Full file = %s", full_file);
 	 	else write_to_log(DEBUG, "Full file is empty");
-	 	for(i = 35; i < strlen(prev); i++) {
-	 		token_prv[i-35] = prev[i];
-	 	}
+	 	if (!strcmp(&path[strlen(path)-1], "/")) {
+			for(i = 36; i < strlen(prev); i++) {
+	 			token_prv[i-36] = prev[i];
+	 		}
+		} else {
+			for(i = 35; i < strlen(prev); i++) {
+	 			token_prv[i-35] = prev[i];
+	 		}
+		}
 	 	full_prev = malloc(strlen(path)+strlen(token_prv)+1);
 	 	if (full_prev == NULL){
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
