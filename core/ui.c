@@ -46,8 +46,8 @@ int _net_exiter()
 	remote.sin_port = htons(SOCK_NET_PORT);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
-		perror("[UI] Unable to bind the network socket");
-		return -1;
+		printf("Network service is not running\n");
+		return -2;
 	}
 	
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
@@ -245,23 +245,35 @@ void execute_commands(int nb, char **commands)
 		NOT_YET_IMP;
 		printf("See the LICENSE file located in /etc/klearnel\n");
 	} else if (!strcmp(commands[1], "-stop")) {
+		
 		printf("Stopping Klearnel services\n\n");
-		if (_net_exiter() != 0) {
+		int net_res = _net_exiter();
+		if (net_res == -1) {
 			printf("Check Klearnel logs, Networker did not terminate correctly\n");
-		} else {
+		} else if (net_res == 0) {
 			printf("Networker process successfully stopped\n");
 		}
-		if (qr_query(commands, KL_EXIT) != 0) {
+
+		int qr_res = qr_query(commands, KL_EXIT);
+		if (qr_res == -1) {
 			printf("Check Klearnel logs, Qr-Worker did not terminate correctly\n");
-		} else {
+		} else if (qr_res == 0) {
 			printf("Qr-Worker successfully stopped\n");
 		}
-		if (scan_query(nb, commands, KL_EXIT) != 0) {
+
+		int scan_res = scan_query(nb, commands, KL_EXIT);
+		if (scan_res == -1) {
 			printf("Check Klearnel logs, Scanner did not terminate correctly\n");
-		} else {
+		} else if (scan_res == 0) {
 			printf("Scanner process successfully stopped\n");
 		}
-		printf("\nKlearnel services are stopped and the module will now be shutted down\n");
+		
+		if ((scan_res == 0) && (qr_res == 0) && (net_res == 0)) {
+			printf("\nKlearnel services are stopped and the module will now be shutted down\n");
+		} else if ((scan_res == -2) && (qr_res == -2) && (net_res == -2)) {
+			printf("\nKlearnel services are currently not running\n");
+		}
+
 	} else if (!strcmp(commands[1], "-flush")) {
 		if (_kill_mutex() < 0) {
 			printf("Unable to flush Klearnel mutex\n");
