@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------*/
 /**
-   \file	qr_ui.h
+   \file	qr_ui.c
    \author	Copyright (C) 2014, 2015 Klearnel-Devs 
    \brief	Quarantine UI file
 
@@ -30,8 +30,12 @@ int qr_query(char **commands, int action)
 	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
+		if (action == KL_EXIT) {
+			printf("Quarantine service is not running\n");
+			return -2;
+		}
 		perror("[UI] Unable to connect the qr_sock");
-		goto error;
+		return -1;
 	}
 	if (setsockopt(s_cl, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,	sizeof(timeout)) < 0)
 		perror("[UI] Unable to set timeout for reception operations");
@@ -53,6 +57,14 @@ int qr_query(char **commands, int action)
 				if (access(commands[i], F_OK) == -1) {
 					printf("%s: Unable to find %s.\n"
 						"Please check if the path is correct.\n", __func__, commands[i]);
+					sprintf(query, "%s", VOID_LIST);
+					if (write(s_cl, query, strlen(query)) < 0) {
+						perror("QR-UI: Unable to send file location state");
+						goto error;
+					}
+					if (read(s_cl, res, 1) < 0) {
+						perror("QR-UI: Unable to get location result");
+					}
 					goto error;
 				}
 				i++;
@@ -147,7 +159,7 @@ int qr_query(char **commands, int action)
 
 			fd = open(list_path, O_RDONLY, S_IRUSR);
 			if (fd < 0) {
-				perror("[UI] Unable to open qr list file");
+				printf("The Quarantine doesn't contain any file\n");
 				free(list_path);
 				goto error;
 			}
@@ -159,7 +171,7 @@ int qr_query(char **commands, int action)
 				print_qr(&qr_list);
 				goto out;
 			} else {
-				LIST_FOREACH(&qr_list, first, next, cur) {
+				TMP_LIST_FOREACH(&qr_list, first, next, cur) {
 					char *next_query = malloc(len);
 					if (next_query == NULL) {
 						perror("[UI] Unable to allocate memory");
@@ -212,8 +224,9 @@ int qr_query(char **commands, int action)
 				}
 			}
 out:
-			clear_qr_list(&qr_list);
+			clear_tmp_qr_list(&qr_list);
 			free(list_path);
+			free(qr_list);
 			break;
 		case KL_EXIT:
 			snprintf(query, len, "%d:0", action);

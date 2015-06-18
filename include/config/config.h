@@ -17,12 +17,19 @@
                                 Definitions
  ---------------------------------------------------------------------------*/
 
+/**
+ \brief The configuration folder
+*/ 
+#define CONFIG		BASE_DIR "/conf"
+/**
+ \brief The configuration file
+*/ 
+#define DEF_CFG	CONFIG "/klearnel.conf"
+/**
+ \brief The temporary configuration folder
+*/ 
+#define CFG_TMP	TMP_DIR "/conf"
 
- #define CONFIG		BASE_DIR "/conf"
- #define DEF_CFG	CONFIG "/klearnel.conf"
- #define CFG_TMP	TMP_DIR "/conf"
-
- #define MAX	100
 
 /*---------------------------------------------------------------------------
                                 New types
@@ -131,13 +138,14 @@ int dump_cfg(char* filepath);
 /**
   \brief	Free's the configuration linked list & unloads the
   		dictionary
+  \param stop_kl If it is set to 1, the global variable section_list is freed
   \return	void
 
   Free's each allocated pointer in the linked list then free's
   the dictionary
  */
 /*--------------------------------------------------------------------------*/
-void free_cfg();
+void free_cfg(int stop_kl);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -148,5 +156,14 @@ void free_cfg();
  */
 /*--------------------------------------------------------------------------*/
 void save_conf();
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief  Reload the configuration from file in memory
+  \return void
+  
+ */
+/*--------------------------------------------------------------------------*/
+void reload_config();
 
 #endif /* _CONFIG_H */

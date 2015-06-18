@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------*/
 /**
-   \file	scan_ui.h
+   \file	scan_ui.c
    \author	Copyright (C) 2014, 2015 Klearnel-Devs 
    \brief	Scanner UI file
 
@@ -14,7 +14,7 @@
 /*-------------------------------------------------------------------------*/
 /**
   \brief	The scanner form to display in command line
-  \param 	path 	??
+  \param 	path 	The path of the folder/file to add to the Scanner
   \return	TWatchElement
 
   
@@ -23,17 +23,18 @@
 TWatchElement _new_elem_form(char *path)
 {
 	TWatchElement new_elem;
-	strcpy(new_elem.path, path);
+	strcpy(new_elem.path,  VOID_LIST);
 	new_elem.back_limit_size = -1;
 	new_elem.del_limit_size = -1;
 	new_elem.max_age = -1;
 	int res = -1;
 	int isDir = -1;
 	struct stat s;
-	if (stat(new_elem.path, &s) < 0) {
+	if (stat(path, &s) < 0) {
 		perror("SCAN-UI: Unable to find the specified file/folder");
 		return new_elem;
 	}
+	strcpy(new_elem.path, path);
 	if (s.st_mode & S_IFDIR) isDir = 1;
 	else isDir = 0;
 	if (isDir) {
@@ -103,7 +104,7 @@ TWatchElement _new_elem_form(char *path)
 		new_elem.options[SCAN_CL_TEMP]		= '0';
 		new_elem.isTemp 			= false;
 	}
-	/* WARNING BACKUP NEED TO BE IMPLEMENTED */
+	
 	while ((toupper(res) != 'Y') && (toupper(res) != 'N')) {
 		printf("\nBackup large file ? (Y/N) : ");
 		if ((res = getchar()) == '\n') res = getchar();
@@ -191,6 +192,10 @@ int scan_query(int nb, char **commands, int action)
 	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
+		if (action == KL_EXIT) {
+			printf("Scanner service is not running\n");
+			return -2;
+		}
 		perror("[UI] Unable to connect the scan_sock");
 		return -1;
 	}
@@ -205,32 +210,43 @@ int scan_query(int nb, char **commands, int action)
 	query = malloc(len);
 	if ((query == NULL) || (res == NULL)) {
 		perror("[UI] Unable to allocate memory");
-		return -1;
+		goto error;
 	}
 	switch (action) {
 		case SCAN_ADD: ;
+			if (!strncmp(new_elem.path, VOID_LIST, strlen(VOID_LIST))) {
+				sprintf(query, "%s", VOID_LIST);
+				if (write(s_cl, query, strlen(query)) < 0) {
+					perror("SCAN-UI: Unable to send file location state");
+					goto error;
+				}
+				if (read(s_cl, res, 1) < 0) {
+					perror("SCAN-UI: Unable to get location result");
+				}
+				goto error;
+			}
 			time_t timestamp = time(NULL);
 			char *tmp_filename = malloc(sizeof(char)*(sizeof(timestamp)+5+strlen(SCAN_TMP)));
 			if (!tmp_filename) {
 				perror("SCAN-UI: Unable to allocate memory");
-				return -1;
+				goto error;
 			}
 			if (sprintf(tmp_filename, "%s/%d", SCAN_TMP, (int)timestamp) < 0) {
 				perror("SCAN-UI: Unable to create the filename for temp scan file");
 				free(tmp_filename);
-				return -1;
+				goto error;
 			}
 			fd = open(tmp_filename, O_WRONLY | O_TRUNC | O_CREAT);
 			if (fd < 0) {
 				fprintf(stderr, "SCAN-UI: Unable to create %s", tmp_filename);
 				free(tmp_filename);
-				return -1;
+				goto error;
 			}
 
 			if (write(fd, &new_elem, sizeof(struct watchElement)) < 0) {
 				fprintf(stderr, "SCAN-UI: Unable to write the new item to %s", tmp_filename);
 				free(tmp_filename);
-				return -1;
+				goto error;
 			}
 			close(fd);
 
@@ -354,6 +370,19 @@ int scan_query(int nb, char **commands, int action)
 				goto error;
 			}
 			break;
+		case SCAN_FORCE:
+			snprintf(query, len, "%d:0", action);
+			if (write(s_cl, query, len) < 0) {
+				perror("SCAN-UI: Unable to send query");
+				goto error;
+			}
+			if (read(s_cl, res, 1) < 0) {
+				perror("SCAN-UI: Unable to get query result");
+				goto error;
+			}
+			printf("Scan task has been started\n"
+				"See logs for detailed information\n");
+			break;			
 		default:
 			printf("SCAN-UI: Unknow action. Nothing to do.\n");
 	}

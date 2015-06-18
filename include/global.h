@@ -42,44 +42,125 @@
                                 Definitions
  ---------------------------------------------------------------------------*/
 
+/**
+  \brief  All permissions set to read only
+ */
 #define ALL_R 		S_IRUSR | S_IRGRP | S_IROTH
+/**
+  \brief  Owner of the process get all permissions and other read only
+ */
 #define USER_RW		S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+/**
+  \brief  All permissions granted to everyone
+ */
 #define ALL_RWX		S_IRWXU | S_IRWXG | S_IRWXO
-
+/*-------------------------------------------------------------------------*/
+/**
+  \brief  Base folder for Klearnel configuration and databases
+ */
 #define BASE_DIR 	"/etc/klearnel"
+/**
+  \brief  Working folder where the element in Quarantine are stored
+ */
 #define WORK_DIR	"/usr/local/klearnel"
+/**
+  \brief  Log folder
+ */
 #define LOG_DIR		"/var/log/klearnel/"
+/**
+  \brief  Temporary folder
+ */
 #define TMP_DIR		"/tmp/.klearnel"
+/**
+  \brief  File containing the process id of the current instance
+ */
 #define PID_FILE	BASE_DIR "/klearnel.pid"
+/**
+  \brief  Bash auto completion folder
+ */
 #define BASH_AUTO "/etc/bash_completion.d"
+/**
+  \brief  Klearnel auto completion file for Bash
+ */
 #define KLEARNEL_AUTO BASH_AUTO "/klearnel"
+/**
+  \brief  Temporary auto completion folder
+ */
 #define AUTO_TMP  TMP_DIR "/ac"
+/**
+  \brief  Path used to generate ipc's key
+ */
 #define IPC_RAND 	"/dev/null"
+/**
+  \brief  Permissions for ipc's
+ */
 #define IPC_PERMS 	0666
-
+/*-------------------------------------------------------------------------*/
+/**
+  \brief  Port used by Klearnel for network communications
+ */
 #define SOCK_NET_PORT	42225
 
+/**
+  \brief  Signal to say: all is right
+ */
 #define SOCK_ACK 	"1"
+/**
+  \brief  Signal to say: an error occured
+ */
 #define SOCK_NACK 	"2"
+/**
+  \brief  Signal to say: access denied
+ */
 #define SOCK_DENIED 	"3"
+/**
+  \brief  Signal to say: unknown data received
+ */
 #define SOCK_UNK	"4"
+/**
+  \brief  Signal to say: transaction aborted
+ */
 #define SOCK_ABORTED 	"8"
+/**
+  \brief  Signal to say: retry the transaction
+ */
 #define SOCK_RETRY 	"9"
+/**
+  \brief  Signal to say: End of data
+ */
 #define VOID_LIST "EOF"                                
-
+/*-------------------------------------------------------------------------*/
+/**
+  \brief  Signal to say: stop the service
+ */
 #define KL_EXIT 	-1
-
-#define SOCK_TO 	15 /* Define the timeout applied to sockets */
-#define SEL_TO 		600 /* Define the timeout waiting on sockets */
-
+/**
+  \brief Signal to say: reload the configuration in memory
+*/
+#define RELOAD_CONF 40
+/*-------------------------------------------------------------------------*/
+/**
+  \brief Define the timeout applied to sockets
+ */
+#define SOCK_TO 	15
+/**
+  \brief Define the timeout waiting on sockets
+ */
+#define SEL_TO 		1800
+/*-------------------------------------------------------------------------*/
+/**
+  \brief ID of the IPC for mutex
+ */
 #define IPC_MUTEX 49
-
+/*-------------------------------------------------------------------------*/
+/**
+  \brief Macro to send acknowledgement
+  \param socket the socket used to send ack
+  \param signal the signal to send
+  \return Returns the number of bytes written, else -1
+ */
 #define SOCK_ANS(socket, signal) \
  	write(socket, signal, strlen(signal))
-
-#define List_count(A) 	((A)->count)
-#define List_first(A) 	((A)->first != NULL ? (A)->first->value : NULL)
-#define List_last(A) 	((A)->last != NULL ? (A)->last->value : NULL)
 
 /*---------------------------------------------------------------------------
                                 Prototypes
@@ -188,6 +269,9 @@ void sem_put(int sem_id, int sem_channel, int val);
  */
 /*--------------------------------------------------------------------------*/
 void not_yet_implemented(const char* func);
+/**
+  \brief Display a message to say the function is not yet implemented
+ */
 #define NOT_YET_IMP not_yet_implemented(__func__);
 
 #endif /* _KLEARNEL_GLOBAL_H */

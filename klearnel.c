@@ -57,7 +57,7 @@ void autocomplete()
 	"	opts=\"-add-to-qr -rm-from-qr -rm-all-from-qr -get-qr-list\n"
 	"	-get-qr-info -restore-from-qr -restore-all-from-qr\n"
 	"	-add-to-scan -rm-from-scan -get-scan-list -view-rt-log\n" 
-	"	-license -start -stop -help\""
+	"	-license -start -stop -help -force-scan -flush\""
 	"\n"
 	"	if [[ ${cur} == -* ]] ; then\n"
 	"		COMPREPLY=( $(compgen -W \"${opts}\" -- ${cur}) )\n"
@@ -78,10 +78,9 @@ void autocomplete()
 	system("chmod +x /tmp/.klearnel/ac");
 	system("/tmp/.klearnel/ac");
 	unlink(AUTO_TMP);
-	write_to_log(INFO, "Klearnel bash autocompletion file successfully created");
 	return;
 	err:
-		write_to_log(WARNING, "Could not create/source klearnel bash autocompletion file");
+		printf("INIT: Could not create/source klearnel bash autocompletion file");
 }
 
 /*-------------------------------------------------------------------------*/
@@ -98,18 +97,21 @@ void _init_env()
 		fprintf(stderr, "Klearnel needs to be launched with root permissions!\n");
 		exit(EXIT_FAILURE);
 	}
+
 	if (access(BASE_DIR, F_OK) == -1) {
 		if (mkdir(BASE_DIR, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 			perror("KL: Unable to create the base directory");
 			exit(EXIT_FAILURE);
 		}		
 	}
+
 	if (access(WORK_DIR, F_OK) == -1) {
 		if (mkdir(WORK_DIR, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
 			perror("KL: Unable to create the configuration directory");
 			exit(EXIT_FAILURE);
 		}		
 	}
+
 	if (access(TMP_DIR, F_OK) == -1) {
 		int oldmask = umask(0);
 		if (mkdir(TMP_DIR, 0777)) {
@@ -118,11 +120,13 @@ void _init_env()
 		}	
 		umask(oldmask);	
 	}
+
 	if (access(BASH_AUTO, F_OK) == 0) {
 		if(access(KLEARNEL_AUTO, F_OK) == -1) {
 			autocomplete();
 		}
 	}
+
 	init_logging();
 	init_qr();
 	init_scanner();
@@ -244,23 +248,27 @@ int main(int argc, char **argv)
 	return EXIT_SUCCESS;
 
 service: ;
+	_init_env();
+	_daemonize();
+	/* ---------------- KEARNEL MUTEX INIT --------------------- */
 	key_t mutex_key = ftok(IPC_RAND, IPC_MUTEX);
 	int mutex = semget(mutex_key, 1, IPC_CREAT | IPC_EXCL | IPC_PERMS);
 	if (mutex < 0) {
 		if (errno == EEXIST) {
-			printf("Klearnel is already running!\n");
+			printf("Klearnel is already running!\n"
+				"If you think that Klearnel services are not running, "
+				"please execute: klearnel -flush and try to start the services again\n");
 		} else {
 			printf("Unable to start Klearnel service: mutex couldn't be created\n");
 		}
 		return EXIT_FAILURE;
 	}
-	_init_env();
-	_daemonize();
+
 	if (_save_main_pid(getpid())) {
 		perror("KL: Unable to save the module pid");
 		return EXIT_FAILURE;
 	}
-	
+	/* --------------- SERVICES START -------------------------- */
 	pid = fork();
 	if (pid == 0) {
 		qr_worker();
@@ -272,16 +280,16 @@ service: ;
 			scanner_worker();
 		} else {
 			perror("KL: Unable to fork for Network & Scanner processes");
-			free_cfg();
+			free_cfg(1);
 			return EXIT_FAILURE;
 		}
 	} else {
 		perror("KL: Unable to fork for Quarantine & Scanner processes");
-		free_cfg();
+		free_cfg(1);
 		return EXIT_FAILURE;
 	}
-	free_cfg();
-	
+	free_cfg(1);
+
 	semctl(mutex, 0, IPC_RMID, NULL);
 	return EXIT_SUCCESS;
 }

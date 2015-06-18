@@ -7,10 +7,31 @@
  * This file contains all structure, constants and protytpes needed by 
  * the crypter routines
  */
-
+#ifndef _KLEARNEL_CRYPTER_H
+#define _KLEARNEL_CRYPTER_H
+/*---------------------------------------------------------------------------
+                                Definitions
+ ---------------------------------------------------------------------------*/
+/**
+  \brief The secret file in Klearnel base folder
+ */
 #define SECRET BASE_DIR "/secret.pem"
+/**
+  \brief Define the size of a password
+ */
 #define PASS_SIZE 100
-
+/*---------------------------------------------------------------------------
+                                Prototypes
+ ---------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
+/**
+ \brief Create a SHA256 encrypted value from input into md
+ \param input the value to hash
+ \param length the length of the value to hash
+ \param md the variable in wich the hash generated will be stored
+ \return Returns true if the hash has been successfully generated else returns false
+*/
+/*-------------------------------------------------------------------------*/
 bool simpleSHA256(void* input, unsigned long length, unsigned char* md);
 /*-------------------------------------------------------------------------*/
 /**
@@ -38,3 +59,5 @@ int check_hash(const unsigned char *hash_to_check);
 */
 /*-------------------------------------------------------------------------*/
 void encrypt_root();
+
+#endif
