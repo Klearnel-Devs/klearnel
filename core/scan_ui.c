@@ -370,6 +370,19 @@ int scan_query(int nb, char **commands, int action)
 				goto error;
 			}
 			break;
+		case SCAN_FORCE:
+			snprintf(query, len, "%d:0", action);
+			if (write(s_cl, query, len) < 0) {
+				perror("SCAN-UI: Unable to send query");
+				goto error;
+			}
+			if (read(s_cl, res, 1) < 0) {
+				perror("SCAN-UI: Unable to get query result");
+				goto error;
+			}
+			printf("Scan task has been started\n"
+				"See logs for detailed information\n");
+			break;			
 		default:
 			printf("SCAN-UI: Unknow action. Nothing to do.\n");
 	}

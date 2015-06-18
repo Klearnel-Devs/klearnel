@@ -48,6 +48,10 @@
  \brief The modify elem in Scanner signal
 */ 
 #define SCAN_MOD  13
+/**
+ \brief Force the scanner to execute perform_event()
+*/
+#define SCAN_FORCE 14
 /*-------------------------------------------------------------------------*/
 /**
  \brief "Delete broken symlinks" option position
