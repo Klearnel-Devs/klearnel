@@ -642,14 +642,11 @@ char *_returnOrig(char *file, char *prev, char *path)
 	 			token[i-36] = file[i];
 	 		}
 		} else {
-			LOG_DEBUG;
 			for(i = 35; i < strlen(file); i++) {
 	 			token[i-35] = file[i];
 	 		}
 		}
 	 	
-	 	if (strlen(token) > 0) write_to_log(DEBUG, "token = %s", token);
-	 	else write_to_log(DEBUG, "Token is empty");
 	 	full_file = malloc(strlen(path)+strlen(token)+1);
 	 	if (full_file == NULL){
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -661,8 +658,6 @@ char *_returnOrig(char *file, char *prev, char *path)
 				"Unable to print to new variable");
 			goto err;
 	 	}
-	 	if (strlen(full_file) > 0) write_to_log(DEBUG, "Full file = %s", full_file);
-	 	else write_to_log(DEBUG, "Full file is empty");
 	 	if (!strcmp(&path[strlen(path)-1], "/")) {
 			for(i = 36; i < strlen(prev); i++) {
 	 			token_prv[i-36] = prev[i];
@@ -1505,53 +1500,40 @@ int perform_event()
 			switch(i) {
 				case SCAN_BR_S :
 					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
+
 						_checkSymlinks(cur->element);
-						LOG_DEBUG;
 					} 
 					break;
 				case SCAN_DUP_S : 
 					if (cur->element.options[i] == '1') { 
-						LOG_DEBUG;
 						_dupSymlinks(cur->element);
-						LOG_DEBUG;
 					}
 					break;
 				case SCAN_BACKUP : 
 				case SCAN_DEL_F_SIZE :
 					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
 						_checkFiles(cur->element, i);
-						LOG_DEBUG;
 					}
 					break;
 				case SCAN_DUP_F : 					
 					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
 						_handleDuplicates(cur->element, i);
-						LOG_DEBUG;
 					}
 					break;
 				case SCAN_INTEGRITY : 
 					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
 						_checkPermissions(cur->element); 
-						LOG_DEBUG;
 					}
 					break;
 				case SCAN_CL_TEMP : 
 					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
 						_cleanFolder(cur->element);
-						LOG_DEBUG;
 					}
 					break;
 				case SCAN_DEL_F_OLD : 
 				case SCAN_BACKUP_OLD :
 					if (cur->element.options[i] == '1') {
-						LOG_DEBUG;
 						_oldFiles(cur->element, i);
-						LOG_DEBUG; 
 					}
 					break;
 				default: break;
@@ -1559,7 +1541,7 @@ int perform_event()
 		}
 	}
 out:
-	write_to_log(INFO, "%s completed successfully", __func__);
+	LOG(INFO, "Recurrent tasks of Scanner completed successfully");
 	return 0;
 }
 
@@ -1641,7 +1623,6 @@ int _mod_watch_elem(TWatchElement elem)
 				item->element.options[i] = elem.options[i];
 			}
 			item->element.isTemp = elem.isTemp;
-			LOG_DEBUG;
 			return 0;
 		}
 		item = item->next;
@@ -2050,6 +2031,9 @@ int perform_task(const int task, const char *buf, const int s_cl)
 				LOG(URGENT, "Unable to send ACK");
 				return -1;
 			}
+			break;
+		case SCAN_FORCE:
+			perform_event();
 			break;
 		default:
 			LOG(NOTIFY, "Unknown task. Scan execution aborted");

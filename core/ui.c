@@ -241,6 +241,8 @@ void execute_commands(int nb, char **commands)
 		scan_query(nb, commands, SCAN_RM);
 	} else if (!strcmp(commands[1], "-get-scan-list")) {
 		scan_query(nb, commands, SCAN_LIST);
+	} else if (!strcmp(commands[1], "-force-scan")) {
+		scan_query(nb, commands, SCAN_FORCE);
 	} else if (!strcmp(commands[1], "-license")) {
 		NOT_YET_IMP;
 		printf("See the LICENSE file located in /etc/klearnel\n");
@@ -303,8 +305,11 @@ void execute_commands(int nb, char **commands)
 			"\n\tNOTE: this command will prompt you for each action to apply to the new item. It can take a few minutes to complete.\n");
 		printf(" - \e[1m-rm-from-scan <file/folder path>\e[21m: \n\t Remove the specified file/folder from the scanner watch list\n");	
 		printf(" - \e[1m-get-scan-list\e[21m:\n\t Display the elements in the scanner watch list\n");
+		printf(" - \e[1m-force-scan\e[21m:\n\t Force Scanner to execute scan tasks\n");
 		printf(" - \e[1m-view-rt-log\e[21m:\n\t Display the current klearnel's log in real time\n");
 		printf(" - \e[1m-license\e[21m:\n\t Display the klearnel license terms\n");
+		printf(" - \e[1m-flush\e[21m:\n\t Flush IPC's created by Klearnel services"
+			"\n\tTo use only when services crashed\n");
 		printf(" - \e[1m-start\e[21m:\n\t Start Klearnel service"
 			"\n\tNOTE: you need to be root to start the services\n");
 		printf(" - \e[1m-stop\e[21m:\n\t Stop Klearnel service\n");

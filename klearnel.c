@@ -57,7 +57,7 @@ void autocomplete()
 	"	opts=\"-add-to-qr -rm-from-qr -rm-all-from-qr -get-qr-list\n"
 	"	-get-qr-info -restore-from-qr -restore-all-from-qr\n"
 	"	-add-to-scan -rm-from-scan -get-scan-list -view-rt-log\n" 
-	"	-license -start -stop -help\""
+	"	-license -start -stop -help -force-scan -flush\""
 	"\n"
 	"	if [[ ${cur} == -* ]] ; then\n"
 	"		COMPREPLY=( $(compgen -W \"${opts}\" -- ${cur}) )\n"

@@ -54,7 +54,6 @@ void _search_expired(QrListNode *listNode, time_t now)
 int _add_to_qr_list(QrData new_f)
 {
 	QrListNode *node = calloc(1, sizeof(QrListNode));
-	write_to_log(DEBUG, "Count value before add: %d", qr_list->count);
 	if (!node) {
 		return -1;
 	}
@@ -83,7 +82,6 @@ int _add_to_qr_list(QrData new_f)
 		tmp_prev->next = node;
 	}
 	qr_list->count++;
-	write_to_log(DEBUG, "Count value after add: %d", qr_list->count);
 	return 0;
 }
 
@@ -366,7 +364,6 @@ void init_qr()
 
 void clear_qr_list()
 {
-	write_to_log(DEBUG, "Count value before free: %d", qr_list->count);
 	if (qr_list->count != 0) {
 		if (qr_list->first != NULL) {
 			LIST_FOREACH(qr_list, first, next, cur) {
@@ -403,7 +400,7 @@ void expired_files()
 	}
 	time_t now = time(NULL);
 	_search_expired(qr_list->first, now);
-	write_to_log(DEBUG, "%s successfully completed", __func__);
+	LOG(INFO, "Recurrent task of Quarantine completed successfully");
 	return;
 }
 
