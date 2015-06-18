@@ -137,11 +137,27 @@ typedef struct QrList {
 */
 #define LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
     QrListNode *V = NULL;\
+    for(V = _node = L->S; _node != NULL; V = _node = _node->M)
+/**
+  \brief Macro to traverse the (temp) list of the Quarantine
+*/
+#define TMP_LIST_FOREACH(L, S, M, V) QrListNode *_node = NULL;\
+    QrListNode *V = NULL;\
     for(V = _node = (*L)->S; _node != NULL; V = _node = _node->M)
 
 /*---------------------------------------------------------------------------
                                 Prototypes
  ---------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
+/**
+  \brief    Verifies number of elements in quarantine
+  \return   the number of elements contained
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+int is_empty();
+
 /*-------------------------------------------------------------------------*/
 /**
   \brief    Initialize all requirements for Quarantine
@@ -150,6 +166,7 @@ typedef struct QrList {
   
  */
 /*--------------------------------------------------------------------------*/
+
 void init_qr();
 /*-------------------------------------------------------------------------*/
 /**
@@ -161,82 +178,85 @@ void init_qr();
   Used principally to allow users to list QR files
  */
 /*--------------------------------------------------------------------------*/
-void load_tmp_qr(QrList **list, int fd);
+void load_tmp_qr(QrList** list, int fd);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Load quarantine with content of QR_DB  
-  \param        list    The Quarantine list
   \return       void
 
   
  */
 /*--------------------------------------------------------------------------*/
-void load_qr(QrList **list);
+void load_qr();
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Frees associated memory and clears QR List
+  \return       void
+
+  
+ */
+/*--------------------------------------------------------------------------*/
+void clear_qr_list();
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Frees associated memory and clears temp QR List
   \param        list    The Quarantine list to clear
   \return       void
 
   
  */
 /*--------------------------------------------------------------------------*/
-void clear_qr_list(QrList **list);
+void clear_tmp_qr_list(QrList** list);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Function to find a file in the Quarantine
-  \param        list        The quarantine list
   \param        filename    The file to find
   \return       The searched QrListNode
 
   
  */
 /*--------------------------------------------------------------------------*/
-QrListNode* search_in_qr(QrList *list, char *filename);
+QrListNode* search_in_qr(char *filename);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Saves the Quarantine List
-  \param        list        The quarantine list
   \param        custom      If set, custom save location
   \return       0 on success, -1 on error
 
   
  */
 /*--------------------------------------------------------------------------*/
-int save_qr_list(QrList **list, int custom);
+int save_qr_list(int custom);
 /*-------------------------------------------------------------------------*/
 /**
   \brief            Add a file to the Quarantine, physically and logically
-  \param            list        The Quarantine list
   \param            filepath    The file to add
   \return           0 on success, -1 on error
 
   
  */
 /*--------------------------------------------------------------------------*/
-int add_file_to_qr(QrList **list, char *filepath);
+int add_file_to_qr(char *filepath);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Removes a file from quarantine physically and logically
-  \param        list        The Quarantine list
   \param        filename    The file to remove
   \return       0 on success, -1 on error
 
   
  */
 /*--------------------------------------------------------------------------*/
-int rm_file_from_qr(QrList **list, char *filename);
+int rm_file_from_qr(char *filename);
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Restore file to its anterior state and place
-  \param        list        The Quarantine list
   \param        filename    The file to restore
   \return       0 on success, -1 on error
 
   
  */
 /*--------------------------------------------------------------------------*/
-int restore_file(QrList **list, char *filename);
+int restore_file(char *filename);
 /*-------------------------------------------------------------------------*/
 /**
   \brief    Main function of qr-worker process
@@ -249,12 +269,30 @@ void qr_worker();
 /*-------------------------------------------------------------------------*/
 /**
   \brief    Print all elements contained in qr-list to stdout
-  \param    list        The Quarantine list
   \return   void
 
   
  */
 /*--------------------------------------------------------------------------*/
 void print_qr(QrList **list);
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Manages the Expired Files functionality
+  \return       void
+
+  Function of process who is tasked with deleting files 
+  earmarked by a deletion date older than todays date time.
+  Loops until no more expired files are detected
+ */
+/*--------------------------------------------------------------------------*/
+void expired_files();
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Clears memory associated with the Quarantine
+  \return       void
+ */
+/*--------------------------------------------------------------------------*/
+void exit_quarantine();
 
 #endif /* _KLEARNEL_QUARANTINE_H */

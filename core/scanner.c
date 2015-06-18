@@ -65,7 +65,7 @@ int _add_tmp_watch_elem(TWatchElement elem, TWatchElementList **list)
 /*-------------------------------------------------------------------------*/
 /**
   \brief        Backups files and folders
-  \param        file 	The file to backup
+  \param        file_bu 	The file to backup
   \return       void	
 
   For files, retreives configured backup location from config file depending
@@ -637,11 +637,12 @@ char *_returnOrig(char *file, char *prev, char *path)
 	char *full_prev;
 	struct stat file_stat, prev_stat;
 	if(strncmp(file, prev, MD5) == 0) {
-		if (path[strlen(path)-1] == '/') { 
+		if (!strcmp(&path[strlen(path)-1], "/")) {
 			for(i = 36; i < strlen(file); i++) {
 	 			token[i-36] = file[i];
 	 		}
 		} else {
+			LOG_DEBUG;
 			for(i = 35; i < strlen(file); i++) {
 	 			token[i-35] = file[i];
 	 		}
@@ -662,9 +663,15 @@ char *_returnOrig(char *file, char *prev, char *path)
 	 	}
 	 	if (strlen(full_file) > 0) write_to_log(DEBUG, "Full file = %s", full_file);
 	 	else write_to_log(DEBUG, "Full file is empty");
-	 	for(i = 35; i < strlen(prev); i++) {
-	 		token_prv[i-35] = prev[i];
-	 	}
+	 	if (!strcmp(&path[strlen(path)-1], "/")) {
+			for(i = 36; i < strlen(prev); i++) {
+	 			token_prv[i-36] = prev[i];
+	 		}
+		} else {
+			for(i = 35; i < strlen(prev); i++) {
+	 			token_prv[i-35] = prev[i];
+	 		}
+		}
 	 	full_prev = malloc(strlen(path)+strlen(token_prv)+1);
 	 	if (full_prev == NULL){
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -677,13 +684,13 @@ char *_returnOrig(char *file, char *prev, char *path)
 			goto err2;
 	 	}
 	 	if(stat(full_file, &file_stat) != 0) {
-	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
-				"Unable to stat file: %s", full_prev);
+	 		write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, 
+				"Unable to stat file", full_prev);
 			goto err2;
 	 	}
 	 	if(stat(full_prev, &prev_stat) != 0) {
-	 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
-				"Unable to stat file: %s", full_prev);
+	 		write_to_log(WARNING, "%s - %d - %s : %s", __func__, __LINE__, 
+				"Unable to stat file", full_prev);
 			goto err2;
 	 	}
 	 	if ((int)file_stat.st_ctime < (int)prev_stat.st_ctime) {

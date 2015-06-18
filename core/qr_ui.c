@@ -159,7 +159,7 @@ int qr_query(char **commands, int action)
 
 			fd = open(list_path, O_RDONLY, S_IRUSR);
 			if (fd < 0) {
-				perror("[UI] Unable to open qr list file");
+				printf("The Quarantine doesn't contain any file\n");
 				free(list_path);
 				goto error;
 			}
@@ -171,7 +171,7 @@ int qr_query(char **commands, int action)
 				print_qr(&qr_list);
 				goto out;
 			} else {
-				LIST_FOREACH(&qr_list, first, next, cur) {
+				TMP_LIST_FOREACH(&qr_list, first, next, cur) {
 					char *next_query = malloc(len);
 					if (next_query == NULL) {
 						perror("[UI] Unable to allocate memory");
@@ -224,8 +224,9 @@ int qr_query(char **commands, int action)
 				}
 			}
 out:
-			clear_qr_list(&qr_list);
+			clear_tmp_qr_list(&qr_list);
 			free(list_path);
+			free(qr_list);
 			break;
 		case KL_EXIT:
 			snprintf(query, len, "%d:0", action);
