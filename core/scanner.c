@@ -309,7 +309,7 @@ void _backupFiles(char* file_bu)
 		prog1_argv[1] = "-a";
 		prog1_argv[2] = file;
 		prog1_argv[3] = path;
-		prog1_argv[4] = NULL;
+		//prog1_argv[4] = NULL;
 		execvp(prog1_argv[0], prog1_argv);
 	} else if ( pid < 0 ) {
 		LOG(FATAL, "Could not fork backup exec");
@@ -492,7 +492,7 @@ void _deleteFiles(char *file)
 			prog1_argv[4] = "!";
 			prog1_argv[5] = "-empty";
 			prog1_argv[6] = "-print0";
-			prog1_argv[7] = NULL;
+			//prog1_argv[7] = NULL;
 			if (execvp(prog1_argv[0], prog1_argv) == -1) {
 				LOG(WARNING, "Failed to get non-empty files from directory");
 				close (pipe_fd[1]);
@@ -551,7 +551,7 @@ void _deleteFiles(char *file)
 			prog1_argv[0] = "rm";
 			prog1_argv[1] = "-rf";
 			prog1_argv[2] = file;
-			prog1_argv[3] = NULL;
+			//prog1_argv[3] = NULL;
 			if (execvp(prog1_argv[0], prog1_argv) == -1) {
 				exit(EXIT_FAILURE);
 			}
@@ -638,11 +638,11 @@ char *_returnOrig(char *file, char *prev, char *path)
 	struct stat file_stat, prev_stat;
 	if(strncmp(file, prev, MD5) == 0) {
 		if (!strcmp(&path[strlen(path)-1], "/")) {
-			for(i = 36; i < strlen(file); i++) {
+			for(i = 36; i < (int)strlen(file); i++) {
 	 			token[i-36] = file[i];
 	 		}
 		} else {
-			for(i = 35; i < strlen(file); i++) {
+			for(i = 35; i < (int)strlen(file); i++) {
 	 			token[i-35] = file[i];
 	 		}
 		}
@@ -659,11 +659,11 @@ char *_returnOrig(char *file, char *prev, char *path)
 			goto err;
 	 	}
 	 	if (!strcmp(&path[strlen(path)-1], "/")) {
-			for(i = 36; i < strlen(prev); i++) {
+			for(i = 36; i < (int)strlen(prev); i++) {
 	 			token_prv[i-36] = prev[i];
 	 		}
 		} else {
-			for(i = 35; i < strlen(prev); i++) {
+			for(i = 35; i < (int)strlen(prev); i++) {
 	 			token_prv[i-35] = prev[i];
 	 		}
 		}
@@ -803,7 +803,7 @@ void _checkSymlinks(TWatchElement data)
 	      	prog1_argv[4] = "-xtype";
 	      	prog1_argv[5] = "l";
 	      	prog1_argv[6] = "-print0";
-	      	prog1_argv[7] = NULL;
+	      	//prog1_argv[7] = NULL;
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -904,7 +904,7 @@ void _dupSymlinks(TWatchElement data)
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[3] = "l";
 	      	prog1_argv[4] = "-print0";
-	      	prog1_argv[5] = NULL;
+	      	//prog1_argv[5] = NULL;
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
 			close (pipe_fd[1]);
@@ -1066,13 +1066,13 @@ void _checkFiles(TWatchElement data, int action)
 
 	if (pid == 0) {
 	      	char *prog1_argv[7];
-	      	double size;
+	      	double size = 0.0;
 	      	if (action == SCAN_BACKUP) {
 	      		size = data.back_limit_size;
 	      	} else if (action == SCAN_DEL_F_SIZE) {
 	      		size = data.del_limit_size;
 	      	}
-		prog1_argv[0] = "find";
+			prog1_argv[0] = "find";
 	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[3] = "f";
@@ -1085,7 +1085,7 @@ void _checkFiles(TWatchElement data, int action)
 			goto childDeath;
 	  	}
 	      	prog1_argv[6] = "-print0";
-	      	prog1_argv[7] = NULL;
+	      	//prog1_argv[7] = NULL;
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -1145,14 +1145,13 @@ void _checkFiles(TWatchElement data, int action)
 /**
   \brief        Deletes duplicate files in a folder
   \param        data 	The element to verify
-  \param 	action	The action to take
   \return       void	
 
   Deletes duplicate files, keeping only the most recently modified
   version.
  */
 /*--------------------------------------------------------------------------*/
-void _handleDuplicates(TWatchElement data, int action) 
+void _handleDuplicates(TWatchElement data) 
 {
 	struct stat inode;
 	if (stat(data.path, &inode) != 0) {
@@ -1253,6 +1252,7 @@ void _handleDuplicates(TWatchElement data, int action)
  */
 /*--------------------------------------------------------------------------*/
 void _checkPermissions(TWatchElement data) {
+	printf("Data: %s", data.path);
 	NOT_YET_IMP;
 }
 /*-------------------------------------------------------------------------*/
@@ -1304,7 +1304,7 @@ void _cleanFolder(TWatchElement data)
 	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[4] = "-print0";
-	      	prog1_argv[5] = NULL;
+	      	//prog1_argv[5] = NULL;
 	      	close (pipe_fd[0]);
 	      	if (dup2(pipe_fd[1], 1) == -1) {
 	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -1326,7 +1326,6 @@ void _cleanFolder(TWatchElement data)
 	      	}
 	childDeath:
 		close (pipe_fd[1]);
-		free(prog1_argv[5]);
 		exit(EXIT_FAILURE);
 	} else {
 		int status;
@@ -1429,7 +1428,7 @@ void _oldFiles(TWatchElement data, int action)
 			goto childDeath;
 	  	}
 	      	prog1_argv[7] = "-print0";
-	      	prog1_argv[8] = NULL;
+	      	//prog1_argv[8] = NULL;
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -1517,7 +1516,7 @@ int perform_event()
 					break;
 				case SCAN_DUP_F : 					
 					if (cur->element.options[i] == '1') {
-						_handleDuplicates(cur->element, i);
+						_handleDuplicates(cur->element);
 					}
 					break;
 				case SCAN_INTEGRITY : 
@@ -1619,7 +1618,7 @@ int _mod_watch_elem(TWatchElement elem)
 	int i;
 	while (item) {
 		if (strcmp(item->element.path, elem.path) == 0) {
-			for (i = 0; i < strlen(item->element.options); i++) {
+			for (i = 0; i < (int)strlen(item->element.options); i++) {
 				item->element.options[i] = elem.options[i];
 			}
 			item->element.isTemp = elem.isTemp;

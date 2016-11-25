@@ -142,10 +142,15 @@ int _add_to_tmp_qr_list(QrList **list, QrData new_f)
 /*--------------------------------------------------------------------------*/
 QrListNode* _find_QRNode(QrListNode *node, int num) 
 {
+
 	if (node == NULL){
 		goto out;
 	}
+#ifdef __APPLE__
+	else if(node->data.o_ino.st_ino < (unsigned long long)num){
+#else
 	else if(node->data.o_ino.st_ino < num){
+#endif
 		node = _find_QRNode(node->next, num);
 	}
 	out:
@@ -242,7 +247,7 @@ int  add_file_to_qr(char *filepath)
         	return -1;
 	}
 
-	if (!snprintf(new_path, (strlen(QR_STOCK)+strlen(fn)+10), "%s/%s", QR_STOCK, fn) < 0) {
+	if (!(snprintf(new_path, (strlen(QR_STOCK)+strlen(fn)+10), "%s/%s", QR_STOCK, fn) < 0)) {
 		write_to_log(WARNING, "%s - %d - %s - %s/%s", __func__, __LINE__, "Unable to create the new path for file added", QR_STOCK, fn);
 		goto error;
 	}
@@ -284,7 +289,7 @@ int  add_file_to_qr(char *filepath)
 		}
 	}
 
-	if (new_f.f_name == NULL)
+	if (strlen(new_f.f_name) <= 0)
         	goto error;
 
 	new_f.d_begin   = time(NULL);

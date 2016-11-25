@@ -63,13 +63,12 @@ void delete_logs()
 /*-------------------------------------------------------------------------*/
 /**
   \brief    Verifies if log directory exists, creates if not    
-  \param    logs 	The log directory to check
   \return   Returns 0 on success, -1 otherwise
 
   
  */
 /*--------------------------------------------------------------------------*/
-int _check_log_file(char *logs)
+int _check_log_file()
 {
 	if (access(LOG_DIR, F_OK) == -1) {
 		if (mkdir(LOG_DIR, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
@@ -111,7 +110,7 @@ int write_to_log(int level, const char *format, ...)
   	int sync_logging = semget(sync_logging_key, 1, IPC_CREAT | IPC_PERMS);
 	if (sync_logging < 0) {
 		perror("LOG: Unable to create the sema to sync");
-		goto err;
+	    return -1;
 	} 
 	va_list(args);
 	char date[7], tm[9];
@@ -136,7 +135,7 @@ int write_to_log(int level, const char *format, ...)
   		perror("LOG: Unable print path for logs");
 		goto err;
   	} 
-  	if (_check_log_file(logs) != 0) {
+  	if (_check_log_file() != 0) {
 		perror("LOG: Error when checking log file");
 		goto err;
 	} 

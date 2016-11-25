@@ -7,7 +7,7 @@ default: symlink $(OBJ-QR) unsym
 	@echo "Network compiled successfully"
 
 $(OBJ-QR): $(BUILD_DIR)/%.o : %.c 
-	$(CC) $(CFLAGS) -c $< -o $@ -lssl -lcrypto
+	$(CC) $(CFLAGS) -c $< -o $@
 
 symlink:
 	@echo "Generating network symlinks"

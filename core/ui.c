@@ -59,7 +59,7 @@ int _net_exiter()
 	len = 20;
 	res = malloc(2);
 	query = malloc(len);
-	if ((res == NULL)) {
+	if (res == NULL) {
 		perror("[UI] Unable to allocate memory");
 		goto error;
 	}
@@ -89,7 +89,7 @@ int _net_exiter()
 		goto error;
 	}
 	unsigned char digest[SHA256_DIGEST_LENGTH];
-	if (fread(digest, SHA256_DIGEST_LENGTH, 1, f) < 0) {
+	if ((int)fread(digest, SHA256_DIGEST_LENGTH, 1, f) < 0) {
 		perror("[UI] Unable to read digest in secret file");
 		fclose(f);
 		goto error;
@@ -231,18 +231,18 @@ void execute_commands(int nb, char **commands)
 				 "Correct syntax is: klearnel -add-to-scan <file/folder path>\n");
 			exit(EXIT_FAILURE);
 		}
-		scan_query(nb, commands, SCAN_ADD);
+		scan_query(commands, SCAN_ADD);
 	} else if (!strcmp(commands[1], "-rm-from-scan")) {
 		if (nb < 3) {
 			fprintf(stderr, "Element to remove missing\n"
 				"Correct syntax is: klearnel -rm-from-scan <file/folder path to remove>\n");
 			exit(EXIT_FAILURE);
 		}
-		scan_query(nb, commands, SCAN_RM);
+		scan_query(commands, SCAN_RM);
 	} else if (!strcmp(commands[1], "-get-scan-list")) {
-		scan_query(nb, commands, SCAN_LIST);
+		scan_query(commands, SCAN_LIST);
 	} else if (!strcmp(commands[1], "-force-scan")) {
-		scan_query(nb, commands, SCAN_FORCE);
+		scan_query(commands, SCAN_FORCE);
 	} else if (!strcmp(commands[1], "-license")) {
 		NOT_YET_IMP;
 		printf("See the LICENSE file located in /etc/klearnel\n");
@@ -263,7 +263,7 @@ void execute_commands(int nb, char **commands)
 			printf("Qr-Worker successfully stopped\n");
 		}
 
-		int scan_res = scan_query(nb, commands, KL_EXIT);
+		int scan_res = scan_query(commands, KL_EXIT);
 		if (scan_res == -1) {
 			printf("Check Klearnel logs, Scanner did not terminate correctly\n");
 		} else if (scan_res == 0) {
@@ -292,29 +292,29 @@ void execute_commands(int nb, char **commands)
 		}
 	} else if (!strcmp(commands[1], "-help")) {
 		printf("\n\e[4mKlearnel commands:\e[24m\n\n");
-		printf(" - \e[1m-add-to-qr <path-to-file>\e[21m:\n\t Add a new file to the quarantine\n");
-		printf(" - \e[1m-rm-from-qr <filename>\e[21m:\n\t Remove the specified file from the quarantine"
-			"\n\tWARNING: this command will definitively remove the file!\n");
-		printf(" - \e[1m-rm-all-from-qr\e[21m:\n\t Remove all files from the quarantine"
-			"\n\tWARNING: this command will definitively remove the files!\n");
-		printf(" - \e[1m-get-qr-list\e[21m:\n\t Display the file currently stored in quarantine\n");
-		printf(" - \e[1m-get-qr-info <filename>\e[21m:\n\t NOT YET IMPLEMENTED\n");
-		printf(" - \e[1m-restore-from-qr <filename>\e[21m:\n\t Restore the specified file to its original location\n");
-		printf(" - \e[1m-restore-all-from-qr\e[21m:\n\t Restore all files to their original locations\n");
-		printf(" - \e[1m-add-to-scan <file/folder path>\e[21m:\n\t Add the specified file or folder to the scanner watch list"
-			"\n\tNOTE: this command will prompt you for each action to apply to the new item. It can take a few minutes to complete.\n");
-		printf(" - \e[1m-rm-from-scan <file/folder path>\e[21m: \n\t Remove the specified file/folder from the scanner watch list\n");	
-		printf(" - \e[1m-get-scan-list\e[21m:\n\t Display the elements in the scanner watch list\n");
-		printf(" - \e[1m-force-scan\e[21m:\n\t Force Scanner to execute scan tasks\n");
-		printf(" - \e[1m-view-rt-log\e[21m:\n\t Display the current klearnel's log in real time\n");
-		printf(" - \e[1m-license\e[21m:\n\t Display the klearnel license terms\n");
-		printf(" - \e[1m-flush\e[21m:\n\t Flush IPC's created by Klearnel services"
-			"\n\tTo use only when services crashed\n");
-		printf(" - \e[1m-start\e[21m:\n\t Start Klearnel service"
-			"\n\tNOTE: you need to be root to start the services\n");
-		printf(" - \e[1m-stop\e[21m:\n\t Stop Klearnel service\n");
-		printf(" - \e[1m-help\e[21m:\n\t Display this help message\n");
-		printf("\nCopyright (C) 2014, 2015 Klearnel-Devs\n\n");
+		printf(" \e[1m-add-to-qr <path-to-file>\e[0m:\n\t Add a new file to the quarantine\n\n");
+		printf(" \e[1m-rm-from-qr <filename>\e[0m:\n\t Remove the specified file from the quarantine"
+			"\n\t \e[1m\e[31mWARNING\e[0m: this command will definitively remove the file!\n\n");
+		printf(" \e[1m-rm-all-from-qr\e[0m:\n\t Remove all files from the quarantine"
+			"\n\t \e[1m\e[31mWARNING\e[0m: this command will definitively remove the files!\n\n");
+		printf(" \e[1m-get-qr-list\e[0m:\n\t Display the file currently stored in quarantine\n");
+		printf(" \e[1m-get-qr-info <filename>\e[0m:\n\t NOT YET IMPLEMENTED\n\n");
+		printf(" \e[1m-restore-from-qr <filename>\e[0m:\n\t Restore the specified file to its original location\n\n");
+		printf(" \e[1m-restore-all-from-qr\e[0m:\n\t Restore all files to their original locations\n\n");
+		printf(" \e[1m-add-to-scan <file/folder path>\e[0m:\n\t Add the specified file or folder to the scanner watch list"
+			"\n\t \e[1m\e[33mNOTE\e[0m: this command will prompt you for each action to apply to the new item. It can take a few minutes to complete.\n\n");
+		printf(" \e[1m-rm-from-scan <file/folder path>\e[0m: \n\t Remove the specified file/folder from the scanner watch list\n\n");	
+		printf(" \e[1m-get-scan-list\e[0m:\n\t Display the elements in the scanner watch list\n\n");
+		printf(" \e[1m-force-scan\e[0m:\n\t Force Scanner to execute scan tasks\n\n");
+		printf(" \e[1m-view-rt-log\e[0m:\n\t Display the current klearnel's log in real time\n\n");
+		printf(" \e[1m-license\e[0m:\n\t Display the klearnel license terms\n\n");
+		printf(" \e[1m-flush\e[0m:\n\t Flush IPC's created by Klearnel services"
+			"\n\t To use only when services crashed\n\n");
+		printf(" \e[1m-start\e[0m:\n\t Start Klearnel service"
+			"\n\t \e[1m\e[33mNOTE\e[0m: you need to be root to start the services\n\n");
+		printf(" \e[1m-stop\e[0m:\n\t Stop Klearnel service\n\n");
+		printf(" \e[1m-help\e[0m:\n\t Display this help message\n\n");
+		printf("\n Copyright (C) 2014, 2015 Klearnel-Devs\n\n\e[0m");
 	} else {
 		fprintf(stderr, "Unknown command\n"
 			"Try \"klearnel -help\" to get a complete list of available commands\n");
