@@ -54,3 +54,10 @@ clean-sub:
 	@cd config;		$(MAKE) clean
 	@cd lib;		$(MAKE) clean
 	@cd net; 		$(MAKE) clean
+
+install:
+	@mkdir -p /etc/klearnel
+	@cp build/bin/LICENSE /etc/klearnel
+	@cp build/bin/README.md /etc/klearnel
+	@cp build/bin/klearnel /usr/local/bin
+	@echo "Klearnel has been successfully installed. :-)"

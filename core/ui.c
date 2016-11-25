@@ -244,8 +244,15 @@ void execute_commands(int nb, char **commands)
 	} else if (!strcmp(commands[1], "-force-scan")) {
 		scan_query(commands, SCAN_FORCE);
 	} else if (!strcmp(commands[1], "-license")) {
-		NOT_YET_IMP;
-		printf("See the LICENSE file located in /etc/klearnel\n");
+		char *license_file = "/etc/klearnel/LICENSE";
+		if (access(license_file, F_OK) == 0){
+			char command[256] = "";
+			snprintf(command, 256, "cat %s | more", license_file);
+			system(command);
+		} else {
+			printf("The license file doesn't seem to be installed.\"n"
+				"You can find it at https://github.com/Klearnel-Devs/klearnel/blob/master/LICENSE\n");
+		}
 	} else if (!strcmp(commands[1], "-stop")) {
 		
 		printf("Stopping Klearnel services\n\n");
@@ -277,7 +284,7 @@ void execute_commands(int nb, char **commands)
 		} else {
 			printf("\nAt least on service is not running\n"
 				"It is often mean that a service has crashed\n"
-				"To check it, run the following command as root: ps faux | grep klearnel\n"
+				"To check it, run the following command as root: ps aux | grep klearnel\n"
 				"If should show 3 processes. If one of it is marked <defunct> or is missing,\n"
 				"Run the command \"pkill klearnel\" as root and restart it\n"
 				"If any process is running, you can restart Klearnel safely\n");
