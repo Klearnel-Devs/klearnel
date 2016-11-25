@@ -277,7 +277,7 @@ void execute_commands(int nb, char **commands)
 		} else {
 			printf("\nAt least on service is not running\n"
 				"It is often mean that a service has crashed\n"
-				"To check it, run the following command as root: ps faux | grep klearnel\n"
+				"To check it, run the following command as root: ps aux | grep klearnel\n"
 				"If should show 3 processes. If one of it is marked <defunct> or is missing,\n"
 				"Run the command \"pkill klearnel\" as root and restart it\n"
 				"If any process is running, you can restart Klearnel safely\n");
