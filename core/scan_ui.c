@@ -171,7 +171,7 @@ TWatchElement _new_elem_form(char *path)
 	return new_elem;
 }
 
-int scan_query(int nb, char **commands, int action)
+int scan_query(char **commands, int action)
 {
 	int len, s_cl, fd;
 	int c_len = 0;

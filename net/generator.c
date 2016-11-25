@@ -25,7 +25,7 @@ int generate_token()
 
 	gethostname(host, (sizeof(char)*256));
 	
-	for (i = 0; i < strlen(host); i++) {
+	for (i = 0; i < (int)strlen(host); i++) {
 		num_host += (int)host[i];
 	}
 	unsigned long num_tk = (t_stamp * sqrt(ratio)) * ((num_host != 0) ? num_host : 1);

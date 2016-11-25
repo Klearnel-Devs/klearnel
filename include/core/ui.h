@@ -39,7 +39,6 @@ int qr_query(char **commands, int action);
 /*-------------------------------------------------------------------------*/
 /**
   \brief	Allow to send a query to the scanner
-  \param 	nb 		Number of commands
   \param 	commands 	Commands to execute
   \param 	action 		The action to take
   \return	0 on success, -1 on error
@@ -47,7 +46,7 @@ int qr_query(char **commands, int action);
   
  */
 /*--------------------------------------------------------------------------*/
-int scan_query(int nb, char **commands, int action);
+int scan_query(char **commands, int action);
 
 /*-------------------------------------------------------------------------*/
 /**

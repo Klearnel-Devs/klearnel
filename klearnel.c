@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 	int pid;
 	if (argc <= 1) {
 		printf("Klearnel: missing parameter(s)\n"
-		       "Enter \"klearnel help\" for further information\n");
+		       "Enter \"klearnel -help\" for further information\n");
 		return EXIT_SUCCESS;
 	}
 	if (!strcmp(argv[1], "-start")) {

@@ -30,7 +30,7 @@ int encrypt_data(char *pwd_to_encrypt)
 	unsigned char md[SHA256_DIGEST_LENGTH];
 	if (simpleSHA256(pwd_to_encrypt, strlen(pwd_to_encrypt), md)) {
 		FILE *f = fopen(SECRET, "wb");
-		if (fwrite(md, 1, SHA256_DIGEST_LENGTH, f) < 0) {
+		if ((int)fwrite(md, 1, SHA256_DIGEST_LENGTH, f) < 0) {
 			LOG(WARNING, "Unable to store encrypted password in secret.pem");
 			fclose(f);
 			return -1;
@@ -48,7 +48,7 @@ int check_hash(const unsigned char *hash_to_check)
 		return -1;
 	}
 	unsigned char digest[SHA256_DIGEST_LENGTH];
-	if (fread(digest, SHA256_DIGEST_LENGTH, 1, f) < 0) {
+	if ((int)fread(digest, SHA256_DIGEST_LENGTH, 1, f) < 0) {
 		LOG(WARNING, "Unable to read digest in secret file");
 		fclose(f);
 		return -1;
