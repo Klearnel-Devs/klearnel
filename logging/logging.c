@@ -113,7 +113,7 @@ int write_to_log(int level, const char *format, ...)
 	    return -1;
 	} 
 	va_list(args);
-	char date[7], tm[9];
+	char date[9], tm[9];
 	char *msg_level = malloc(sizeof(char)*17);
 	msg_level = strcpy(msg_level, _getLevel(level)); 
 	// Time variables
