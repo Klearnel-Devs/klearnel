@@ -273,17 +273,17 @@ int  add_file_to_qr(char *filepath)
 
 	new_f.o_ino = new_s;
 
-	if (!strncpy(new_f.o_path, filepath, strlen(filepath)+1)) {
+	if (!strncpy(new_f.o_path, filepath, sizeof(new_f.o_path))) {
 		write_to_log(WARNING, "%s - %d - Unable to put current path - %s - to old path - %s", __func__, __LINE__, new_f.o_path, filepath);
         	goto error;
 	}
 	if (tmp_fn == NULL) {
-		if (!strncpy(new_f.f_name, fn, strlen(fn)+1)) {
+		if (!strncpy(new_f.f_name, fn, sizeof(new_f.f_name))) {
 			write_to_log(WARNING, "%s - %d - Unable to put new filename - %s - to qr_file struct - %s", __func__, __LINE__, fn, new_f.f_name);
 	        	goto error;
 		}
 	} else {
-		if (!strncpy(new_f.f_name, tmp_fn, strlen(tmp_fn)+1)) {
+		if (!strncpy(new_f.f_name, tmp_fn, sizeof(new_f.f_name))) {
 			write_to_log(WARNING, "%s - %d - Unable to put new filename - %s - to qr_file struct - %s", __func__, __LINE__, fn, new_f.f_name);
 	        	goto error;
 		}
