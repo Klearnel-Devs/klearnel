@@ -149,7 +149,7 @@ QrListNode* _find_QRNode(QrListNode *node, int num)
 #ifdef __APPLE__
 	else if(node->data.o_ino.st_ino < (unsigned long long)num){
 #else
-	else if(node->data.o_ino.st_ino < num){
+	else if(node->data.o_ino.st_ino < (unsigned int)num){
 #endif
 		node = _find_QRNode(node->next, num);
 	}
