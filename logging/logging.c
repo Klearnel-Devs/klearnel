@@ -93,7 +93,7 @@ char *_getLevel(int level)
 {
     char *x;
 	switch (level) {
-	case 0:  x = " -   [DBUG]   - "; break;
+		case 0:  x = " -   [DBUG]   - "; break;
     	case 1:  x = " -   [INFO]   - "; break;
     	case 2:  x = " -  [NOTIFY]  - "; break;
     	case 3:  x = " -   [WARN]   - "; break;
@@ -121,7 +121,7 @@ int write_to_log(int level, const char *format, ...)
   	struct tm * timeinfo;
   	time(&rawtime);
   	timeinfo = localtime(&rawtime);
-  	strftime(date, sizeof(date), "%y%m%d", timeinfo);
+  	strftime(date, sizeof(date), "%y-%m-%d", timeinfo);
   	strftime(tm, sizeof(tm), "%H:%M:%S", timeinfo);
   	char *logs = malloc(strlen(LOG_DIR) + strlen(date) + strlen(".log") + 1);
 

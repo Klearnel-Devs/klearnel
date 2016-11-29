@@ -173,11 +173,13 @@ void networker()
 	int action = 0;
 	struct sockaddr_in server;
 	int oldmask = umask(0);
+	
 	if ((s_srv = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open the socket");
 		return;
 	}
 	bzero((char*) &server, sizeof(server));
+
 	server.sin_family = AF_INET;
 	server.sin_port = htons(SOCK_NET_PORT);
 	server.sin_addr.s_addr = INADDR_ANY;
@@ -192,7 +194,6 @@ void networker()
 #else 
 	setsockopt(s_srv, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
 #endif
-
 	umask(oldmask);
 	listen(s_srv, 10);
 

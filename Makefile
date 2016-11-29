@@ -17,7 +17,7 @@ zip:
 	@echo "TAR BZ2 archive created successfully"
 
 $(EXECUTABLE): subdirs $(OBJ-KL) 
-	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o) -lssl -lcrypto -lm
+	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o) $(LBUILD) -lssl -lcrypto -lm
 
 $(OBJ-KL): $(BUILD_DIR)/%.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@

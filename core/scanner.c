@@ -304,12 +304,12 @@ void _backupFiles(char* file_bu)
 	}
   	pid = fork();
 	if (pid == 0) {
-		char *prog1_argv[4];
+		char *prog1_argv[5];
 		prog1_argv[0] = "rsync";
 		prog1_argv[1] = "-a";
 		prog1_argv[2] = file;
 		prog1_argv[3] = path;
-		//prog1_argv[4] = NULL;
+		prog1_argv[4] = NULL;
 		execvp(prog1_argv[0], prog1_argv);
 	} else if ( pid < 0 ) {
 		LOG(FATAL, "Could not fork backup exec");
@@ -355,8 +355,8 @@ int _add_file_qr(char *buf)
 	}
 
 	remote.sun_family = AF_UNIX;
-	strncpy(remote.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
-	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
+	strncpy(remote.sun_path, QR_SOCK, sizeof(remote.sun_path));
+	len = sizeof(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
 		LOG(FATAL, "Unable to connect the qr_sock");
@@ -484,7 +484,7 @@ void _deleteFiles(char *file)
 						"Failed to duplicate file descriptor");
 				_exit(EXIT_FAILURE);
 			}
-			char *prog1_argv[7];
+			char *prog1_argv[8];
 			prog1_argv[0] = "find";
 			prog1_argv[1] = file;
 			prog1_argv[2] = "-type";
@@ -492,7 +492,7 @@ void _deleteFiles(char *file)
 			prog1_argv[4] = "!";
 			prog1_argv[5] = "-empty";
 			prog1_argv[6] = "-print0";
-			//prog1_argv[7] = NULL;
+			prog1_argv[7] = NULL;
 			if (execvp(prog1_argv[0], prog1_argv) == -1) {
 				LOG(WARNING, "Failed to get non-empty files from directory");
 				close (pipe_fd[1]);
@@ -547,11 +547,11 @@ void _deleteFiles(char *file)
 			goto err;
 		}
 		if (pid == 0) {
-			char *prog1_argv[3];
+			char *prog1_argv[4];
 			prog1_argv[0] = "rm";
 			prog1_argv[1] = "-rf";
 			prog1_argv[2] = file;
-			//prog1_argv[3] = NULL;
+			prog1_argv[3] = NULL;
 			if (execvp(prog1_argv[0], prog1_argv) == -1) {
 				exit(EXIT_FAILURE);
 			}
@@ -794,16 +794,16 @@ void _checkSymlinks(TWatchElement data)
 	}
 
 	if (pid == 0) {
-	      	char *prog1_argv[7];
+	      	char *prog1_argv[8];
 
 		prog1_argv[0] = "find";
-	      	prog1_argv[1] = data.path;
-	      	prog1_argv[2] = "-type";
-	      	prog1_argv[3] = "l";
-	      	prog1_argv[4] = "-xtype";
-	      	prog1_argv[5] = "l";
-	      	prog1_argv[6] = "-print0";
-	      	//prog1_argv[7] = NULL;
+      	prog1_argv[1] = data.path;
+      	prog1_argv[2] = "-type";
+      	prog1_argv[3] = "l";
+      	prog1_argv[4] = "-xtype";
+      	prog1_argv[5] = "l";
+      	prog1_argv[6] = "-print0";
+      	prog1_argv[7] = NULL;
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -897,14 +897,14 @@ void _dupSymlinks(TWatchElement data)
 		goto err;
 	}
 	if (pid == 0) {
-		char *prog1_argv[5];
+		char *prog1_argv[6];
 
 		prog1_argv[0] = "find";
-	      	prog1_argv[1] = data.path;
-	      	prog1_argv[2] = "-type";
-	      	prog1_argv[3] = "l";
-	      	prog1_argv[4] = "-print0";
-	      	//prog1_argv[5] = NULL;
+      	prog1_argv[1] = data.path;
+      	prog1_argv[2] = "-type";
+      	prog1_argv[3] = "l";
+      	prog1_argv[4] = "-print0";
+      	prog1_argv[5] = NULL;
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
 			close (pipe_fd[1]);
@@ -1065,7 +1065,7 @@ void _checkFiles(TWatchElement data, int action)
 	}
 
 	if (pid == 0) {
-	      	char *prog1_argv[7];
+	      	char *prog1_argv[8];
 	      	double size = 0.0;
 	      	if (action == SCAN_BACKUP) {
 	      		size = data.back_limit_size;
@@ -1085,7 +1085,7 @@ void _checkFiles(TWatchElement data, int action)
 			goto childDeath;
 	  	}
 	      	prog1_argv[6] = "-print0";
-	      	//prog1_argv[7] = NULL;
+	      	prog1_argv[7] = NULL;
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -1297,14 +1297,14 @@ void _cleanFolder(TWatchElement data)
 	}
 
 	if (pid == 0) {
-	      	char *prog1_argv[5];
+	      	char *prog1_argv[6];
 	      	char *types[] = {"b", "c", "p", "f", "l", "s", "d"};
 	      	int returnStatus, childpid;
-		prog1_argv[0] = "find";
+			prog1_argv[0] = "find";
 	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-type";
 	      	prog1_argv[4] = "-print0";
-	      	//prog1_argv[5] = NULL;
+	      	prog1_argv[5] = NULL;
 	      	close (pipe_fd[0]);
 	      	if (dup2(pipe_fd[1], 1) == -1) {
 	      		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -1412,9 +1412,9 @@ void _oldFiles(TWatchElement data, int action)
 	}
 
 	if (pid == 0) {
-	      	char *prog1_argv[8];
+	      	char *prog1_argv[9];
 	      	uint age = data.max_age;
-		prog1_argv[0] = "find";
+			prog1_argv[0] = "find";
 	      	prog1_argv[1] = data.path;
 	      	prog1_argv[2] = "-daystart";
 	      	prog1_argv[3] = "-type";
@@ -1428,7 +1428,7 @@ void _oldFiles(TWatchElement data, int action)
 			goto childDeath;
 	  	}
 	      	prog1_argv[7] = "-print0";
-	      	//prog1_argv[8] = NULL;
+	      	prog1_argv[8] = NULL;
 		close (pipe_fd[0]);
 		if (dup2 (pipe_fd[1], 1) == -1) {
 			write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, 
@@ -1560,6 +1560,7 @@ int init_scanner()
 		}
 	}
 	umask(o_mask);
+	write_to_log(INFO, "%s", "Scanner initialized without error");
 	return 0;
 }
 
@@ -1787,13 +1788,22 @@ void scanner_worker()
 		return;
 	}
 	server.sun_family = AF_UNIX;
-	strncpy(server.sun_path, SCAN_SOCK, strlen(SCAN_SOCK) + 1);
-	unlink(server.sun_path);
-	len = strlen(server.sun_path) + sizeof(server.sun_family);
+
+	strncpy(server.sun_path, SCAN_SOCK, sizeof(server.sun_path));
+
+	if (unlink(server.sun_path) != 0) {
+		if(errno != ENOENT) {
+			write_to_log(URGENT, "%s:%d: Unable to remove the old scanner socket, Error: %d", 
+				__func__, __LINE__, errno);
+		}
+	}
+
+	len = sizeof(server.sun_path) + sizeof(server.sun_family);
 	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
 		write_to_log(WARNING, "%s:%d: %s", __func__, __LINE__, "Unable to bind the socket");
 		return;
 	}
+
 	umask(oldmask);
 	listen(s_srv, 10);
 
@@ -1854,8 +1864,8 @@ void scanner_worker()
 			perform_event();
 		}
 	} while (task != KL_EXIT);
+	shutdown(s_srv, SHUT_RDWR);
 	close(s_srv);
-	unlink(server.sun_path);
 	exit(EXIT_SUCCESS);
 }
 
