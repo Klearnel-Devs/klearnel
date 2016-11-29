@@ -265,9 +265,9 @@ void execute_commands(int nb, char **commands)
 
 		int qr_res = qr_query(commands, KL_EXIT);
 		if (qr_res == -1) {
-			printf("Check Klearnel logs, Qr-Worker did not terminate correctly\n");
+			printf("Check Klearnel logs, Quarantine did not terminate correctly\n");
 		} else if (qr_res == 0) {
-			printf("Qr-Worker successfully stopped\n");
+			printf("Quarantine successfully stopped\n");
 		}
 
 		int scan_res = scan_query(commands, KL_EXIT);
