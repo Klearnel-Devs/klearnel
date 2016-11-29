@@ -135,7 +135,6 @@ void _init_env()
 	int is_gen = -1;
 	while(is_gen < 0) is_gen = generate_token();
 	encrypt_root();
-
 }
 
 /*-------------------------------------------------------------------------*/
@@ -150,31 +149,31 @@ void _daemonize()
 {
 	pid_t pid, sid;
         
-        pid = fork();
-        if (pid < 0) {
-                exit(EXIT_FAILURE);
-        }
+    pid = fork();
+    if (pid < 0) {
+            exit(EXIT_FAILURE);
+    }
 
-        if (pid > 0) {
-                exit(EXIT_SUCCESS);
-        }
+    if (pid > 0) {
+            exit(EXIT_SUCCESS);
+    }
 
-        umask(0);       
+    umask(0);       
 
-        sid = setsid();
-        if (sid < 0) {
-                write_to_log(FATAL, "%s: Unable to create new session id for Klearnel", __func__);
-                exit(EXIT_FAILURE);
-        }
+    sid = setsid();
+    if (sid < 0) {
+            write_to_log(FATAL, "%s: Unable to create new session id for Klearnel", __func__);
+            exit(EXIT_FAILURE);
+    }
 
-        if ((chdir("/")) < 0) {
-                write_to_log(FATAL, "%s: Unable to change root directory of Klearnel", __func__);
-                exit(EXIT_FAILURE);
-        }
-        
-        close(STDIN_FILENO);
-        close(STDOUT_FILENO);
-        close(STDERR_FILENO);
+    if ((chdir("/")) < 0) {
+            write_to_log(FATAL, "%s: Unable to change root directory of Klearnel", __func__);
+            exit(EXIT_FAILURE);
+    }
+    
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
         
 }
 
@@ -265,7 +264,7 @@ service: ;
 	}
 
 	if (_save_main_pid(getpid())) {
-		perror("KL: Unable to save the module pid");
+		LOG(WARNING, "KL: Unable to save the module pid");
 		return EXIT_FAILURE;
 	}
 	/* --------------- SERVICES START -------------------------- */
@@ -279,12 +278,12 @@ service: ;
 		} else if (pid_net > 0) {
 			scanner_worker();
 		} else {
-			perror("KL: Unable to fork for Network & Scanner processes");
+			LOG(FATAL, "KL: Unable to fork for Network & Scanner processes");
 			free_cfg(1);
 			return EXIT_FAILURE;
 		}
 	} else {
-		perror("KL: Unable to fork for Quarantine & Scanner processes");
+		LOG(FATAL, "KL: Unable to fork for Quarantine & Scanner processes");
 		free_cfg(1);
 		return EXIT_FAILURE;
 	}

@@ -26,8 +26,8 @@ int qr_query(char **commands, int action)
 	}
 
 	remote.sun_family = AF_UNIX;
-	strncpy(remote.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
-	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
+	strncpy(remote.sun_path, QR_SOCK, sizeof(remote.sun_path));
+	len = sizeof(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
 		if (action == KL_EXIT) {
@@ -248,11 +248,13 @@ out:
 	}
 	free(query);
 	free(res);
+	shutdown(s_cl, SHUT_RDWR);
 	close(s_cl);
 	return 0;
 error:
 	free(query);
 	free(res);
+	shutdown(s_cl, SHUT_RDWR);
 	close(s_cl);
 	return -1;
 	

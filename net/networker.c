@@ -42,8 +42,8 @@ int _execute_qr_action(const char *buf, const int c_len, const int action, const
 	}
 
 	remote.sun_family = AF_UNIX;
-	strncpy(remote.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
-	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
+	strncpy(remote.sun_path, QR_SOCK, sizeof(remote.sun_path));
+	len = sizeof(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
 		LOG(FATAL, "Unable to connect the qr_sock");
@@ -333,12 +333,14 @@ out:
 
 	free(query);
 	free(res);
+	shutdown(s_cl, SHUT_RDWR);
 	close(s_cl);
 	return 0;
 
 error:
 	free(query);
 	free(res);
+	shutdown(s_cl, SHUT_RDWR);
 	close(s_cl);
 	return -1;
 }
@@ -369,8 +371,8 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 	}
 
 	remote.sun_family = AF_UNIX;
-	strncpy(remote.sun_path, SCAN_SOCK, strlen(SCAN_SOCK) + 1);
-	len = strlen(remote.sun_path) + sizeof(remote.sun_family);
+	strncpy(remote.sun_path, SCAN_SOCK, sizeof(remote.sun_path));
+	len = sizeof(remote.sun_path) + sizeof(remote.sun_family);
 
 	if (connect(s_cl, (struct sockaddr *)&remote, len) == -1) {
 		LOG(URGENT, "Unable to connect the qr_sock");
@@ -954,11 +956,13 @@ int _execute_scan_action(const char *buf, const int c_len, const int action, con
 out:
 	free(query);
 	free(res);
+	shutdown(s_cl, SHUT_RDWR);
 	close(s_cl);
 	return 0;
 error:
 	free(query);
 	free(res);
+	shutdown(s_cl, SHUT_RDWR);
 	close(s_cl);
 	return -1;
 }

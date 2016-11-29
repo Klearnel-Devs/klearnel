@@ -17,7 +17,7 @@ zip:
 	@echo "TAR BZ2 archive created successfully"
 
 $(EXECUTABLE): subdirs $(OBJ-KL) 
-	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o) -lssl -lcrypto -lm
+	$(CC) $(CFLAGS) -o $@ $(wildcard $(BUILD_DIR)/*.o) $(LBUILD) -lssl -lcrypto -lm
 
 $(OBJ-KL): $(BUILD_DIR)/%.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -54,3 +54,10 @@ clean-sub:
 	@cd config;		$(MAKE) clean
 	@cd lib;		$(MAKE) clean
 	@cd net; 		$(MAKE) clean
+
+install:
+	@mkdir -p /etc/klearnel
+	@cp build/bin/LICENSE /etc/klearnel
+	@cp build/bin/README.md /etc/klearnel
+	@cp build/bin/klearnel /usr/local/bin
+	@echo "Klearnel has been successfully installed. :-)"

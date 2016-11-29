@@ -175,18 +175,27 @@ void _get_instructions()
 	struct sockaddr_un server;
 	load_qr();
 	int oldmask = umask(0);
+
 	if ((s_srv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to open the socket");
 		return;
 	}
+
 	server.sun_family = AF_UNIX;
-	strncpy(server.sun_path, QR_SOCK, strlen(QR_SOCK) + 1);
-	unlink(server.sun_path);
-	len = strlen(server.sun_path) + sizeof(server.sun_family);
+	strncpy(server.sun_path, QR_SOCK, sizeof(server.sun_path));
+	if (unlink(server.sun_path) != 0) {
+		if(errno != ENOENT) {
+			write_to_log(URGENT, "%s:%d: Unable to remove the old quarantine socket, Error: %d", 
+				__func__, __LINE__, errno);
+		}
+	}
+
+	len = sizeof(server.sun_path) + sizeof(server.sun_family);
 	if(bind(s_srv, (struct sockaddr *)&server, len) < 0) {
 		write_to_log(WARNING, "%s - %d - %s", __func__, __LINE__, "Unable to bind the socket");
 		return;
 	}
+
 	umask(oldmask);
 	listen(s_srv, 10);
 
@@ -238,8 +247,8 @@ void _get_instructions()
 			expired_files();
 		}
 	} while (action != KL_EXIT);
+	shutdown(s_srv, SHUT_RDWR);
 	close(s_srv);
-	unlink(server.sun_path);
 }
 
 void qr_worker()
