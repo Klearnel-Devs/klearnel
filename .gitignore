@@ -3,6 +3,7 @@
 *.o
 *~
 *.old
+*.bak
 
 # Dirs to ignore
 
