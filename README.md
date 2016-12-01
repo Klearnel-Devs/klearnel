@@ -18,7 +18,7 @@ Once this step is complete, you will need to install the openssl library. Below 
 * For Debian based systems: `apt-get install libssl-dev -y`
 * For Red Hat based systems: `yum install openssl-devel -y`
 * For Mac OS: 
-	* You will need the commandline tool called "Homebrew". If you do not have it, please follow the instructions [here](http://brew.sh/).
+	* You will need the command-line tool called "Homebrew". If you do not have it, please follow the instructions [here](http://brew.sh/).
 	* Issue the following command: `brew install openssl`
 
 ### Build
@@ -32,10 +32,21 @@ Use the command `make`. If this step returns an error `#include <openssl/sha.h>:
 ### Install
 
 Once the build part complete, install Klearnel using this command: `make install`.
+
 You will need to do this as root.
+
+### Generate the documentation
+
+If you want to generate the documentation of the source code, you will need doxygen. 
+
+Once doxygen installed on your system, do this in the folder of the project: `doxygen doxy.conf`.
+
+The generated documentation will be available at `build/bin/doc`.
 
 How to contribute
 -----------------
 
 Any contribution is welcome. To help the project to evolve, please fork this repo and make a PR with your changes.
+
+Please notice that we use Doxygen to comment the source code. If you want to learn more about it, visit [this](https://en.wikipedia.org/wiki/Doxygen).
 
