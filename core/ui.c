@@ -20,8 +20,8 @@
 
 /*-------------------------------------------------------------------------*/
 /**
-  \brief	Send the command KL_EXIT to the network process
-  \return	Return 0 on success, else -1
+  \brief  Send the command KL_EXIT to the network process
+  \return Return 0 on success, else -1
   
  */
 /*--------------------------------------------------------------------------*/
@@ -155,6 +155,46 @@ int _kill_mutex()
 	return 0;
 }
 
+int stop_action() {
+	printf("Stopping Klearnel services\n\n");
+	int net_res = _net_exiter();
+	if (net_res == -1) {
+		printf("Check Klearnel logs, Networker did not terminate correctly\n");
+	} else if (net_res == 0) {
+		printf("Networker process successfully stopped\n");
+	}
+
+	int qr_res = qr_query(NULL, KL_EXIT);
+	if (qr_res == -1) {
+		printf("Check Klearnel logs, Quarantine did not terminate correctly\n");
+	} else if (qr_res == 0) {
+		printf("Quarantine successfully stopped\n");
+	}
+
+	int scan_res = scan_query(NULL, KL_EXIT);
+	if (scan_res == -1) {
+		printf("Check Klearnel logs, Scanner did not terminate correctly\n");
+	} else if (scan_res == 0) {
+		printf("Scanner process successfully stopped\n");
+	}
+	
+	if ((scan_res == 0) && (qr_res == 0) && (net_res == 0)) {
+		printf("\nKlearnel services are stopped and the module will now be shutted down\n");
+		return 0;
+	} else if ((scan_res == -2) && (qr_res == -2) && (net_res == -2)) {
+		printf("\nKlearnel services are currently not running\n");
+		return 0;
+	} else {
+		printf("\nAt least on service is not running\n"
+			"It is often mean that a service has crashed\n"
+			"To check it, run the following command as root: ps aux | grep klearnel\n"
+			"If should show 3 processes. If one of it is marked <defunct> or is missing,\n"
+			"Run the command \"pkill klearnel\" as root and restart it\n"
+			"If any process is running, you can restart Klearnel safely\n");
+		return -1;
+	}	
+}
+
 void execute_commands(int nb, char **commands)
 {
 	if (!strcmp(commands[1], "-add-to-qr")) {
@@ -254,41 +294,7 @@ void execute_commands(int nb, char **commands)
 				"You can find it at https://github.com/Klearnel-Devs/klearnel/blob/master/LICENSE\n");
 		}
 	} else if (!strcmp(commands[1], "-stop")) {
-		
-		printf("Stopping Klearnel services\n\n");
-		int net_res = _net_exiter();
-		if (net_res == -1) {
-			printf("Check Klearnel logs, Networker did not terminate correctly\n");
-		} else if (net_res == 0) {
-			printf("Networker process successfully stopped\n");
-		}
-
-		int qr_res = qr_query(commands, KL_EXIT);
-		if (qr_res == -1) {
-			printf("Check Klearnel logs, Quarantine did not terminate correctly\n");
-		} else if (qr_res == 0) {
-			printf("Quarantine successfully stopped\n");
-		}
-
-		int scan_res = scan_query(commands, KL_EXIT);
-		if (scan_res == -1) {
-			printf("Check Klearnel logs, Scanner did not terminate correctly\n");
-		} else if (scan_res == 0) {
-			printf("Scanner process successfully stopped\n");
-		}
-		
-		if ((scan_res == 0) && (qr_res == 0) && (net_res == 0)) {
-			printf("\nKlearnel services are stopped and the module will now be shutted down\n");
-		} else if ((scan_res == -2) && (qr_res == -2) && (net_res == -2)) {
-			printf("\nKlearnel services are currently not running\n");
-		} else {
-			printf("\nAt least on service is not running\n"
-				"It is often mean that a service has crashed\n"
-				"To check it, run the following command as root: ps aux | grep klearnel\n"
-				"If should show 3 processes. If one of it is marked <defunct> or is missing,\n"
-				"Run the command \"pkill klearnel\" as root and restart it\n"
-				"If any process is running, you can restart Klearnel safely\n");
-		}
+		stop_action();
 
 	} else if (!strcmp(commands[1], "-flush")) {
 		if (_kill_mutex() < 0) {
@@ -317,8 +323,10 @@ void execute_commands(int nb, char **commands)
 		printf(" \e[1m-license\e[0m:\n\t Display the klearnel license terms\n\n");
 		printf(" \e[1m-flush\e[0m:\n\t Flush IPC's created by Klearnel services"
 			"\n\t To use only when services crashed\n\n");
-		printf(" \e[1m-start\e[0m:\n\t Start Klearnel service"
+		printf(" \e[1m-start\e[0m:\n\t Start Klearnel services"
 			"\n\t \e[1m\e[33mNOTE\e[0m: you need to be root to start the services\n\n");
+		printf(" \e[1m-restart\e[0m:\n\t Restart the Klearnel services"
+			"\n\t \e[1m\e[33mNOTE\e[0m: you need to be root to restart the services\n\n");
 		printf(" \e[1m-stop\e[0m:\n\t Stop Klearnel service\n\n");
 		printf(" \e[1m-help\e[0m:\n\t Display this help message\n\n");
 		printf("\n Copyright (C) 2014, 2015 Klearnel-Devs\n\n\e[0m");
