@@ -26,6 +26,17 @@
  ---------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------*/
 /**
+  \brief  Send KL_EXIT to all Klearnel services
+  \return 0 on success, -1 if Klearnel does not shutdown successfully 
+
+  Ask to all Klearnel services to shutdown with the KL_EXIT signal.
+  
+ */
+/*--------------------------------------------------------------------------*/
+int stop_action();
+
+/*-------------------------------------------------------------------------*/
+/**
   \brief	Allow to send a query to the quarantine
   \param 	commands 	Commands to execute
   \param 	action 		The action to take

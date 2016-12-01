@@ -57,7 +57,7 @@ void autocomplete()
 	"	opts=\"-add-to-qr -rm-from-qr -rm-all-from-qr -get-qr-list\n"
 	"	-get-qr-info -restore-from-qr -restore-all-from-qr\n"
 	"	-add-to-scan -rm-from-scan -get-scan-list -view-rt-log\n" 
-	"	-license -start -stop -help -force-scan -flush\""
+	"	-license -start -restart -stop -help -force-scan -flush\""
 	"\n"
 	"	if [[ ${cur} == -* ]] ; then\n"
 	"		COMPREPLY=( $(compgen -W \"${opts}\" -- ${cur}) )\n"
@@ -148,33 +148,31 @@ void _init_env()
 void _daemonize()
 {
 	pid_t pid, sid;
-        
-    pid = fork();
-    if (pid < 0) {
-            exit(EXIT_FAILURE);
-    }
 
-    if (pid > 0) {
-            exit(EXIT_SUCCESS);
-    }
+	pid = fork();
+	if (pid < 0) {
+		exit(EXIT_FAILURE);
+	}
 
-    umask(0);       
+	if (pid > 0) {
+		exit(EXIT_SUCCESS);
+	}
 
-    sid = setsid();
-    if (sid < 0) {
-            write_to_log(FATAL, "%s: Unable to create new session id for Klearnel", __func__);
-            exit(EXIT_FAILURE);
-    }
+	umask(0);       
 
-    if ((chdir("/")) < 0) {
-            write_to_log(FATAL, "%s: Unable to change root directory of Klearnel", __func__);
-            exit(EXIT_FAILURE);
-    }
-    
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-        
+	sid = setsid();
+	if (sid < 0) {
+		write_to_log(FATAL, "%s: Unable to create new session id for Klearnel", __func__);
+		exit(EXIT_FAILURE);
+	}
+
+	if ((chdir("/")) < 0) {
+		write_to_log(FATAL, "%s: Unable to change root directory of Klearnel", __func__);
+		exit(EXIT_FAILURE);
+	}
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);        
 }
 
 /*-------------------------------------------------------------------------*/
@@ -209,7 +207,7 @@ int _save_main_pid(pid_t pid)
 		perror("KL: Unable to open pid file");
 		goto error;
 	}
-	if (write(fd, pid_s, strlen(pid_s)) < 0) {
+	if (write(fd, pid_s, strlen(pid_s) + 1) < 0) {
 		perror("KL: Unable to write process id in the pid file");
 		close(fd);
 		goto error;
@@ -220,6 +218,111 @@ int _save_main_pid(pid_t pid)
 error:
 	free(pid_s);
 	return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+ \brief		Get the saved process ID
+ \return 	The saved process ID, -1 on error, -2 if no pid stored
+
+  Get the process ID stored in the file PID_FILE (if exist) to allow 
+  status verification and restart action
+ */
+/*-------------------------------------------------------------------------*/
+int _get_stored_pid()
+{
+	int fd;
+	int pid;
+	char *pid_s;
+	if ((pid_s = malloc(PID_MAX_S)) == NULL) {
+		perror("KL: Unable to allocate memory");
+		return -1;
+	}
+	if (access(PID_FILE, F_OK) == -1) {
+		free(pid_s);
+		return -2;
+	}
+
+	if ((fd = open(PID_FILE, O_RDONLY, S_IRUSR)) < 0){
+		perror("KL: Unable to open pid file");
+		goto error;
+	}
+
+	if (read(fd, pid_s, strlen(pid_s)) < 0) {
+		perror("KL: Unable to open pid file");
+		close(fd);
+		goto error;
+	}
+
+	pid = (int)strtoimax(pid_s, NULL, 10);
+
+	free(pid_s);
+	close(fd);
+	return pid;
+error:
+	free(pid_s);
+	return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  \brief        Check if Klearnel is already running
+  \return       0 on success, -1 on error, -2 if already running
+
+*/
+/*--------------------------------------------------------------------------*/
+int _check_other_instance() 
+{
+	int old_pid = _get_stored_pid();
+	if (old_pid == -1){
+		printf("[\e[31mNOK\e[0m]\n");
+		perror("\nKL: Error on old PID check up");
+		return -1;
+	} else if (old_pid != -2){
+		if (kill((pid_t)old_pid, 0) == 0) {
+			char *com;
+			char output[PATH_MAX];
+
+			if ((com = malloc(sizeof(char)*256)) == NULL) {
+				perror("KL: Unable to allocate memory");
+				return -1;				
+			}
+
+			if (snprintf(com, sizeof(char)*256, "/bin/ps -p %d -o comm=", old_pid) <= 0) {
+				perror("KL: Unable to create check up command");
+				free(com);
+				return -1;
+			}
+
+			FILE *fp;
+			fp = popen(com, "r");
+
+			if (fp == NULL){
+				perror("KL: Failed to run pid check up");
+				free(com);
+				return -1;
+			}
+
+
+			if (fgets(output, sizeof(output)-1, fp) == NULL) {
+				perror("KL: Failed to get check up proces ID response");
+				pclose(fp);
+				free(com);
+				return -1;
+			}
+
+			if (!strcmp(output, "klearnel -start") || !strcmp(output, "klearnel -restart")) {
+				printf("[\e[31mNOK\e[0m]\n");
+				pclose(fp);
+				free(com);
+				return -2;
+			}
+
+			pclose(fp);
+			free(com);
+		}		
+	}
+	return 0;	
 }
 
 /*-------------------------------------------------------------------------*/
@@ -243,31 +346,52 @@ int main(int argc, char **argv)
 	if (!strcmp(argv[1], "-start")) {
 		goto service;
 	} 
+
+	if (!strcmp(argv[1], "-restart")) {
+		int stop_status = stop_action();
+		if (!stop_status) {
+			printf("\n");
+			goto service;
+		}
+
+	}
+
 	execute_commands(argc, argv);
 	return EXIT_SUCCESS;
 
 service: ;
+	printf("Starting Klearnel services...\t");
 	_init_env();
-	_daemonize();
+	/* ---------------- CHECK PROGRAM STATUS ------------------- */
+	int check_resp = _check_other_instance();
+	if (check_resp == -2) {
+		goto other_instance;
+	} else if (check_resp == -1) {
+		return EXIT_FAILURE;
+	}
 	/* ---------------- KEARNEL MUTEX INIT --------------------- */
 	key_t mutex_key = ftok(IPC_RAND, IPC_MUTEX);
 	int mutex = semget(mutex_key, 1, IPC_CREAT | IPC_EXCL | IPC_PERMS);
 	if (mutex < 0) {
 		if (errno == EEXIST) {
-			printf("Klearnel is already running!\n"
-				"If you think that Klearnel services are not running, "
-				"please execute: klearnel -flush and try to start the services again\n");
+			printf("[\e[31mNOK\e[0m]\n");
+			goto other_instance;
 		} else {
-			printf("Unable to start Klearnel service: mutex couldn't be created\n");
+			printf("[\e[31mNOK\e[0m]\n");
+			printf("\nUnable to start Klearnel service: mutex couldn't be created\n");
 		}
 		return EXIT_FAILURE;
 	}
 
 	if (_save_main_pid(getpid())) {
+		printf("[\e[31mNOK\e[0m]\n");
 		LOG(WARNING, "KL: Unable to save the module pid");
 		return EXIT_FAILURE;
 	}
+	
 	/* --------------- SERVICES START -------------------------- */
+	printf("[\e[32mOK\e[0m]\n");
+	_daemonize();
 	pid = fork();
 	if (pid == 0) {
 		qr_worker();
@@ -291,4 +415,10 @@ service: ;
 
 	semctl(mutex, 0, IPC_RMID, NULL);
 	return EXIT_SUCCESS;
+
+other_instance:
+	printf("\nKlearnel is already running!\n"
+		"If you think that Klearnel services are not running, "
+		"Please execute: klearnel -flush and try to start the services again\n");
+	return EXIT_FAILURE;
 }
