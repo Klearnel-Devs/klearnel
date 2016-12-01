@@ -43,6 +43,10 @@ Once doxygen installed on your system, do this in the folder of the project: `do
 
 The generated documentation will be available at `build/bin/doc`.
 
+### Clean the project folder
+
+Once you installed Klearnel and you want to work on the source code, issue this command: `make clean`
+
 How to contribute
 -----------------
 
