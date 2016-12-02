@@ -445,9 +445,6 @@ void load_qr()
 
 void print_qr(QrList **list)
 {
-	clock_t begin, end;
-	double spent;
-	begin = clock();
 	char begstr[50];
 	char expstr[50];
 	struct tm *tminfo;
@@ -466,9 +463,6 @@ void print_qr(QrList **list)
 	} else {
 		printf("\n\tNothing in Quarantine list\n");
 	}
-	end = clock();
-	spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf("\nQuery executed in: %.2lf seconds\n", spent);
 }
 
 int save_qr_list(int custom)

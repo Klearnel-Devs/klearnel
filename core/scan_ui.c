@@ -316,7 +316,10 @@ int scan_query(char **commands, int action)
 			}
 			break;
 		case SCAN_LIST:
-			snprintf(query, len, "%d:0", action);			
+			snprintf(query, len, "%d:0", action);
+			clock_t begin, end;
+			double spent;
+			begin = clock();			
 			char *list_path = malloc(PATH_MAX);
 			TWatchElementList *scan_list = NULL;
 			if (!list_path) {
@@ -359,6 +362,9 @@ int scan_query(char **commands, int action)
 			if (unlink(list_path))
 				printf("Unable to remove temporary scan list file: %s", list_path);
 			print_scan(&scan_list);
+			end = clock();
+			spent = (double)(end - begin) / CLOCKS_PER_SEC;
+			printf("\nQuery executed in: %.2lf seconds\n", spent);
 			break;
 		case KL_EXIT:
 			snprintf(query, len, "%d:0", action);
