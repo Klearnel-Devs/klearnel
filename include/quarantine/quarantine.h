@@ -98,8 +98,6 @@ struct qr_file {
 */
 typedef struct qr_file QrData;
 
-struct QrListNode;
-
 /*-------------------------------------------------------------------------*/
 /**
   \brief    Structure containing QrData 
@@ -110,11 +108,16 @@ struct QrListNode;
 
  */
 /*-------------------------------------------------------------------------*/
-typedef struct QrListNode {
+struct QrListNode {
     struct QrListNode *next; //!< Pointer to next node in list
     struct QrListNode *prev; //!< Pointer to previous node in list
     QrData data;             //!< This nodes data payload
-} QrListNode;
+};
+
+/**
+ \brief Define the QrListNode type as we use it in quarantine.c
+*/
+typedef struct QrListNode QrListNode;
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -126,11 +129,16 @@ typedef struct QrListNode {
 
  */
 /*-------------------------------------------------------------------------*/
-typedef struct QrList {
+struct QrList {
     int count;          //!< The count of items in the doubly linked list
     QrListNode *first;  //!< Pointer to first node in list
     QrListNode *last;   //!< Pointer to last node in list
-} QrList;
+};
+
+/**
+ \brief Define the QrList type as we use it in quarantine.c
+*/
+typedef struct QrList QrList;
 
 /**
   \brief Macro to traverse the list of the Quarantine

@@ -343,6 +343,11 @@ int scan_query(char **commands, int action)
 				goto error;
 			} 
 
+			if (!strcmp(list_path, VOID_LIST)) {
+				printf("The scanner watch list is empty!\n");
+				break;
+			}
+
 			fd = open(list_path, O_RDONLY, S_IRUSR);
 			if (fd < 0) {
 				perror("[UI] Unable to open scan list file");
