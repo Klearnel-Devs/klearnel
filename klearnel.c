@@ -177,156 +177,6 @@ void _daemonize()
 
 /*-------------------------------------------------------------------------*/
 /**
-  \brief        Saves the main process ID for operations
-  \param        pid 	The PID of the main Klearnel process
-  \return       0 on success, -1 on error
-
-  Saves the main process ID to allow restart and stop actions
-  and to have a program status
- */
-/*--------------------------------------------------------------------------*/
-int _save_main_pid(pid_t pid)
-{
-	int fd;
-	char *pid_s;
-	if ((pid_s = malloc(sizeof(char)*25)) == NULL) {
-		perror("KL: Unable to allocate memory");
-		return -1;
-	}
-	if (snprintf(pid_s, sizeof(char)*25, "%d", pid) < 0) {
-		write_to_log(FATAL, "[KL] Unable to create the pid file path");
-		goto error;
-	}
-	if (access(PID_FILE, F_OK) == -1) {
-		if (creat(PID_FILE, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0) {
-			perror("KL: Unable to create the pid file");
-			goto error;
-		}
-	}
-	if ((fd = open(PID_FILE, O_WRONLY, S_IWUSR)) < 0) {
-		perror("KL: Unable to open pid file");
-		goto error;
-	}
-	if (write(fd, pid_s, strlen(pid_s)) < 0) {
-		perror("KL: Unable to write process id in the pid file");
-		close(fd);
-		goto error;
-	}
-	close(fd);
-	free(pid_s);
-	return 0;
-error:
-	free(pid_s);
-	return -1;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
- \brief		Get the saved process ID
- \return 	The saved process ID, -1 on error, -2 if no pid stored
-
-  Get the process ID stored in the file PID_FILE (if exist) to allow 
-  status verification and restart action
- */
-/*-------------------------------------------------------------------------*/
-int _get_stored_pid()
-{
-	int fd;
-	int pid;
-	char *pid_s;
-	if ((pid_s = malloc(sizeof(char)*25)) == NULL) {
-		perror("KL: Unable to allocate memory");
-		return -1;
-	}
-	if (access(PID_FILE, F_OK) == -1) {
-		free(pid_s);
-		return -2;
-	}
-
-	if ((fd = open(PID_FILE, O_RDONLY, S_IRUSR)) < 0){
-		perror("KL: Unable to open pid file");
-		goto error;
-	}
-
-	if (read(fd, pid_s, strlen(pid_s)) < 0) {
-		perror("KL: Unable to open pid file");
-		close(fd);
-		goto error;
-	}
-
-	pid = (int)strtoimax(pid_s, NULL, 10);
-
-	free(pid_s);
-	close(fd);
-	return pid;
-error:
-	free(pid_s);
-	return -1;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  \brief        Check if Klearnel is already running
-  \return       0 on success, -1 on error, -2 if already running
-
-*/
-/*--------------------------------------------------------------------------*/
-int _check_other_instance() 
-{
-	int old_pid = _get_stored_pid();
-	if (old_pid == -1){
-		printf("[\e[31mNOK\e[0m]\n");
-		perror("\nKL: Error on old PID check up");
-		return -1;
-	} else if (old_pid != -2){
-		if (kill((pid_t)old_pid, 0) == 0) {
-			char *com;
-			char output[PATH_MAX];
-
-			if ((com = malloc(sizeof(char)*256)) == NULL) {
-				perror("KL: Unable to allocate memory");
-				return -1;				
-			}
-
-			if (snprintf(com, sizeof(char)*256, "/bin/ps -p %d -o comm=", old_pid) <= 0) {
-				perror("KL: Unable to create check up command");
-				free(com);
-				return -1;
-			}
-
-			FILE *fp;
-			fp = popen(com, "r");
-
-			if (fp == NULL){
-				perror("KL: Failed to run pid check up");
-				free(com);
-				return -1;
-			}
-
-
-			if (fgets(output, sizeof(output)-1, fp) == NULL) {
-				perror("KL: Failed to get check up proces ID response");
-				pclose(fp);
-				free(com);
-				return -1;
-			}
-
-			if (!strcmp(output, "klearnel -start") || !strcmp(output, "klearnel -restart") || !strcmp(output, "klearnel")) {
-				printf("[\e[31mNOK\e[0m]\n");
-				pclose(fp);
-				free(com);
-				return -2;
-			}
-
-			pclose(fp);
-			free(com);
-		}		
-	}
-	return 0;	
-}
-
-/*-------------------------------------------------------------------------*/
-/**
   \brief        Main function of the module
   \param        argc 	Number of launch arguments
   \param        argv	Launch arguments
@@ -362,33 +212,21 @@ int main(int argc, char **argv)
 service: ;
 	printf("Starting Klearnel services...\t");
 	_init_env();
-	/* ---------------- CHECK PROGRAM STATUS ------------------- */
-	int check_resp = _check_other_instance();
-	if (check_resp == -2) {
-		goto other_instance;
-	} else if (check_resp == -1) {
-		return EXIT_FAILURE;
-	}
 	/* ---------------- KEARNEL MUTEX INIT --------------------- */
 	key_t mutex_key = ftok(IPC_RAND, IPC_MUTEX);
 	int mutex = semget(mutex_key, 1, IPC_CREAT | IPC_EXCL | IPC_PERMS);
 	if (mutex < 0) {
 		if (errno == EEXIST) {
 			printf("[\e[31mNOK\e[0m]\n");
-			goto other_instance;
+			printf("\nKlearnel is already running!\n"
+				"If you think that Klearnel services are not running, "
+				"Please execute: klearnel -flush and try to start the services again\n");
 		} else {
 			printf("[\e[31mNOK\e[0m]\n");
 			printf("\nUnable to start Klearnel service: mutex couldn't be created\n");
 		}
 		return EXIT_FAILURE;
-	}
-
-	if (_save_main_pid(getpid())) {
-		printf("[\e[31mNOK\e[0m]\n");
-		LOG(WARNING, "KL: Unable to save the module pid");
-		return EXIT_FAILURE;
-	}
-	
+	}	
 	/* --------------- SERVICES START -------------------------- */
 	printf("[\e[32mOK\e[0m]\n");
 	_daemonize();
@@ -415,10 +253,4 @@ service: ;
 
 	semctl(mutex, 0, IPC_RMID, NULL);
 	return EXIT_SUCCESS;
-
-other_instance:
-	printf("\nKlearnel is already running!\n"
-		"If you think that Klearnel services are not running, "
-		"Please execute: klearnel -flush and try to start the services again\n");
-	return EXIT_FAILURE;
 }
