@@ -129,7 +129,9 @@ int qr_query(char **commands, int action)
 			} else {
 				snprintf(query, len, "%d:0", action);
 			}
-			
+			clock_t begin;
+			begin = clock();
+
 			char *list_path = malloc(PATH_MAX);
 			QrList *qr_list = calloc(1, sizeof(QrList));
 			int fd;
@@ -168,7 +170,12 @@ int qr_query(char **commands, int action)
 			if (unlink(list_path))
 				printf("Unable to remove temporary quarantine file: %s", list_path);
 			if (action == QR_LIST) {
+				clock_t end;
+				double spent;
 				print_qr(&qr_list);
+				end = clock();
+				spent = (double)(end - begin) / CLOCKS_PER_SEC;
+				printf("\nQuery executed in: %.2lf seconds\n", spent);
 				goto out;
 			} else {
 				TMP_LIST_FOREACH(&qr_list, first, next, cur) {

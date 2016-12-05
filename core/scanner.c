@@ -1748,9 +1748,6 @@ int save_watch_list(int custom)
 
 void print_scan(TWatchElementList **list)
 {
-	clock_t begin, end;
-	double spent;
-	begin = clock();
 	printf("Scanner elements:\n");
 	if (*list != NULL) {
 		SCAN_LIST_FOREACH((*list), first, next, cur) {
@@ -1760,9 +1757,6 @@ void print_scan(TWatchElementList **list)
 	} else {
 		printf("\n\tNothing in Scanner watch list\n");
 	}
-	end = clock();
-	spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf("\nQuery executed in: %.2lf seconds\n", spent);
 }
 
 void load_tmp_scan(TWatchElementList **list, int fd)
