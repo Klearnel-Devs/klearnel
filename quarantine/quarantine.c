@@ -201,8 +201,8 @@ int _rm_from_qr_list(QrListNode *node)
 	write_to_log(INFO, "%s - %s", "File removed from QR List", node->data.f_name);
 	free(node);
 	return 0;
-	error:
-		return -1;
+error:
+	return -1;
 }
 /*-------------------------------------------------------------------------*/
 /**
@@ -532,16 +532,19 @@ int rm_file_from_qr(char *filename)
 		goto err;
 	}
 	if (_rm_from_qr_list(rm_file) != 0) {
+		free(rm_file);
 		goto err;
 	}
 	if (unlink(p_rm)) {
 		write_to_log(URGENT, "%s - %d - %s : %s", __func__, __LINE__, "Unable to remove file from stock, list will not be saved", p_rm);
+		free(rm_file);
 		goto err;
 	}
 	if (save_qr_list(-1) == 0) {
 		write_to_log(INFO, "File %s removed from QR", p_rm);
 	}
 	free(p_rm);
+	free(rm_file);
 	return 0;
 err:
 	free(p_rm);
