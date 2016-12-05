@@ -189,11 +189,11 @@ int _save_main_pid(pid_t pid)
 {
 	int fd;
 	char *pid_s;
-	if ((pid_s = malloc(PID_MAX_S)) == NULL) {
+	if ((pid_s = malloc(sizeof(char)*25)) == NULL) {
 		perror("KL: Unable to allocate memory");
 		return -1;
 	}
-	if (snprintf(pid_s, PID_MAX_S, "%d", pid) < 0) {
+	if (snprintf(pid_s, sizeof(char)*25, "%d", pid) < 0) {
 		write_to_log(FATAL, "[KL] Unable to create the pid file path");
 		goto error;
 	}
@@ -207,7 +207,7 @@ int _save_main_pid(pid_t pid)
 		perror("KL: Unable to open pid file");
 		goto error;
 	}
-	if (write(fd, pid_s, strlen(pid_s) + 1) < 0) {
+	if (write(fd, pid_s, strlen(pid_s)) < 0) {
 		perror("KL: Unable to write process id in the pid file");
 		close(fd);
 		goto error;
@@ -234,7 +234,7 @@ int _get_stored_pid()
 	int fd;
 	int pid;
 	char *pid_s;
-	if ((pid_s = malloc(PID_MAX_S)) == NULL) {
+	if ((pid_s = malloc(sizeof(char)*25)) == NULL) {
 		perror("KL: Unable to allocate memory");
 		return -1;
 	}
@@ -311,7 +311,7 @@ int _check_other_instance()
 				return -1;
 			}
 
-			if (!strcmp(output, "klearnel -start") || !strcmp(output, "klearnel -restart")) {
+			if (!strcmp(output, "klearnel -start") || !strcmp(output, "klearnel -restart") || !strcmp(output, "klearnel")) {
 				printf("[\e[31mNOK\e[0m]\n");
 				pclose(fp);
 				free(com);
