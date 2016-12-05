@@ -193,7 +193,7 @@ int _save_main_pid(pid_t pid)
 		perror("KL: Unable to allocate memory");
 		return -1;
 	}
-	if (snprintf(pid_s, sizeof(pid_s), "%d", pid) < 0) {
+	if (snprintf(pid_s, sizeof(char)*25, "%d", pid) < 0) {
 		write_to_log(FATAL, "[KL] Unable to create the pid file path");
 		goto error;
 	}
@@ -288,7 +288,7 @@ int _check_other_instance()
 				return -1;				
 			}
 
-			if (snprintf(com, sizeof(com), "/bin/ps -p %d -o comm=", old_pid) <= 0) {
+			if (snprintf(com, sizeof(char)*256, "/bin/ps -p %d -o comm=", old_pid) <= 0) {
 				perror("KL: Unable to create check up command");
 				free(com);
 				return -1;
